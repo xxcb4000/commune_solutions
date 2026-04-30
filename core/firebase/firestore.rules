@@ -1,12 +1,16 @@
 rules_version = '2';
 
-// Spike Phase 4c rules.
-// Reads : ouvert aux utilisateurs authentifiés (FirebaseAuth).
-// Writes : interdits côté client. Le seeding initial se fait via le script
-// `tools/seed-firestore.py` (rules temporairement permissives) ou via l'admin
-// SDK (à mettre en place pour le pipeline modules officiels).
 service cloud.firestore {
   match /databases/{database}/documents {
+    // _config/* : tenant runtime config (modules activés, tabbar). Lu par
+    // le preloader AVANT login, donc public read. Écriture réservée aux
+    // admins (custom claim `admin: true`, set par script séparé sur les
+    // users du dashboard).
+    match /_config/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    // Reste : lecture authentifiée, écriture refusée côté client.
     match /{document=**} {
       allow read: if request.auth != null;
       allow write: if false;
