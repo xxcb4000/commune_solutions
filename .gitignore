@@ -26,6 +26,7 @@ spike/ios/CommuneSpike.xcodeproj/
 # Secrets — Firebase configs are project-specific, set up locally per repo
 GoogleService-Info.plist
 google-services.json
+dashboard/firebase-config-spike-*.json
 .env
 .env.local
 *.keystore

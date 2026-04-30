@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commune Solutions — Dashboard admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="root"></div>
+
+    <template id="picker-template">
+        <header class="hero">
+            <h1>Commune Solutions</h1>
+            <p>Sélectionnez votre commune</p>
+        </header>
+        <main class="picker">
+            <button class="card-btn" data-tenant="spike-1">
+                <strong>Démo A</strong>
+                <span>Tenant test #1</span>
+            </button>
+            <button class="card-btn" data-tenant="spike-2">
+                <strong>Démo B</strong>
+                <span>Tenant test #2</span>
+            </button>
+        </main>
+        <footer class="footnote">
+            Phase 10 — dashboard admin spike. Read-only.
+        </footer>
+    </template>
+
+    <template id="login-template">
+        <header class="hero">
+            <h1>Connexion</h1>
+            <p data-slot="tenant-label"></p>
+        </header>
+        <main class="login">
+            <form id="login-form">
+                <label>
+                    Email
+                    <input type="email" name="email" autocomplete="email" required>
+                </label>
+                <label>
+                    Mot de passe
+                    <input type="password" name="password" autocomplete="current-password" required>
+                </label>
+                <button type="submit">Se connecter</button>
+                <button type="button" class="link" id="back-to-picker">Changer de commune</button>
+                <p class="error" data-slot="error"></p>
+            </form>
+        </main>
+    </template>
+
+    <template id="dashboard-template">
+        <header class="topbar">
+            <div>
+                <h1 data-slot="tenant-label"></h1>
+                <p class="user" data-slot="user-email"></p>
+            </div>
+            <button class="link" id="logout-btn">Déconnexion</button>
+        </header>
+        <nav class="tabs">
+            <button data-tab="polls" class="active">Sondages</button>
+            <button data-tab="events">Événements</button>
+            <button data-tab="articles">Actualités</button>
+            <button data-tab="info">Infos</button>
+        </nav>
+        <main class="content" id="content"></main>
+    </template>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

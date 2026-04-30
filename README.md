@@ -26,7 +26,10 @@ commune_solutions/
 │   └── renderer-android/        # Gradle library — :renderer (entrée: CommuneShell)
 ├── modules-official/            # Modules officiels (manifest + screens + data)
 │   ├── actualites/              #   - feed + détail articles
-│   └── info/                    #   - écran statique infos pratiques
+│   ├── agenda/                  #   - liste + détail events + calendar primitive
+│   ├── sondages/                #   - liste + détail polls (radio + scale)
+│   └── info/                    #   - infos pratiques + form contact
+├── dashboard/                   # Shell admin web (read-only Firestore par tenant)
 ├── tenants/                     # Configs tenant (assemblage modules + shell)
 │   └── spike/                   #   - tenant de test consommé par le spike
 │       └── app.json             #     tabbar pointant vers actualites:feed + info:main
@@ -62,7 +65,7 @@ Le spike reste comme banc de test consommateur de la library — toute évolutio
 | 7. Backend Python réel | À faire | Remplacer `tools/dev-server.py` par des Cloud Functions Python par projet Firebase. Premier vrai pipeline `cf:` (vs `firestore:` pour la data simple) |
 | 8. Form fields DSL | À faire | Primitives `field.email`, `field.secret`, `field.text`, etc. + form state + action `submit`. Débloque les modules type Sondages, e-guichet, contact |
 | 9. Premier vrai module greenfield | À faire | Un module officiel construit from scratch sur le contrat. Probable : Sondages (couvre les patterns form + cross-module + capabilities) |
-| 10. Dashboard admin commune | À faire | Shell admin web (Next.js ou autre) consommant le même DSL. Sections : modules activés, config tenant, modération, billing |
+| 10. Dashboard admin commune | ✅ Fait (read-only) | `dashboard/` — single-page HTML + ES modules + Firebase Web SDK (CDN, pas de build). Tenant picker → login → 4 onglets (Sondages, Événements, Actualités, Infos) lus depuis Firestore par tenant. Édition + dashboard DSL-driven = phase ultérieure |
 | 11. Marketplace web v0 | À faire | Site `communesolutions.be/marketplace`, validation manifest CI, capabilities UX, distinction officiel/communauté |
 | 12. Onboarding première commune | À faire | Provisioning auto (Firebase project + sous-domaine + tenant config). Choix de la commune pilote = ouvert |
 
@@ -84,4 +87,12 @@ Les configs Firebase (`GoogleService-Info.plist`, `google-services.json`) et les
 6. Mettre à jour l'IP du Mac dans `spike/ios/Sources/SpikeApp.swift` et `spike/android/app/src/main/kotlin/be/communesolutions/spike/MainActivity.kt`.
 7. iOS : `cd spike/ios && xcodegen generate && xcodebuild -scheme CommuneSpike ...`
 8. Android : `cd spike/android && ./gradlew :app:assembleDebug`
+9. Dashboard admin web :
+   ```sh
+   firebase apps:create --project <id> WEB "Commune Spike Web"
+   firebase apps:sdkconfig --project <id> WEB <APP_ID> > dashboard/firebase-config-spike-1.json
+   # idem pour spike-2
+   cd dashboard && python3 -m http.server 8770
+   # → http://localhost:8770
+   ```
 
