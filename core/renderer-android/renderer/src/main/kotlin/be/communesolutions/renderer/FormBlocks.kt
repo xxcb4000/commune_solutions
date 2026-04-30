@@ -36,6 +36,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import androidx.compose.foundation.clickable
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -55,7 +57,7 @@ val LocalFormState = compositionLocalOf { FormState() }
 val LocalCurrentBaseURL = compositionLocalOf<String?> { null }
 
 @Composable
-fun FieldBlock(node: DSLNode) {
+fun FieldBlock(node: DSLNode, scope: DSLScope) {
     val form = LocalFormState.current
     val kind = node.kind ?: "text"
     val id = node.id ?: ""
@@ -109,6 +111,8 @@ fun FieldBlock(node: DSLNode) {
                 )
                 Text(label, modifier = Modifier.fillMaxWidth())
             }
+            "radio" -> RadioGroup(node = node, fieldId = id, scope = scope)
+            "scale" -> ScaleField(node = node, fieldId = id)
             else -> OutlinedTextField(
                 value = form.values[id] ?: "",
                 onValueChange = { form.values[id] = it },
@@ -118,6 +122,84 @@ fun FieldBlock(node: DSLNode) {
             )
         }
     }
+}
+
+@Composable
+private fun RadioGroup(node: DSLNode, fieldId: String, scope: DSLScope) {
+    val form = LocalFormState.current
+    val opts = resolveOptions(node, scope)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        for (opt in opts) {
+            val selected = (form.values[fieldId] ?: "") == opt.id
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickableNoRipple { form.values[fieldId] = opt.id }
+                    .padding(vertical = 4.dp)
+            ) {
+                androidx.compose.material3.RadioButton(
+                    selected = selected,
+                    onClick = { form.values[fieldId] = opt.id }
+                )
+                Text(opt.label)
+            }
+        }
+    }
+}
+
+private fun resolveOptions(node: DSLNode, scope: DSLScope): List<DSLOption> {
+    node.options?.let { return it }
+    val path = node.iterable ?: return emptyList()
+    val arr = scope.lookup(path) as? kotlinx.serialization.json.JsonArray ?: return emptyList()
+    return arr.mapNotNull { el ->
+        val obj = el as? JsonObject ?: return@mapNotNull null
+        val id = (obj["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+        val label = (obj["label"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+        DSLOption(id, label)
+    }
+}
+
+@Composable
+private fun ScaleField(node: DSLNode, fieldId: String) {
+    val form = LocalFormState.current
+    val lower = node.min ?: 1
+    val upper = node.max ?: 10
+    val current = (form.values[fieldId]?.toIntOrNull() ?: lower).toFloat()
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = current.toInt().toString(),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.fillMaxWidth(0.95f))
+            Text(
+                text = "$lower–$upper",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        androidx.compose.material3.Slider(
+            value = current,
+            onValueChange = { form.values[fieldId] = it.toInt().toString() },
+            valueRange = lower.toFloat()..upper.toFloat(),
+            steps = (upper - lower - 1).coerceAtLeast(0)
+        )
+    }
+}
+
+@Composable
+private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier {
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    return this.clickable(
+        interactionSource = source,
+        indication = null,
+        onClick = onClick
+    )
 }
 
 @Composable

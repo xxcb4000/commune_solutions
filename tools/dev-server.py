@@ -115,8 +115,15 @@ def cf_info_submit_contact(payload):
     return {"ok": True, "received": payload}
 
 
+def cf_sondages_submit_vote(payload):
+    """Logs a vote. Real prod = persist to Firestore via Admin SDK."""
+    print(f"[vote] {payload!r}", flush=True)
+    return {"ok": True, "received": payload}
+
+
 CF_POST_ENDPOINTS = {
     "info/submit_contact": cf_info_submit_contact,
+    "sondages/submit_vote": cf_sondages_submit_vote,
 }
 
 

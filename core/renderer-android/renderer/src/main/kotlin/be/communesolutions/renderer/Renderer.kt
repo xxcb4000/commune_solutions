@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Home
@@ -489,7 +490,7 @@ fun DSLView(node: DSLNode, scope: DSLScope, nav: NavController) {
         "if" -> IfBlock(node, scope, nav)
         "tabbar" -> TabBarRoot(node)
         "calendar" -> CalendarBlock(node, scope)
-        "field" -> FieldBlock(node)
+        "field" -> FieldBlock(node, scope)
         "button" -> ButtonBlock(node, scope)
         else -> Text(
             "Unknown: ${node.type}",
@@ -979,5 +980,6 @@ private fun iconForName(name: String): ImageVector = when (name) {
     "calendar" -> Icons.Filled.CalendarToday
     "calendar.day" -> Icons.Filled.Event
     "map" -> Icons.Filled.Map
+    "chart.bar.fill" -> Icons.Filled.BarChart
     else -> Icons.Filled.Apps
 }

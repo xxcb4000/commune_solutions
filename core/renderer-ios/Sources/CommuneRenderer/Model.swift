@@ -81,6 +81,11 @@ enum DSLValue: Codable {
     }
 }
 
+struct DSLOption: Decodable {
+    let id: String
+    let label: String
+}
+
 struct DSLAction: Codable {
     let type: String
     let to: String?
@@ -133,12 +138,15 @@ final class DSLNode: Decodable {
     let placeholder: String?
     let required: Bool?
     let minLines: Int?
+    let options: [DSLOption]?
+    let min: Int?
+    let max: Int?
 
     enum CodingKeys: String, CodingKey {
         case type, title, subtitle, value, url, imageUrl, style, color
         case height, spacing, padding, aspectRatio, refreshable, condition
         case action, children, child, then, tabs, dateField
-        case kind, id, label, placeholder, required, minLines
+        case kind, id, label, placeholder, required, minLines, options, min, max
         case iterable = "in"
         case alias = "as"
         case elseNode = "else"

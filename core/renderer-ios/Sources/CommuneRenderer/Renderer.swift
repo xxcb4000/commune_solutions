@@ -370,7 +370,7 @@ struct DSLView: View {
         case "if":       IfBlock(node: node, scope: scope)
         case "tabbar":   TabBarBlock(node: node, scope: scope)
         case "calendar": CalendarBlock(node: node, scope: scope)
-        case "field":    FieldBlock(node: node)
+        case "field":    FieldBlock(node: node, scope: scope)
         case "button":   ButtonBlock(node: node, scope: scope)
         default:
             Text("Unknown node: \(node.type)")

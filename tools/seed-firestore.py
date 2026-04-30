@@ -97,6 +97,31 @@ INFO_A = {
     "headerImageUrl": "https://picsum.photos/seed/demo-a-mc/900/506",
 }
 
+POLLS_A = [
+    {
+        "id": "poll-001",
+        "title": "Plan vélo communal",
+        "description": "Aménagement de la mobilité douce — soumis au prochain conseil.",
+        "question": "Êtes-vous favorable au plan vélo proposé ?",
+        "options": [
+            {"id": "yes", "label": "Oui, prioritaire"},
+            {"id": "later", "label": "Plus tard"},
+            {"id": "no", "label": "Non"},
+        ],
+    },
+    {
+        "id": "poll-002",
+        "title": "Aire de jeux du parc central",
+        "description": "Quel type de structure remplacer en priorité ?",
+        "question": "Votre choix de structure ?",
+        "options": [
+            {"id": "swing", "label": "Balançoires"},
+            {"id": "slide", "label": "Toboggan"},
+            {"id": "climb", "label": "Mur d'escalade"},
+        ],
+    },
+]
+
 # ─── Tenant Démo B (commune-spike-2) ─────────────────────────────────
 
 EVENTS_B = [
@@ -154,23 +179,43 @@ INFO_B = {
     "headerImageUrl": "https://picsum.photos/seed/demo-b-mc/900/506",
 }
 
+POLLS_B = [
+    {
+        "id": "poll-101",
+        "title": "Sentiers et balisage",
+        "description": "Nouveau parcours signalé dans les Hautes Fagnes communales.",
+        "question": "Quel type de balisage privilégier ?",
+        "options": [
+            {"id": "wood", "label": "Bois sculpté"},
+            {"id": "metal", "label": "Métal émaillé"},
+            {"id": "qr", "label": "QR codes + numérique"},
+        ],
+    },
+]
+
 
 # ─── Plumbing ────────────────────────────────────────────────────────
 
+def to_value(v):
+    if v is None:
+        return {"nullValue": None}
+    if isinstance(v, bool):
+        return {"booleanValue": v}
+    if isinstance(v, int):
+        return {"integerValue": str(v)}
+    if isinstance(v, float):
+        return {"doubleValue": v}
+    if isinstance(v, str):
+        return {"stringValue": v}
+    if isinstance(v, list):
+        return {"arrayValue": {"values": [to_value(x) for x in v]}}
+    if isinstance(v, dict):
+        return {"mapValue": {"fields": {k: to_value(val) for k, val in v.items()}}}
+    return {"stringValue": str(v)}
+
+
 def to_fields(d):
-    fields = {}
-    for k, v in d.items():
-        if isinstance(v, bool):
-            fields[k] = {"booleanValue": v}
-        elif isinstance(v, int):
-            fields[k] = {"integerValue": str(v)}
-        elif isinstance(v, float):
-            fields[k] = {"doubleValue": v}
-        elif isinstance(v, str):
-            fields[k] = {"stringValue": v}
-        else:
-            fields[k] = {"stringValue": str(v)}
-    return fields
+    return {k: to_value(v) for k, v in d.items()}
 
 
 def upsert(project, doc_path, data):
@@ -193,18 +238,20 @@ def upsert(project, doc_path, data):
         sys.exit(1)
 
 
-def seed(project, events, articles, info):
+def seed(project, events, articles, info, polls):
     print(f"Seeding {project}…")
     for evt in events:
         upsert(project, f"events/{evt['id']}", evt)
     for art in articles:
         upsert(project, f"articles/{art['id']}", art)
     upsert(project, "info/main", info)
+    for poll in polls:
+        upsert(project, f"polls/{poll['id']}", poll)
 
 
 def main():
-    seed("commune-spike-1", EVENTS_A, ARTICLES_A, INFO_A)
-    seed("commune-spike-2", EVENTS_B, ARTICLES_B, INFO_B)
+    seed("commune-spike-1", EVENTS_A, ARTICLES_A, INFO_A, POLLS_A)
+    seed("commune-spike-2", EVENTS_B, ARTICLES_B, INFO_B, POLLS_B)
 
 
 if __name__ == "__main__":

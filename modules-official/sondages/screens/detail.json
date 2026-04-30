@@ -1,0 +1,58 @@
+{
+  "screen": "detail",
+  "navigation": {
+    "title": "{{ poll.title }}",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 20,
+        "children": [
+          {
+            "type": "text",
+            "value": "{{ poll.question }}",
+            "style": "title3"
+          },
+          {
+            "type": "text",
+            "value": "{{ poll.description }}",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "field",
+            "kind": "radio",
+            "id": "choice",
+            "label": "Votre choix",
+            "in": "poll.options"
+          },
+          {
+            "type": "field",
+            "kind": "scale",
+            "id": "confidence",
+            "label": "Niveau de certitude (1 = peu sûr · 10 = certain)",
+            "min": 1,
+            "max": 10
+          },
+          {
+            "type": "button",
+            "label": "Voter",
+            "action": {
+              "type": "cf",
+              "endpoint": "submit_vote",
+              "body": {
+                "pollId": "{{ poll.id }}",
+                "choice": "{{ form.choice }}",
+                "confidence": "{{ form.confidence }}"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

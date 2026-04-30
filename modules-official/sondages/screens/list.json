@@ -1,0 +1,54 @@
+{
+  "screen": "list",
+  "navigation": {
+    "title": "Sondages",
+    "displayMode": "large"
+  },
+  "data": {
+    "polls": "firestore:polls"
+  },
+  "view": {
+    "type": "scroll",
+    "refreshable": true,
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 16,
+        "padding": 16,
+        "children": [
+          {
+            "type": "for",
+            "in": "polls",
+            "as": "poll",
+            "child": {
+              "type": "card",
+              "action": {
+                "type": "navigate",
+                "to": "detail",
+                "with": { "poll": "{{ poll }}" }
+              },
+              "child": {
+                "type": "vstack",
+                "spacing": 6,
+                "padding": 14,
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "{{ poll.title }}",
+                    "style": "title3"
+                  },
+                  {
+                    "type": "text",
+                    "value": "{{ poll.description }}",
+                    "style": "body",
+                    "color": "secondary"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

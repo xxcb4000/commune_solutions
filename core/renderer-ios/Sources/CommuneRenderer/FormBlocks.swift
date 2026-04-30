@@ -16,6 +16,7 @@ final class FormState: ObservableObject {
 
 struct FieldBlock: View {
     let node: DSLNode
+    let scope: DSLScope
     @EnvironmentObject var form: FormState
 
     var body: some View {
@@ -53,7 +54,7 @@ struct FieldBlock: View {
                 .textFieldStyle(.roundedBorder)
         case "text.long":
             TextField(placeholder, text: binding, axis: .vertical)
-                .lineLimit((node.minLines ?? 4) ... max(8, node.minLines ?? 4))
+                .lineLimit((node.minLines ?? 4) ... Swift.max(8, node.minLines ?? 4))
                 .textFieldStyle(.roundedBorder)
         case "yesno":
             let boolBinding = Binding<Bool>(
@@ -61,9 +62,80 @@ struct FieldBlock: View {
                 set: { form.values[id] = $0 ? "true" : "false" }
             )
             Toggle(isOn: boolBinding) { Text(label) }
+        case "radio":
+            RadioGroup(node: node, fieldId: id, scope: scope)
+        case "scale":
+            ScaleField(node: node, fieldId: id)
         default:  // "text"
             TextField(placeholder, text: binding)
                 .textFieldStyle(.roundedBorder)
+        }
+    }
+}
+
+private struct RadioGroup: View {
+    let node: DSLNode
+    let fieldId: String
+    let scope: DSLScope
+    @EnvironmentObject var form: FormState
+
+    var body: some View {
+        let opts = resolveOptions()
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(opts, id: \.id) { opt in
+                let selected = (form.values[fieldId] ?? "") == opt.id
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                        .foregroundStyle(selected ? Color.accentColor : .secondary)
+                    Text(opt.label)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    form.values[fieldId] = opt.id
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func resolveOptions() -> [DSLOption] {
+        if let opts = node.options { return opts }
+        guard let path = node.iterable else { return [] }
+        let items = scope.lookup(path)?.arrayValue ?? []
+        return items.compactMap { v -> DSLOption? in
+            guard case .object(let dict) = v,
+                  case .string(let id) = dict["id"] ?? .null,
+                  case .string(let label) = dict["label"] ?? .null else { return nil }
+            return DSLOption(id: id, label: label)
+        }
+    }
+}
+
+private struct ScaleField: View {
+    let node: DSLNode
+    let fieldId: String
+    @EnvironmentObject var form: FormState
+
+    var body: some View {
+        let lower = node.min ?? 1
+        let upper = node.max ?? 10
+        let current = Double(form.values[fieldId] ?? "") ?? Double(lower)
+        let binding = Binding<Double>(
+            get: { current },
+            set: { form.values[fieldId] = String(Int($0.rounded())) }
+        )
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("\(Int(current.rounded()))")
+                    .font(.title3.weight(.semibold))
+                Spacer()
+                Text("\(lower)–\(upper)")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Slider(value: binding, in: Double(lower)...Double(upper), step: 1)
         }
     }
 }

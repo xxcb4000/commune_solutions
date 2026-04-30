@@ -64,6 +64,15 @@ data class DSLNode(
     val placeholder: String? = null,
     val required: Boolean? = null,
     val minLines: Int? = null,
+    val options: List<DSLOption>? = null,
+    val min: Int? = null,
+    val max: Int? = null,
+)
+
+@Serializable
+data class DSLOption(
+    val id: String,
+    val label: String,
 )
 
 @Serializable

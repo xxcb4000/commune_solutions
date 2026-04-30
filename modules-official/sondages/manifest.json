@@ -1,0 +1,10 @@
+{
+  "id": "sondages",
+  "version": "0.1.0",
+  "displayName": "Sondages",
+  "icon": "chart.bar.fill",
+  "screens": {
+    "list": "screens/list.json",
+    "detail": "screens/detail.json"
+  }
+}

@@ -4,6 +4,7 @@
   "modules": [
     { "id": "actualites", "version": "0.1.0" },
     { "id": "agenda", "version": "0.1.0" },
+    { "id": "sondages", "version": "0.1.0" },
     { "id": "info", "version": "0.1.0" }
   ],
   "view": {
@@ -11,6 +12,7 @@
     "tabs": [
       { "title": "Actualités", "icon": "newspaper", "screen": "actualites:feed" },
       { "title": "Agenda", "icon": "calendar", "screen": "agenda:list" },
+      { "title": "Sondages", "icon": "chart.bar.fill", "screen": "sondages:list" },
       { "title": "Infos", "icon": "info.circle", "screen": "info:main" }
     ]
   }
