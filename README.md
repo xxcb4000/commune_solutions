@@ -66,7 +66,7 @@ Le spike reste comme banc de test consommateur de la library — toute évolutio
 | 8. Form fields DSL | ✅ Fait | Primitives `field.email`, `field.secret`, `field.text`, `field.text.long`, `field.yesno`, `field.radio`, `field.scale` + form state + action `cf` |
 | 9. Premier vrai module greenfield | ✅ Fait | Module `sondages` construit from scratch sur le contrat (3 sondages, vote via CF, résultats par poll) |
 | 10. Dashboard admin commune | ✅ Fait (read-only) | `dashboard/` — single-page HTML + ES modules + Firebase Web SDK (CDN, pas de build). Tenant picker → login → 4 onglets (Sondages, Événements, Actualités, Infos) lus depuis Firestore par tenant. Édition + dashboard DSL-driven = phase ultérieure |
-| 11. Marketplace web v0 | À faire | Site `communesolutions.be/marketplace`, validation manifest CI, capabilities UX, distinction officiel/communauté |
+| 11. Marketplace web v0 | ✅ Fait | `marketplace/` — site statique servi à `communesolutions.be/marketplace` via Firebase Hosting (projet `be-mde-commune-notification`, site `commune-solutions`). Catalogue des 4 modules officiels + page détail (capabilities style permissions Android, écrans, auteur, licence). Manifests enrichis (`description`, `author`, `licence`, `capabilities`). Build unifié landing + marketplace via `tools/build-site.sh`. Validation manifest via `tools/validate-manifests.py` |
 | 12. Onboarding première commune | À faire | Provisioning auto (Firebase project + sous-domaine + tenant config). Choix de la commune pilote = ouvert |
 
 ## Setup local
