@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarToday
@@ -653,7 +654,20 @@ fun CardBlock(node: DSLNode, scope: DSLScope, nav: NavController) {
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = clickableModifier
     ) {
-        node.child?.let { DSLView(it, scope, nav) }
+        Box(modifier = Modifier.fillMaxWidth()) {
+            node.child?.let { DSLView(it, scope, nav) }
+            if (node.action?.type == "navigate") {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(20.dp)
+                )
+            }
+        }
     }
 }
 

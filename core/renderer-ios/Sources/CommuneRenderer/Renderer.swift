@@ -525,6 +525,17 @@ private struct CardBlock: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(alignment: .bottomTrailing) {
+            // Disclosure indicator on tappable navigate cards (Apple
+            // List-row convention). Logout/cf cards keep their explicit
+            // labels, so no chevron there.
+            if node.action?.type == "navigate" {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
+                    .padding(12)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color(.separator).opacity(0.4), lineWidth: 0.5)
