@@ -52,8 +52,8 @@ private struct TenantPicker: View {
                     .foregroundStyle(.secondary)
             }
             VStack(spacing: 12) {
-                pickerCard(title: "Awans", subtitle: "Tenant test #1", id: "spike")
-                pickerCard(title: "Jalhay", subtitle: "Tenant test #2", id: "spike-2")
+                pickerCard(title: "Démo A", subtitle: "Tenant test #1", id: "spike")
+                pickerCard(title: "Démo B", subtitle: "Tenant test #2", id: "spike-2")
             }
             Spacer()
             Text("Phase 4a — choix mock. Auth Firebase à venir en 4b.")

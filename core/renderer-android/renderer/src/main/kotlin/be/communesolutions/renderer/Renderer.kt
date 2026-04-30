@@ -148,9 +148,9 @@ private fun TenantPicker(onPick: (String) -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(24.dp))
-        PickerCard(title = "Awans", subtitle = "Tenant test #1") { onPick("spike") }
+        PickerCard(title = "Démo A", subtitle = "Tenant test #1") { onPick("spike") }
         Spacer(Modifier.height(12.dp))
-        PickerCard(title = "Jalhay", subtitle = "Tenant test #2") { onPick("spike-2") }
+        PickerCard(title = "Démo B", subtitle = "Tenant test #2") { onPick("spike-2") }
         Spacer(Modifier.height(32.dp))
         Text(
             text = "Phase 4a — choix mock. Auth Firebase à venir en 4b.",

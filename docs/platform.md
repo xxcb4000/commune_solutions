@@ -5,7 +5,7 @@
 
 ## Les deux chantiers
 
-L'app actuelle (Awans) est à 99% de complétion fonctionnelle. La suite, ambitieuse, se joue sur deux axes simultanés :
+La plateforme se construit greenfield. Elle est motivée par l'expérience civic-tech de la team. Deux axes simultanés :
 
 1. **Templatiser pour embarquer d'autres communes** — multi-tenant white-label : la même stack iOS + Android + dashboard servant N communes wallonnes, chacune avec son branding, ses contenus, son sous-domaine `<commune>.communesolutions.be`.
 
@@ -65,7 +65,7 @@ Ces deux chantiers sont indissociables : la modularité justifie la mutualisatio
 | Rues canoniques (BeST) | Réplication au provisioning depuis dump fédéral, filtrage par code INS commune |
 | Catalogue démarches iMio | Déclaratif dans le module e-guichet de chaque commune |
 | Agenda culturel régional | Pas de partage en MVP. À terme : module fédéré qui agrège des endpoints publics par commune |
-| Identifiants utilisateurs | Strict tenant : un user d'Awans n'existe pas dans le tenant Liège |
+| Identifiants utilisateurs | Strict tenant : un user d'une commune n'existe pas dans le tenant d'une autre |
 
 ## Contrat module — `manifest.yaml`
 
@@ -91,7 +91,7 @@ ownedCollections:
 capabilities:
   user.read: [rue, adressePostale, canVote, status]
   module.read:
-    - awans_streets/{*}
+    - streets/{*}
   fcm.send: { topics: [sondages-new] }
   cloudFunctions: [submit_response, get_list, get_responses, delete]
 
@@ -184,7 +184,7 @@ ownedCollections:
 
 capabilities:
   storage: { read: ["articles/{*}"], write: ["articles/{*}"] }
-  external.http: [api.openai.com, graph.facebook.com, www.awans.be]
+  external.http: [api.openai.com, graph.facebook.com, www.commune.example]
   fcm.send: { topics: [news] }
 
 # Secrets fournis par la commune via dashboard (Google Secret Manager)
@@ -471,7 +471,7 @@ Au lifecycle du module :
 - **Update** : si `schedule` ou `handler` change → update job
 - **Disable** : suppression des jobs (pas d'orphelins)
 
-Élimine la dette actuelle d'Awans (jobs créés à la main via `gcloud`, oubliés au déploiement). Source de vérité = manifest.
+Évite la dette typique des apps civic-tech communales (jobs créés à la main via `gcloud`, oubliés au déploiement). Source de vérité = manifest.
 
 ## Secrets commune — `secrets`
 
@@ -610,7 +610,7 @@ Quand `moderation: true` :
 - **Champs auto-injectés** : `status` (`pending`/`active`/`rejected`), `visible`, `proposed_by` (uid), `proposed_by_email`, `proposed_at`, `moderated_by`, `moderated_at`, `moderation_reason`
 - **RLS standards** : citoyens créent en `pending`, admin lit/écrit tout, anonymes lisent uniquement les `visible: true`
 - **CFs standards exposées** : `<module>.list_pending()`, `<module>.approve(id)`, `<module>.reject(id, reason)`
-- **Sync auto** `status` ↔ `visible` (résout la dette historique d'Awans où il fallait les synchroniser à la main)
+- **Sync auto** `status` ↔ `visible` (évite la dette typique où il fallait les synchroniser à la main)
 - **Contribution auto** à l'extension point `dashboard:moderation.pending` — l'admin voit tout ce qui attend dans un widget unifié
 
 C'est le premier vrai cas où le framework **offre** une abstraction (pas juste contraindre un contrat). Ça fait gagner ~200 lignes de code et de tests par module concerné.
@@ -686,7 +686,7 @@ Concerns transverses (gestion users, modération, billing si un jour, audit log)
 
 ### Distinction officiel / communauté
 
-- **Officiel** (équipe core / Awans) : SLA, sécurité auditée, badge visible
+- **Officiel** (équipe core) : SLA, sécurité auditée, badge visible
 - **Communauté** (tiers) : review légère, "as is", admin commune voit clairement la distinction avant d'activer
 
 ## Marketplace — `communesolutions.be/marketplace`
@@ -742,7 +742,7 @@ Concerns transverses (gestion users, modération, billing si un jour, audit log)
 
 ### Gouvernance
 
-- **MVP** : Vincent BDFL, Awans = sponsor de référence
+- **MVP** : Vincent BDFL, première commune sponsor à confirmer (cf phase 12 de la roadmap README)
 - **À terme** : asbl ou structure portée par les communes adoptantes + UVCW (Union Villes et Communes Wallonie), puis intégration Région wallonne possible
 
 ## Décisions ouvertes

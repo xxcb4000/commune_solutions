@@ -79,7 +79,7 @@ Modifications à faire dans `docs/platform.md` :
 
 ## Recommandation pour la suite
 
-**GO sur le chantier plateforme — entièrement greenfield dans `commune_solutions/`. Awans reste hors périmètre.**
+**GO sur le chantier plateforme — entièrement greenfield dans `commune_solutions/`.**
 
 Par où commencer :
 

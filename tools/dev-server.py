@@ -28,7 +28,7 @@ def cf_agenda_get_events():
             "title": "Marché aux fleurs",
             "date": "samedi 3 mai · 9h–17h",
             "dateStart": "2026-05-03",
-            "location": "Place communale d'Awans",
+            "location": "Place communale",
             "imageUrl": "https://picsum.photos/seed/agenda-marche/900/506",
             "description": (
                 "Plus de **30 producteurs locaux** présents le samedi et le dimanche.\n\n"
@@ -66,10 +66,10 @@ def cf_agenda_get_events():
             "title": "Concert de printemps de l'Académie",
             "date": "vendredi 16 mai · 20h",
             "dateStart": "2026-05-16",
-            "location": "Église de Hognoul",
+            "location": "Église centrale",
             "imageUrl": "https://picsum.photos/seed/agenda-concert/900/506",
             "description": (
-                "L'Académie de musique d'Awans donne son concert de printemps.\n\n"
+                "L'Académie de musique communale donne son concert de printemps.\n\n"
                 "### Au programme\n\n"
                 "- Ensemble cordes (élèves intermédiaires)\n"
                 "- Ensemble vocal\n"
