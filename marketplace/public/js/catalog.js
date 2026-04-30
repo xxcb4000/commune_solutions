@@ -1,4 +1,6 @@
 // Charge l'agrégat de manifests, rend la grille, gère les filtres officiel/communauté.
+import { iconSvg } from "./icons.js";
+
 const grid = document.getElementById("catalog-grid");
 const filters = document.querySelectorAll(".filter");
 
@@ -27,7 +29,13 @@ function render() {
   });
 
   if (filtered.length === 0) {
-    grid.innerHTML = `<p class="loading">Aucun module dans cette catégorie pour le moment.</p>`;
+    grid.innerHTML = activeFilter === "community"
+      ? `<div class="empty-state">
+           <p><strong>Pas encore de module communautaire.</strong></p>
+           <p class="empty-state-sub">Le premier pourrait être le vôtre — guide complet dans
+             <a href="https://github.com/xxcb4000/commune_solutions/blob/main/docs/developers.md" target="_blank" rel="noopener">docs/developers.md</a>.</p>
+         </div>`
+      : `<p class="loading">Aucun module dans cette catégorie.</p>`;
     return;
   }
 
@@ -42,7 +50,10 @@ function card(m) {
   return `
     <a class="card" href="/marketplace/module?id=${encodeURIComponent(m.id)}">
       <div class="card-head">
-        <h3 class="card-title">${escape(m.displayName || m.id)}</h3>
+        <div class="card-head-text">
+          <div class="card-icon">${iconSvg(m.icon, { size: 22 })}</div>
+          <h3 class="card-title">${escape(m.displayName || m.id)}</h3>
+        </div>
         ${badge}
       </div>
       <p class="card-desc">${escape(m.description || "")}</p>

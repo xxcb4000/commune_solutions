@@ -149,6 +149,16 @@ a:hover { text-decoration: underline; }
   padding: 24px;
   text-align: center;
 }
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 48px 24px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.empty-state p { margin: 0 0 6px; color: var(--text); }
+.empty-state-sub { color: var(--text-muted) !important; font-size: 14px; }
 
 /* Module card ────────────────────────────────────────── */
 .card {
@@ -176,10 +186,28 @@ a:hover { text-decoration: underline; }
   justify-content: space-between;
   gap: 12px;
 }
+.card-head-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
 .card-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 .card-desc {
   margin: 0;

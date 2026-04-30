@@ -1,5 +1,7 @@
 // Page détail d'un module. Lit l'id depuis ?id=, retrouve le manifest dans
 // l'agrégat, rend les sections : description, capabilities, écrans, infos.
+import { iconSvg } from "./icons.js";
+
 const root = document.getElementById("module-root");
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
@@ -36,7 +38,7 @@ function render(m) {
 
   root.innerHTML = `
     <div class="module-head">
-      <div class="module-icon">${iconGlyph(m.icon)}</div>
+      <div class="module-icon">${iconSvg(m.icon, { size: 32 })}</div>
       <div class="module-head-text">
         <h1>${escape(m.displayName || m.id)}</h1>
         <p class="module-meta">
@@ -110,17 +112,6 @@ function capItem(c) {
       <span class="cap-type">${escape(c.type || "")}</span>
     </li>
   `;
-}
-
-// SF Symbol-ish → glyphe ASCII de fallback. Volontairement minimal en v0.
-function iconGlyph(name) {
-  const map = {
-    newspaper: "📰",
-    calendar: "📅",
-    "info.circle": "ⓘ",
-    "chart.bar.fill": "▥",
-  };
-  return map[name] || "▢";
 }
 
 function escape(str) {
