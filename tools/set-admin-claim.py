@@ -19,7 +19,8 @@ import sys
 import firebase_admin
 from firebase_admin import auth
 
-# (project_id, email) — le user doit déjà exister (créé via Firebase Auth)
+# (project_id, email) — le user doit déjà exister (créé via Firebase Auth).
+# Pour le spike, ces users sont les comptes admin du dashboard de chaque commune.
 TARGETS = [
     ("commune-spike-1", "demo-a@test.be"),
     ("commune-spike-2", "demo-b@test.be"),
