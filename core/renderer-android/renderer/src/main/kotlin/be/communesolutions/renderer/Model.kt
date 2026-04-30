@@ -13,6 +13,9 @@ data class DSLAction(
     val type: String,
     val to: String? = null,
     val with: Map<String, JsonElement>? = null,
+    val endpoint: String? = null,
+    val body: Map<String, JsonElement>? = null,
+    val onSuccess: Map<String, JsonElement>? = null,
 )
 
 @Serializable
@@ -54,6 +57,13 @@ data class DSLNode(
     val then: DSLNode? = null,
     @SerialName("else") val elseNode: DSLNode? = null,
     val tabs: List<DSLTab>? = null,
+    // Form primitives
+    val kind: String? = null,
+    val id: String? = null,
+    val label: String? = null,
+    val placeholder: String? = null,
+    val required: Boolean? = null,
+    val minLines: Int? = null,
 )
 
 @Serializable

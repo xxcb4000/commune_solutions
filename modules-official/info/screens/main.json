@@ -52,6 +52,29 @@
           },
           {
             "type": "card",
+            "action": { "type": "navigate", "to": "contact" },
+            "child": {
+              "type": "vstack",
+              "spacing": 4,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Nous écrire",
+                  "style": "headline",
+                  "color": "accent"
+                },
+                {
+                  "type": "text",
+                  "value": "Question, remarque, suggestion — réponse sous 48h.",
+                  "style": "caption",
+                  "color": "secondary"
+                }
+              ]
+            }
+          },
+          {
+            "type": "card",
             "action": { "type": "logout" },
             "child": {
               "type": "vstack",

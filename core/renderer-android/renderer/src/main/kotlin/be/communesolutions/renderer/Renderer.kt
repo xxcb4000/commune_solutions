@@ -117,7 +117,10 @@ fun CommuneShell(tenant: String? = null, baseURL: String? = null) {
             storedTenant = picked
         }
     } else {
-        CompositionLocalProvider(LocalLogout provides logout) {
+        CompositionLocalProvider(
+            LocalLogout provides logout,
+            LocalCurrentBaseURL provides baseURL
+        ) {
             // Recreate TenantHost (and its preloader state) when tenant changes.
             androidx.compose.runtime.key(activeTenant) {
                 TenantHost(tenantId = activeTenant, baseURL = baseURL)
@@ -367,6 +370,7 @@ fun ScreenView(
         mutableStateOf<Map<String, JsonElement>>(emptyMap())
     }
     val firebaseApp = LocalCurrentFirebaseApp.current
+    val form = remember(qualifiedScreen) { FormState() }
 
     LaunchedEffect(qualifiedScreen, firebaseApp) {
         if (firebaseApp != null) {
@@ -374,8 +378,12 @@ fun ScreenView(
         }
     }
 
-    val scope = remember(resolved, initialBindings, currentModule, firestoreData) {
+    // Form values are a SnapshotStateMap; reading inside the scope-builder
+    // makes the scope re-derive on each form change (no explicit remember key
+    // needed — Compose tracks the snapshot reads).
+    val scope = run {
         var s = DSLScope(initialBindings)
+        s = s.adding("form", form.toJsonElement())
         for ((key, source) in resolved.data ?: emptyMap()) {
             if (currentModule == null) continue
             when {
@@ -402,11 +410,16 @@ fun ScreenView(
         }
         s
     }
+    @Suppress("UNUSED_VARIABLE")
+    val _formProvider = form  // keep `form` in scope; provided below
 
     val title = Template.resolve(resolved.navigation?.title ?: "", scope)
     val showBack = nav.previousBackStackEntry != null
 
-    CompositionLocalProvider(LocalCurrentModule provides currentModule) {
+    CompositionLocalProvider(
+        LocalCurrentModule provides currentModule,
+        LocalFormState provides form
+    ) {
         Scaffold(
             topBar = {
                 if (title.isNotEmpty() || showBack) {
@@ -476,6 +489,8 @@ fun DSLView(node: DSLNode, scope: DSLScope, nav: NavController) {
         "if" -> IfBlock(node, scope, nav)
         "tabbar" -> TabBarRoot(node)
         "calendar" -> CalendarBlock(node, scope)
+        "field" -> FieldBlock(node)
+        "button" -> ButtonBlock(node, scope)
         else -> Text(
             "Unknown: ${node.type}",
             color = Color.Red,

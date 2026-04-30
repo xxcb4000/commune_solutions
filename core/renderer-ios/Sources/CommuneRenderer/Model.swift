@@ -85,6 +85,9 @@ struct DSLAction: Codable {
     let type: String
     let to: String?
     let with: [String: DSLValue]?
+    let endpoint: String?              // for `cf`
+    let body: [String: DSLValue]?      // for `cf`
+    let onSuccess: [String: DSLValue]?  // optional follow-up (toast, navigate)
 }
 
 struct DSLTab: Decodable {
@@ -123,11 +126,19 @@ final class DSLNode: Decodable {
     let then: DSLNode?
     let elseNode: DSLNode?
     let tabs: [DSLTab]?
+    // Form primitives:
+    let kind: String?         // "text" | "email" | "secret" | "text.long" | "yesno"
+    let id: String?
+    let label: String?
+    let placeholder: String?
+    let required: Bool?
+    let minLines: Int?
 
     enum CodingKeys: String, CodingKey {
         case type, title, subtitle, value, url, imageUrl, style, color
         case height, spacing, padding, aspectRatio, refreshable, condition
         case action, children, child, then, tabs, dateField
+        case kind, id, label, placeholder, required, minLines
         case iterable = "in"
         case alias = "as"
         case elseNode = "else"

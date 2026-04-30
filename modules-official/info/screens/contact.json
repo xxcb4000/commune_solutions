@@ -1,0 +1,76 @@
+{
+  "screen": "contact",
+  "navigation": {
+    "title": "Nous écrire",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 16,
+        "padding": 20,
+        "children": [
+          {
+            "type": "text",
+            "value": "Vous avez une question ou une remarque ? Le service citoyen vous répond sous 48h ouvrables.",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "name",
+            "label": "Nom complet",
+            "placeholder": "Prénom Nom",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "email",
+            "id": "email",
+            "label": "Email",
+            "placeholder": "vous@exemple.be",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "text.long",
+            "id": "message",
+            "label": "Message",
+            "placeholder": "Votre message…",
+            "minLines": 4,
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "yesno",
+            "id": "consent",
+            "label": "J'accepte que mes données soient traitées pour répondre à ma demande."
+          },
+          {
+            "type": "text",
+            "value": "Aperçu : {{ form.name }} <{{ form.email }}>",
+            "style": "caption",
+            "color": "tertiary"
+          },
+          {
+            "type": "button",
+            "label": "Envoyer",
+            "action": {
+              "type": "cf",
+              "endpoint": "submit_contact",
+              "body": {
+                "name": "{{ form.name }}",
+                "email": "{{ form.email }}",
+                "message": "{{ form.message }}",
+                "consent": "{{ form.consent }}"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -34,6 +34,7 @@ public struct CommuneShell: View {
             // whenever the active tenant changes — clean reset on logout.
             TenantHost(tenantId: activeTenant, baseURL: baseURL)
                 .id(activeTenant)
+                .environment(\.currentBaseURL, baseURL)
         }
     }
 }
@@ -176,6 +177,12 @@ private struct CurrentFirebaseAppKey: EnvironmentKey {
     static let defaultValue: FirebaseApp? = nil
 }
 
+// Base URL of the platform CDN/dev-server. ButtonBlock POSTs `cf` actions
+// (form submissions) to `<baseURL>/cf/<module>/<endpoint>`.
+private struct CurrentBaseURLKey: EnvironmentKey {
+    static let defaultValue: URL? = nil
+}
+
 extension EnvironmentValues {
     var currentModule: String? {
         get { self[CurrentModuleKey.self] }
@@ -184,6 +191,10 @@ extension EnvironmentValues {
     var currentFirebaseApp: FirebaseApp? {
         get { self[CurrentFirebaseAppKey.self] }
         set { self[CurrentFirebaseAppKey.self] = newValue }
+    }
+    var currentBaseURL: URL? {
+        get { self[CurrentBaseURLKey.self] }
+        set { self[CurrentBaseURLKey.self] = newValue }
     }
 }
 
@@ -239,6 +250,7 @@ struct ScreenView: View {
     let initialBindings: [String: DSLValue]
     @Environment(\.currentFirebaseApp) private var firebaseApp
     @State private var firestoreData: [String: DSLValue] = [:]
+    @StateObject private var form = FormState()
 
     var body: some View {
         if let path = ModuleRegistry.shared.screenPath(qualified: qualifiedScreen),
@@ -247,6 +259,7 @@ struct ScreenView: View {
             let scope = makeScope(for: dsl, currentModule: currentModule)
             DSLView(node: dsl.view, scope: scope)
                 .environment(\.currentModule, currentModule)
+                .environmentObject(form)
                 .navigationTitle(navTitle(dsl: dsl, scope: scope))
                 .navigationBarTitleDisplayMode(displayMode(dsl.navigation?.displayMode))
                 .task(id: qualifiedScreen) {
@@ -259,6 +272,7 @@ struct ScreenView: View {
 
     private func makeScope(for dsl: DSLScreen, currentModule: String?) -> DSLScope {
         var scope = DSLScope(bindings: initialBindings)
+        scope = scope.adding("form", form.dslValue())
         for (key, source) in dsl.data ?? [:] {
             guard let mod = currentModule else { continue }
             if source.hasPrefix("@") {
@@ -356,6 +370,8 @@ struct DSLView: View {
         case "if":       IfBlock(node: node, scope: scope)
         case "tabbar":   TabBarBlock(node: node, scope: scope)
         case "calendar": CalendarBlock(node: node, scope: scope)
+        case "field":    FieldBlock(node: node)
+        case "button":   ButtonBlock(node: node, scope: scope)
         default:
             Text("Unknown node: \(node.type)")
                 .foregroundStyle(.red)

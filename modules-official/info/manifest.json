@@ -4,6 +4,7 @@
   "displayName": "Infos pratiques",
   "icon": "info.circle",
   "screens": {
-    "main": "screens/main.json"
+    "main": "screens/main.json",
+    "contact": "screens/contact.json"
   }
 }

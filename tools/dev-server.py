@@ -101,8 +101,22 @@ def cf_agenda_get_events():
     ]
 
 
-CF_ENDPOINTS = {
+CF_GET_ENDPOINTS = {
     "agenda/get_events": cf_agenda_get_events,
+}
+
+
+def cf_info_submit_contact(payload):
+    """Echoes the submission and logs to stdout.
+
+    Real prod = persist to Firestore + send email. Spike = print + ack.
+    """
+    print(f"[contact] {payload!r}", flush=True)
+    return {"ok": True, "received": payload}
+
+
+CF_POST_ENDPOINTS = {
+    "info/submit_contact": cf_info_submit_contact,
 }
 
 
@@ -113,9 +127,9 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/cf/"):
             endpoint = self.path[len("/cf/"):]
-            handler = CF_ENDPOINTS.get(endpoint)
+            handler = CF_GET_ENDPOINTS.get(endpoint)
             if handler is None:
-                self.send_error(404, f"Unknown CF endpoint: {endpoint}")
+                self.send_error(404, f"Unknown CF GET endpoint: {endpoint}")
                 return
             payload = handler()
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -128,11 +142,36 @@ class Handler(SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def do_POST(self):
+        if not self.path.startswith("/cf/"):
+            self.send_error(404, f"Unknown route: {self.path}")
+            return
+        endpoint = self.path[len("/cf/"):]
+        handler = CF_POST_ENDPOINTS.get(endpoint)
+        if handler is None:
+            self.send_error(404, f"Unknown CF POST endpoint: {endpoint}")
+            return
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length) if length else b""
+        try:
+            payload = json.loads(raw.decode("utf-8")) if raw else {}
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON body")
+            return
+        result = handler(payload)
+        body = json.dumps(result, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
 
 def main():
     print(f"Dev server: http://0.0.0.0:{PORT}", flush=True)
     print(f"  Repo root: {REPO}", flush=True)
-    print(f"  CF endpoints: {list(CF_ENDPOINTS.keys())}", flush=True)
+    print(f"  CF GET : {list(CF_GET_ENDPOINTS.keys())}", flush=True)
+    print(f"  CF POST: {list(CF_POST_ENDPOINTS.keys())}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
 
 
