@@ -1,4 +1,6 @@
 import SwiftUI
+import FirebaseAuth
+import FirebaseCore
 
 // Per-screen form state. Each ScreenView creates a fresh instance and exposes
 // it both to fields (read/write) and to the surrounding scope (read via the
@@ -145,6 +147,8 @@ struct ButtonBlock: View {
     let scope: DSLScope
     @Environment(\.currentModule) private var currentModule
     @Environment(\.currentBaseURL) private var baseURL
+    @Environment(\.currentFunctionsBaseURL) private var functionsBaseURL
+    @Environment(\.currentFirebaseApp) private var firebaseApp
     @EnvironmentObject var form: FormState
     @State private var loading: Bool = false
     @State private var feedback: String?
@@ -191,12 +195,8 @@ struct ButtonBlock: View {
 
     @MainActor
     private func submitCF(action: DSLAction) async {
-        guard let endpoint = action.endpoint,
-              let mod = currentModule,
-              let baseURL else {
-            feedback = "Endpoint mal configuré"
-            feedbackError = true
-            return
+        guard let endpoint = action.endpoint else {
+            feedback = "Endpoint manquant"; feedbackError = true; return
         }
         loading = true
         feedback = nil
@@ -213,10 +213,32 @@ struct ButtonBlock: View {
             }
         }
 
-        let url = baseURL.appendingPathComponent("cf/\(mod)/\(endpoint)")
+        // Production CF (with auth) when tenant declares `functionsBaseURL`
+        // (read from TenantContext singleton — env propagation was lossy
+        // through TabView/NavigationStack); otherwise dev-server pattern.
+        let url: URL
+        var authToken: String?
+        let prodURL = TenantContext.shared.functionsBaseURL ?? functionsBaseURL
+        if let prodURL {
+            url = prodURL.appendingPathComponent(endpoint)
+            authToken = await fetchIDToken()
+            if authToken == nil {
+                feedback = "Non connecté — token Firebase indisponible"
+                feedbackError = true
+                return
+            }
+        } else if let devURL = baseURL, let mod = currentModule {
+            url = devURL.appendingPathComponent("cf/\(mod)/\(endpoint)")
+        } else {
+            feedback = "URL backend non configurée"; feedbackError = true; return
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let authToken {
+            request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        }
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
@@ -226,6 +248,9 @@ struct ButtonBlock: View {
                 feedback = "Envoyé."
                 feedbackError = false
                 form.values.removeAll()
+            } else if let http = response as? HTTPURLResponse {
+                feedback = "Erreur serveur (\(http.statusCode))"
+                feedbackError = true
             } else {
                 feedback = "Erreur serveur"
                 feedbackError = true
@@ -234,5 +259,11 @@ struct ButtonBlock: View {
             feedback = "Réseau : \(error.localizedDescription)"
             feedbackError = true
         }
+    }
+
+    private func fetchIDToken() async -> String? {
+        guard let app = firebaseApp,
+              let user = FirebaseAuth.Auth.auth(app: app).currentUser else { return nil }
+        return try? await user.getIDToken()
     }
 }

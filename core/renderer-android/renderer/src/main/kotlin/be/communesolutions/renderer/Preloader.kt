@@ -23,6 +23,7 @@ object AssetPreloader {
             Log.e("AssetPreloader", "tenant decode error", e)
             return PreloadResult.Failed("tenant $tenant JSON invalide")
         }
+        TenantContext.functionsBaseURL = tenantConfig.functionsBaseURL
 
         for (ref in tenantConfig.modules ?: emptyList()) {
             preloadModule(context, ref, baseURL)

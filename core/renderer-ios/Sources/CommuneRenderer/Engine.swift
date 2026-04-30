@@ -141,6 +141,17 @@ enum ScreenLoader {
     }
 }
 
+// Per-tenant runtime context. Set when the active tenant config loads;
+// read by ButtonBlock to decide between dev-server and prod CF URLs.
+// Reaches deep view-tree leaves without going through SwiftUI's
+// environment (which had propagation gaps through TabView/NavigationStack
+// destinations during this spike).
+final class TenantContext {
+    static let shared = TenantContext()
+    var functionsBaseURL: URL?
+    private init() {}
+}
+
 // Holds module manifests loaded at startup and resolves qualified screen IDs
 // (e.g. "actualites:feed") to bundle paths. Singleton — manifests are
 // effectively static for the lifetime of the app.

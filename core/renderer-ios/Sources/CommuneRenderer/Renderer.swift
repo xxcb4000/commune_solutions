@@ -137,6 +137,9 @@ private struct AuthGate: View {
         self.tenantConfig = tenantConfig
         self.tenantId = tenantId
         _auth = StateObject(wrappedValue: AuthObserver(app: firebaseApp))
+        // Stash for downstream views (env propagation through TabView/Nav was lossy).
+        TenantContext.shared.functionsBaseURL = tenantConfig.functionsBaseURL.flatMap { URL(string: $0) }
+        print("[CommuneRenderer] tenant=\(tenantId) functionsBaseURL=\(TenantContext.shared.functionsBaseURL?.absoluteString ?? "nil")")
     }
 
     var body: some View {
@@ -162,7 +165,9 @@ private struct AuthGate: View {
             }
         }
         .environment(\.currentFirebaseApp, firebaseApp)
+        .environment(\.currentFunctionsBaseURL, tenantConfig.functionsBaseURL.flatMap { URL(string: $0) })
     }
+
 }
 
 // Current module propagated implicitly through the view tree. CardBlock reads
@@ -178,8 +183,16 @@ private struct CurrentFirebaseAppKey: EnvironmentKey {
 }
 
 // Base URL of the platform CDN/dev-server. ButtonBlock POSTs `cf` actions
-// (form submissions) to `<baseURL>/cf/<module>/<endpoint>`.
+// (form submissions) to `<baseURL>/cf/<module>/<endpoint>` when no
+// production functionsBaseURL is set on the tenant.
 private struct CurrentBaseURLKey: EnvironmentKey {
+    static let defaultValue: URL? = nil
+}
+
+// Production Cloud Functions base URL declared by the tenant config. When
+// set, ButtonBlock POSTs to `<functionsBaseURL>/<endpoint>` with a
+// FirebaseAuth ID token instead of the dev-server pattern.
+private struct CurrentFunctionsBaseURLKey: EnvironmentKey {
     static let defaultValue: URL? = nil
 }
 
@@ -195,6 +208,10 @@ extension EnvironmentValues {
     var currentBaseURL: URL? {
         get { self[CurrentBaseURLKey.self] }
         set { self[CurrentBaseURLKey.self] = newValue }
+    }
+    var currentFunctionsBaseURL: URL? {
+        get { self[CurrentFunctionsBaseURLKey.self] }
+        set { self[CurrentFunctionsBaseURLKey.self] = newValue }
     }
 }
 

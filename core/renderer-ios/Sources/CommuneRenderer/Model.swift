@@ -157,6 +157,7 @@ final class DSLScreen: Decodable {
     let screen: String?
     let tenant: String?
     let firebase: String?
+    let functionsBaseURL: String?
     let navigation: DSLNavigation?
     let data: [String: String]?
     let view: DSLNode

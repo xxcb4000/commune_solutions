@@ -80,6 +80,7 @@ data class DSLScreen(
     val screen: String? = null,
     val tenant: String? = null,
     val firebase: String? = null,
+    val functionsBaseURL: String? = null,
     val navigation: DSLNavigation? = null,
     val data: Map<String, String>? = null,
     val view: DSLNode,

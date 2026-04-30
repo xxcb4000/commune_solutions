@@ -15,6 +15,8 @@
 **/*.xcuserstate
 **/.swiftpm/
 **/Pods/
+**/venv/
+**/__pycache__/
 
 # xcodegen output (project.yml is the source of truth)
 spike/ios/CommuneSpike.xcodeproj/

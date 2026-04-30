@@ -1,6 +1,7 @@
 {
   "tenant": "spike",
   "firebase": "spike-1",
+  "functionsBaseURL": "https://europe-west1-commune-spike-1.cloudfunctions.net",
   "modules": [
     { "id": "actualites", "version": "0.1.0" },
     { "id": "agenda", "version": "0.1.0" },

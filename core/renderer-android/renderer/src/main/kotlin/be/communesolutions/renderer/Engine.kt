@@ -145,6 +145,12 @@ object ScreenLoader {
     }
 }
 
+// Per-tenant runtime context (functionsBaseURL for prod CFs).
+// Set when the active tenant config loads; read by ButtonBlock.
+object TenantContext {
+    var functionsBaseURL: String? = null
+}
+
 // Holds module manifests loaded at startup and resolves qualified screen IDs
 // (e.g. "actualites:feed") to bundle paths. Object = singleton.
 object ModuleRegistry {

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -207,6 +208,7 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
     val form = LocalFormState.current
     val currentModule = LocalCurrentModule.current
     val baseURL = LocalCurrentBaseURL.current
+    val firebaseApp = LocalCurrentFirebaseApp.current
     val coroutineScope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
     var feedback by remember { mutableStateOf<String?>(null) }
@@ -224,12 +226,6 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
                         val endpoint = action.endpoint ?: run {
                             feedback = "Endpoint manquant"; feedbackError = true; return@onClick
                         }
-                        val mod = currentModule ?: run {
-                            feedback = "Module non résolu"; feedbackError = true; return@onClick
-                        }
-                        val base = baseURL ?: run {
-                            feedback = "baseURL non configurée"; feedbackError = true; return@onClick
-                        }
                         loading = true
                         feedback = null
                         coroutineScope.launch {
@@ -239,8 +235,33 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
                                     JsonPrimitive(Template.resolve(v.content, scope))
                                 } else v
                             }
+                            // Prod CF (with Firebase auth token) when tenant
+                            // declares functionsBaseURL; else dev-server.
+                            val prodURL = TenantContext.functionsBaseURL
+                            val (url, authToken) = if (!prodURL.isNullOrEmpty()) {
+                                val token = firebaseApp?.let { app ->
+                                    runCatching {
+                                        com.google.firebase.auth.FirebaseAuth
+                                            .getInstance(app)
+                                            .currentUser
+                                            ?.getIdToken(false)
+                                            ?.await()?.token
+                                    }.getOrNull()
+                                }
+                                if (token == null) {
+                                    feedback = "Non connecté — token Firebase indisponible"
+                                    feedbackError = true; loading = false
+                                    return@launch
+                                }
+                                "$prodURL/$endpoint" to token
+                            } else if (currentModule != null && baseURL != null) {
+                                "$baseURL/cf/$currentModule/$endpoint" to null
+                            } else {
+                                feedback = "URL backend non configurée"; feedbackError = true; loading = false
+                                return@launch
+                            }
                             val ok = withContext(Dispatchers.IO) {
-                                postJson("$base/cf/$mod/$endpoint", JsonObject(resolved))
+                                postJson(url, JsonObject(resolved), authToken)
                             }
                             if (ok) {
                                 feedback = "Envoyé."
@@ -281,7 +302,7 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
     }
 }
 
-private fun postJson(url: String, body: JsonObject): Boolean {
+private fun postJson(url: String, body: JsonObject, authToken: String? = null): Boolean {
     return try {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 5000
@@ -290,6 +311,9 @@ private fun postJson(url: String, body: JsonObject): Boolean {
             doOutput = true
             useCaches = false
             setRequestProperty("Content-Type", "application/json")
+            if (authToken != null) {
+                setRequestProperty("Authorization", "Bearer $authToken")
+            }
         }
         try {
             val payload = SpikeJson.encodeToString(JsonObject.serializer(), body)

@@ -35,6 +35,8 @@ final class AssetPreloader: ObservableObject {
             state = .failed("tenant \(tenant) JSON invalide")
             return
         }
+        TenantContext.shared.functionsBaseURL = tenantConfig.functionsBaseURL.flatMap { URL(string: $0) }
+        print("AssetPreloader: tenantConfig.functionsBaseURL=\(tenantConfig.functionsBaseURL ?? "nil") → singleton=\(TenantContext.shared.functionsBaseURL?.absoluteString ?? "nil")")
 
         for ref in tenantConfig.modules ?? [] {
             await loadModule(ref, baseURL: baseURL)
