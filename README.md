@@ -62,9 +62,9 @@ Le spike reste comme banc de test consommateur de la library — toute évolutio
 
 | Phase | Statut | Description |
 |---|---|---|
-| 7. Backend Python réel | À faire | Remplacer `tools/dev-server.py` par des Cloud Functions Python par projet Firebase. Premier vrai pipeline `cf:` (vs `firestore:` pour la data simple) |
-| 8. Form fields DSL | À faire | Primitives `field.email`, `field.secret`, `field.text`, etc. + form state + action `submit`. Débloque les modules type Sondages, e-guichet, contact |
-| 9. Premier vrai module greenfield | À faire | Un module officiel construit from scratch sur le contrat. Probable : Sondages (couvre les patterns form + cross-module + capabilities) |
+| 7. Backend Python réel | ✅ Fait | `core/cloud-functions/main.py` — 2nd-gen Python CFs (`submit_contact`, `submit_vote`) déployées par projet Firebase, vérification ID token Firebase Auth, écriture Firestore scopée au tenant. iOS + Android routent vers `tenant.functionsBaseURL` quand défini, sinon dev-server. |
+| 8. Form fields DSL | ✅ Fait | Primitives `field.email`, `field.secret`, `field.text`, `field.text.long`, `field.yesno`, `field.radio`, `field.scale` + form state + action `cf` |
+| 9. Premier vrai module greenfield | ✅ Fait | Module `sondages` construit from scratch sur le contrat (3 sondages, vote via CF, résultats par poll) |
 | 10. Dashboard admin commune | ✅ Fait (read-only) | `dashboard/` — single-page HTML + ES modules + Firebase Web SDK (CDN, pas de build). Tenant picker → login → 4 onglets (Sondages, Événements, Actualités, Infos) lus depuis Firestore par tenant. Édition + dashboard DSL-driven = phase ultérieure |
 | 11. Marketplace web v0 | À faire | Site `communesolutions.be/marketplace`, validation manifest CI, capabilities UX, distinction officiel/communauté |
 | 12. Onboarding première commune | À faire | Provisioning auto (Firebase project + sous-domaine + tenant config). Choix de la commune pilote = ouvert |
