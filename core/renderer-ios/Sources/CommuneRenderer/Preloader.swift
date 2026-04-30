@@ -1,8 +1,14 @@
 import Foundation
+import FirebaseCore
 
 // Async preload of tenant config + module manifests + screens + data.
 // Tries HTTP first when `baseURL` is set, then falls back to bundled copies.
 // Populates `PlatformAssets` so the rest of the rendering stack can stay sync.
+//
+// Phase 11.3 : la liste des modules activés et la nav (`view`) viennent de
+// Firestore (`_config/modules`) plutôt que du JSON bundle. Si Firestore
+// répond, on patch le JSON tenant en mémoire avant de l'exposer à
+// ScreenLoader. Sinon : fallback transparent sur le JSON (mode bootstrap).
 @MainActor
 final class AssetPreloader: ObservableObject {
 
@@ -25,18 +31,36 @@ final class AssetPreloader: ObservableObject {
 
     private func load(tenant: String, baseURL: URL?) async {
         let tenantPath = ScreenLoader.tenantPath(tenant)
-        guard let tenantData = await fetchOrFallback(tenantPath, baseURL: baseURL) else {
+        guard var tenantData = await fetchOrFallback(tenantPath, baseURL: baseURL) else {
             state = .failed("tenant \(tenant) introuvable")
             return
         }
-        PlatformAssets.shared.put(tenantPath, tenantData)
 
-        guard let tenantConfig = try? JSONDecoder().decode(DSLScreen.self, from: tenantData) else {
+        // First decode pass — extract firebase app name + functionsBaseURL.
+        guard let bootstrap = try? JSONDecoder().decode(DSLScreen.self, from: tenantData) else {
             state = .failed("tenant \(tenant) JSON invalide")
             return
         }
-        TenantContext.shared.functionsBaseURL = tenantConfig.functionsBaseURL.flatMap { URL(string: $0) }
-        print("AssetPreloader: tenantConfig.functionsBaseURL=\(tenantConfig.functionsBaseURL ?? "nil") → singleton=\(TenantContext.shared.functionsBaseURL?.absoluteString ?? "nil")")
+        TenantContext.shared.functionsBaseURL = bootstrap.functionsBaseURL.flatMap { URL(string: $0) }
+
+        // Try Firestore override of runtime config (modules + view).
+        if let firebaseName = bootstrap.firebase,
+           let projectId = FirebaseApp.app(name: firebaseName)?.options.projectID,
+           let runtime = await Self.fetchFirestoreRuntimeConfig(projectId: projectId),
+           let patched = Self.applyRuntimeConfig(runtime, to: tenantData) {
+            tenantData = patched
+            print("AssetPreloader: tenant runtime config from Firestore (\(projectId))")
+        } else {
+            print("AssetPreloader: tenant runtime config from bundle (Firestore unavailable)")
+        }
+
+        PlatformAssets.shared.put(tenantPath, tenantData)
+
+        // Re-decode in case we patched.
+        guard let tenantConfig = try? JSONDecoder().decode(DSLScreen.self, from: tenantData) else {
+            state = .failed("tenant \(tenant) JSON invalide après merge")
+            return
+        }
 
         for ref in tenantConfig.modules ?? [] {
             await loadModule(ref, baseURL: baseURL)
@@ -129,5 +153,77 @@ final class AssetPreloader: ObservableObject {
         }
         print("AssetPreloader: missing \(path)")
         return nil
+    }
+
+    // MARK: - Firestore runtime config
+
+    // GET _config/modules via REST. Public read (Firestore rules), pas d'auth
+    // requis : utile car le preloader tourne avant le login. Format de
+    // réponse : Firestore typed JSON (stringValue, arrayValue, mapValue) que
+    // `unwrapFirestoreValue` reconvertit en JSON plain.
+    private static func fetchFirestoreRuntimeConfig(projectId: String) async -> [String: Any]? {
+        let urlString = "https://firestore.googleapis.com/v1/projects/\(projectId)/databases/(default)/documents/_config/modules"
+        guard let url = URL(string: urlString) else { return nil }
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                print("AssetPreloader: Firestore _config/modules HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+                return nil
+            }
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            guard let fields = json?["fields"] as? [String: Any] else { return nil }
+            var out: [String: Any] = [:]
+            for (k, v) in fields {
+                if let unwrapped = unwrapFirestoreValue(v) {
+                    out[k] = unwrapped
+                }
+            }
+            return out
+        } catch {
+            print("AssetPreloader: Firestore _config/modules fetch error — \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private static func unwrapFirestoreValue(_ v: Any) -> Any? {
+        guard let dict = v as? [String: Any] else { return nil }
+        if let s = dict["stringValue"] as? String { return s }
+        if let b = dict["booleanValue"] as? Bool { return b }
+        if let n = dict["integerValue"] as? String { return Int(n) ?? n }
+        if let d = dict["doubleValue"] as? Double { return d }
+        if dict["nullValue"] != nil { return NSNull() }
+        if let arr = dict["arrayValue"] as? [String: Any] {
+            let values = arr["values"] as? [Any] ?? []
+            return values.compactMap(unwrapFirestoreValue)
+        }
+        if let map = dict["mapValue"] as? [String: Any] {
+            let fields = map["fields"] as? [String: Any] ?? [:]
+            var out: [String: Any] = [:]
+            for (k, v) in fields {
+                if let unwrapped = unwrapFirestoreValue(v) {
+                    out[k] = unwrapped
+                }
+            }
+            return out
+        }
+        return nil
+    }
+
+    // Patche le JSON tenant : remplace les clés `modules` et `view` par les
+    // valeurs venues de Firestore. Garde les autres clés (tenant, firebase,
+    // functionsBaseURL) intactes — elles restent du bootstrap.
+    private static func applyRuntimeConfig(_ runtime: [String: Any], to tenantData: Data) -> Data? {
+        guard var tenantJson = try? JSONSerialization.jsonObject(with: tenantData) as? [String: Any] else {
+            return nil
+        }
+        if let modules = runtime["modules"] {
+            tenantJson["modules"] = modules
+        }
+        if let view = runtime["view"] {
+            tenantJson["view"] = view
+        }
+        return try? JSONSerialization.data(withJSONObject: tenantJson)
     }
 }
