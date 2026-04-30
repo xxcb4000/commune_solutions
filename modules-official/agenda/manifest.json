@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "displayName": "Agenda",
   "icon": "calendar",
+  "description": "Calendrier des événements communaux : conseils, fêtes, rencontres citoyennes.",
+  "longDescription": "Vue calendrier mensuelle + liste chronologique. Chaque événement a une page détail avec date, lieu, description et lien d'inscription si applicable. Source : Firestore (`events`).",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["communication", "événements"],
+  "capabilities": [
+    { "type": "firestore.read", "target": "events", "description": "Lecture des événements publiés par la commune" }
+  ],
   "screens": {
     "list": "screens/list.json",
     "detail": "screens/detail.json"

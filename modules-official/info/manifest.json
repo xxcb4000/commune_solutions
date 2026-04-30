@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "displayName": "Infos pratiques",
   "icon": "info.circle",
+  "description": "Coordonnées et formulaire de contact de l'administration communale.",
+  "longDescription": "Page principale avec coordonnées, horaires d'ouverture, adresse de la maison communale. Formulaire de contact qui envoie une demande directement à l'administration via Cloud Function authentifiée.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["service-citoyen", "contact"],
+  "capabilities": [
+    { "type": "firestore.read", "target": "info/main", "description": "Lecture des coordonnées de la commune" },
+    { "type": "cf.write", "target": "submit_contact", "description": "Envoi d'un message à l'administration (utilisateur authentifié)" }
+  ],
   "screens": {
     "main": "screens/main.json",
     "contact": "screens/contact.json"

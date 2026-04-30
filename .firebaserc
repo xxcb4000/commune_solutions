@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "be-mde-commune-notification"
+  },
+  "targets": {
+    "be-mde-commune-notification": {
+      "hosting": {
+        "site": ["commune-solutions"]
+      }
+    }
+  }
+}

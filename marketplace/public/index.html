@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marketplace — Commune Solutions</title>
+    <meta name="description" content="Catalogue des modules officiels et communautaires de Commune Solutions : sondages, agenda, actualités, infos pratiques." />
+    <meta name="theme-color" content="#1976D2" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="stylesheet" href="/marketplace/css/style.css?v=1" />
+    <meta property="og:site_name" content="Commune Solutions" />
+    <meta property="og:locale" content="fr_BE" />
+    <meta property="og:title" content="Marketplace — Commune Solutions" />
+    <meta property="og:description" content="Catalogue des modules officiels et communautaires de Commune Solutions." />
+    <meta property="og:url" content="https://communesolutions.be/marketplace" />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="topbar-brand" href="/">
+        <span class="topbar-logo">CS</span>
+        <span class="topbar-title">Commune Solutions</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="/" class="topbar-link">← retour</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-inner">
+          <h1>Marketplace</h1>
+          <p class="hero-lead">Modules officiels et communautaires pour les communes wallonnes. Chaque module est open source, audité, et indique clairement ses capacités avant installation.</p>
+          <div class="hero-meta">
+            <span class="badge badge-info">v0 — preview</span>
+            <span class="hero-meta-text">Licence core : <a href="https://eupl.eu/" target="_blank" rel="noopener">EUPL 1.2</a></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="catalog">
+        <div class="catalog-inner">
+          <div class="filterbar" role="tablist" aria-label="Filtrer les modules">
+            <button class="filter active" data-filter="all" role="tab" aria-selected="true">Tous</button>
+            <button class="filter" data-filter="official" role="tab" aria-selected="false">Officiels</button>
+            <button class="filter" data-filter="community" role="tab" aria-selected="false">Communauté</button>
+          </div>
+
+          <div id="catalog-grid" class="grid" aria-busy="true">
+            <p class="loading">Chargement…</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="dev-cta">
+        <div class="dev-cta-inner">
+          <h2>Vous voulez contribuer un module&nbsp;?</h2>
+          <p>La communauté peut proposer ses propres modules via une PR sur le repo public. Documentation et CLI à venir.</p>
+          <a class="btn btn-secondary" href="https://github.com/xxcb4000/commune_solutions" target="_blank" rel="noopener">Voir le repo</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Commune Solutions — opéré par Mosa Data Engineering · core sous licence EUPL 1.2</p>
+    </footer>
+
+    <script type="module" src="/marketplace/js/catalog.js"></script>
+  </body>
+</html>

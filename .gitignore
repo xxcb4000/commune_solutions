@@ -25,6 +25,10 @@ spike/ios/CommuneSpike.xcodeproj/
 **/local.properties
 **/captures/
 
+# Firebase Hosting build output + cache
+_site/
+.firebase/
+
 # Secrets — Firebase configs are project-specific, set up locally per repo
 GoogleService-Info.plist
 google-services.json

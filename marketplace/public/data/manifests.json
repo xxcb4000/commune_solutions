@@ -1,0 +1,129 @@
+{
+  "modules": [
+    {
+      "id": "actualites",
+      "version": "0.1.0",
+      "displayName": "Actualités",
+      "icon": "newspaper",
+      "description": "Diffuser les actualités de la commune avec un feed et des articles détaillés.",
+      "longDescription": "Module de communication officiel : un feed scrollable, une vue détail par article (titre, image, contenu, date). Les articles sont gérés depuis le dashboard admin et publiés en temps réel.",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "communication",
+        "contenu"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "articles",
+          "description": "Lecture des articles publiés par la commune"
+        }
+      ],
+      "screens": {
+        "feed": "screens/feed.json",
+        "detail": "screens/detail.json"
+      },
+      "data": {
+        "articles": "data/articles.json"
+      },
+      "screenCount": 2,
+      "dataCount": 1
+    },
+    {
+      "id": "agenda",
+      "version": "0.1.0",
+      "displayName": "Agenda",
+      "icon": "calendar",
+      "description": "Calendrier des événements communaux : conseils, fêtes, rencontres citoyennes.",
+      "longDescription": "Vue calendrier mensuelle + liste chronologique. Chaque événement a une page détail avec date, lieu, description et lien d'inscription si applicable. Source : Firestore (`events`).",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "communication",
+        "événements"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "events",
+          "description": "Lecture des événements publiés par la commune"
+        }
+      ],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json"
+      },
+      "screenCount": 2,
+      "dataCount": 0
+    },
+    {
+      "id": "info",
+      "version": "0.1.0",
+      "displayName": "Infos pratiques",
+      "icon": "info.circle",
+      "description": "Coordonnées et formulaire de contact de l'administration communale.",
+      "longDescription": "Page principale avec coordonnées, horaires d'ouverture, adresse de la maison communale. Formulaire de contact qui envoie une demande directement à l'administration via Cloud Function authentifiée.",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "service-citoyen",
+        "contact"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "info/main",
+          "description": "Lecture des coordonnées de la commune"
+        },
+        {
+          "type": "cf.write",
+          "target": "submit_contact",
+          "description": "Envoi d'un message à l'administration (utilisateur authentifié)"
+        }
+      ],
+      "screens": {
+        "main": "screens/main.json",
+        "contact": "screens/contact.json"
+      },
+      "screenCount": 2,
+      "dataCount": 0
+    },
+    {
+      "id": "sondages",
+      "version": "0.1.0",
+      "displayName": "Sondages",
+      "icon": "chart.bar.fill",
+      "description": "Consulter les citoyens sur les décisions communales avec des sondages courts.",
+      "longDescription": "Liste de sondages ouverts ou clos. Chaque sondage a une question, des options à choix multiples et un curseur de confiance optionnel. Vote unique par citoyen et par sondage (idempotent), résultats agrégés en temps réel.",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "participation-citoyenne",
+        "consultation"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "polls",
+          "description": "Lecture des sondages publiés"
+        },
+        {
+          "type": "cf.write",
+          "target": "submit_vote",
+          "description": "Enregistrement du vote (idempotent par utilisateur)"
+        }
+      ],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json"
+      },
+      "screenCount": 2,
+      "dataCount": 0
+    }
+  ]
+}

@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "displayName": "Sondages",
   "icon": "chart.bar.fill",
+  "description": "Consulter les citoyens sur les décisions communales avec des sondages courts.",
+  "longDescription": "Liste de sondages ouverts ou clos. Chaque sondage a une question, des options à choix multiples et un curseur de confiance optionnel. Vote unique par citoyen et par sondage (idempotent), résultats agrégés en temps réel.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["participation-citoyenne", "consultation"],
+  "capabilities": [
+    { "type": "firestore.read", "target": "polls", "description": "Lecture des sondages publiés" },
+    { "type": "cf.write", "target": "submit_vote", "description": "Enregistrement du vote (idempotent par utilisateur)" }
+  ],
   "screens": {
     "list": "screens/list.json",
     "detail": "screens/detail.json"

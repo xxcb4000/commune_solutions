@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "displayName": "Actualités",
   "icon": "newspaper",
+  "description": "Diffuser les actualités de la commune avec un feed et des articles détaillés.",
+  "longDescription": "Module de communication officiel : un feed scrollable, une vue détail par article (titre, image, contenu, date). Les articles sont gérés depuis le dashboard admin et publiés en temps réel.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["communication", "contenu"],
+  "capabilities": [
+    { "type": "firestore.read", "target": "articles", "description": "Lecture des articles publiés par la commune" }
+  ],
   "screens": {
     "feed": "screens/feed.json",
     "detail": "screens/detail.json"
