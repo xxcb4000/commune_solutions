@@ -16,7 +16,11 @@ import {
     getDocs,
     doc,
     getDoc,
+    setDoc,
+    serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const MARKETPLACE_CATALOG_URL = "https://communesolutions.be/marketplace/data/manifests.json";
 
 const TENANT_LABELS = {
     "spike-1": "Démo A",
@@ -103,15 +107,113 @@ async function renderDashboard(user) {
     node.querySelector("#logout-btn").addEventListener("click", () => signOut(auth).then(renderPicker));
     root.appendChild(node);
 
-    let activeTab = "polls";
+    let activeTab = "modules";
     const showTab = async (name) => {
         activeTab = name;
         tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
         content.innerHTML = `<p class="empty">Chargement…</p>`;
-        content.innerHTML = await renderSection(name);
+        if (name === "modules") {
+            await renderModules(content, user);
+        } else {
+            content.innerHTML = await renderSection(name);
+        }
     };
     tabs.forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
     showTab(activeTab);
+}
+
+async function renderModules(container, user) {
+    let catalog = [];
+    let runtime = { modules: [], view: { type: "tabbar", tabs: [] } };
+    try {
+        const [catalogRes, runtimeSnap] = await Promise.all([
+            fetch(MARKETPLACE_CATALOG_URL, { cache: "no-cache" }),
+            getDoc(doc(db, "_config", "modules")),
+        ]);
+        if (catalogRes.ok) catalog = (await catalogRes.json()).modules || [];
+        if (runtimeSnap.exists()) runtime = { ...runtime, ...runtimeSnap.data() };
+    } catch (e) {
+        container.innerHTML = `<p class="empty">Erreur chargement modules : ${esc(e.message)}</p>`;
+        return;
+    }
+
+    const officials = catalog.filter((m) => m.official === true);
+    if (officials.length === 0) {
+        container.innerHTML = `<p class="empty">Aucun module officiel disponible.</p>`;
+        return;
+    }
+
+    const activeIds = new Set((runtime.modules ?? []).map((m) => m.id));
+
+    container.innerHTML = `
+        <div class="modules-pane">
+            <p class="modules-intro">Activez/désactivez les modules officiels pour cette commune. Les changements prennent effet au prochain démarrage de l'app citoyenne.</p>
+            <div class="modules-list">
+                ${officials.map((m) => `
+                    <label class="module-row">
+                        <input type="checkbox" data-module-id="${esc(m.id)}" ${activeIds.has(m.id) ? "checked" : ""}>
+                        <div class="module-row-text">
+                            <strong>${esc(m.displayName)}</strong>
+                            <span>${esc(m.description ?? "")}</span>
+                            <span class="module-row-meta">v${esc(m.version)} · ${esc((m.capabilities ?? []).length)} capability(ies)</span>
+                        </div>
+                    </label>
+                `).join("")}
+            </div>
+            <div class="modules-actions">
+                <button id="modules-save" class="primary">Enregistrer</button>
+                <p class="modules-status" data-slot="status"></p>
+            </div>
+        </div>
+    `;
+
+    const status = container.querySelector("[data-slot='status']");
+    container.querySelector("#modules-save").addEventListener("click", async () => {
+        const checked = Array.from(container.querySelectorAll("input[data-module-id]:checked")).map(
+            (i) => i.dataset.moduleId
+        );
+        const newModules = checked.map((id) => ({
+            id,
+            version: officials.find((m) => m.id === id)?.version ?? "0.1.0",
+        }));
+        const newTabs = (runtime.view?.tabs ?? []).filter((t) => {
+            const mod = String(t.screen ?? "").split(":")[0];
+            return checked.includes(mod);
+        });
+        // Ajoute un onglet par défaut pour les modules nouvellement activés.
+        const tabModuleIds = new Set(newTabs.map((t) => String(t.screen ?? "").split(":")[0]));
+        for (const id of checked) {
+            if (!tabModuleIds.has(id)) {
+                const m = officials.find((x) => x.id === id);
+                if (!m) continue;
+                const firstScreen = Object.keys(m.screens ?? {})[0] ?? "main";
+                newTabs.push({
+                    title: m.displayName,
+                    icon: m.icon ?? "info.circle",
+                    screen: `${id}:${firstScreen}`,
+                });
+            }
+        }
+
+        status.textContent = "Enregistrement…";
+        status.classList.remove("error", "success");
+        try {
+            await setDoc(doc(db, "_config", "modules"), {
+                modules: newModules,
+                view: { type: "tabbar", tabs: newTabs },
+                updatedAt: serverTimestamp(),
+                updatedBy: user.uid,
+            });
+            status.textContent = "✓ Enregistré. L'app citoyenne reflètera la nouvelle config au prochain démarrage.";
+            status.classList.add("success");
+        } catch (e) {
+            const msg = e?.code === "permission-denied"
+                ? "Permission refusée — votre compte n'a pas le claim `admin`. Contactez un mainteneur."
+                : `Erreur : ${e.message}`;
+            status.textContent = msg;
+            status.classList.add("error");
+        }
+    });
 }
 
 async function renderSection(name) {

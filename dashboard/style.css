@@ -141,3 +141,49 @@ form#login-form button[type="submit"]:disabled { opacity: 0.5; cursor: progress;
 .empty { text-align: center; color: var(--muted); padding: 40px 0; }
 
 .footnote { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 32px 0 16px; }
+
+/* Modules tab ─────────────────────────────────────────────────────── */
+.modules-pane { display: flex; flex-direction: column; gap: 16px; }
+.modules-intro { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.modules-list { display: flex; flex-direction: column; gap: 8px; }
+.module-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+.module-row input[type="checkbox"] {
+    width: 18px; height: 18px;
+    margin-top: 2px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+.module-row-text { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.module-row-text strong { font-size: 1rem; }
+.module-row-text span { color: var(--muted); font-size: 0.9rem; }
+.module-row-meta { font-size: 0.8rem !important; }
+.modules-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.modules-actions .primary {
+    background: var(--accent);
+    color: white;
+    border: 0;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+.modules-actions .primary:hover { opacity: 0.9; }
+.modules-status { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.modules-status.success { color: #16a34a; }
+.modules-status.error { color: var(--error); }
