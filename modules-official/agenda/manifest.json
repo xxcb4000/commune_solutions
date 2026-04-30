@@ -1,0 +1,10 @@
+{
+  "id": "agenda",
+  "version": "0.1.0",
+  "displayName": "Agenda",
+  "icon": "calendar",
+  "screens": {
+    "list": "screens/list.json",
+    "detail": "screens/detail.json"
+  }
+}

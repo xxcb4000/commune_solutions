@@ -1,0 +1,13 @@
+{
+  "id": "actualites",
+  "version": "0.1.0",
+  "displayName": "Actualités",
+  "icon": "newspaper",
+  "screens": {
+    "feed": "screens/feed.json",
+    "detail": "screens/detail.json"
+  },
+  "data": {
+    "articles": "data/articles.json"
+  }
+}

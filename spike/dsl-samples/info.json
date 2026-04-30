@@ -1,0 +1,54 @@
+{
+  "screen": "info",
+  "navigation": {
+    "title": "Infos pratiques",
+    "displayMode": "large"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "header",
+        "title": "Maison communale d'Awans",
+        "imageUrl": "https://picsum.photos/seed/awans-mc/900/506",
+        "height": 220
+      },
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 16,
+        "children": [
+          {
+            "type": "text",
+            "value": "Adresse",
+            "style": "headline"
+          },
+          {
+            "type": "text",
+            "value": "Rue Louis Pirsoul 1\n4340 Awans",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "text",
+            "value": "Heures d'ouverture",
+            "style": "headline"
+          },
+          {
+            "type": "markdown",
+            "value": "**Lundi → vendredi** : 9h–12h\n\n**Mardi** : 14h–18h (permanence guichet)\n\n*Fermé samedi et dimanche.*"
+          },
+          {
+            "type": "text",
+            "value": "Contact",
+            "style": "headline"
+          },
+          {
+            "type": "markdown",
+            "value": "Téléphone : **04 / 259 92 00**\n\nE-mail : info@awans.be"
+          }
+        ]
+      }
+    ]
+  }
+}

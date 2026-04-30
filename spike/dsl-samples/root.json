@@ -1,0 +1,10 @@
+{
+  "screen": "root",
+  "view": {
+    "type": "tabbar",
+    "tabs": [
+      { "title": "Actualités", "icon": "newspaper", "screen": "feed" },
+      { "title": "Infos", "icon": "info.circle", "screen": "info" }
+    ]
+  }
+}

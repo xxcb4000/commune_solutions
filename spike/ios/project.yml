@@ -1,0 +1,59 @@
+name: CommuneSpike
+options:
+  bundleIdPrefix: be.communesolutions.spike
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: TJ2759P685
+    CODE_SIGN_STYLE: Automatic
+packages:
+  CommuneRenderer:
+    path: ../../core/renderer-ios
+targets:
+  CommuneSpike:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: ../../modules-official
+        buildPhase: resources
+        type: folder
+      - path: ../../tenants
+        buildPhase: resources
+        type: folder
+      - path: ../../core/firebase
+        buildPhase: resources
+        type: folder
+    dependencies:
+      - package: CommuneRenderer
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Commune Spike
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Spike: dev HTTP server (python3 -m http.server). Production drops this.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        PRODUCT_BUNDLE_IDENTIFIER: be.communesolutions.spike
+schemes:
+  CommuneSpike:
+    build:
+      targets:
+        CommuneSpike: all
+    run:
+      config: Debug

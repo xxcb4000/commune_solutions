@@ -1,0 +1,17 @@
+{
+  "tenant": "spike",
+  "firebase": "spike-1",
+  "modules": [
+    { "id": "actualites", "version": "0.1.0" },
+    { "id": "agenda", "version": "0.1.0" },
+    { "id": "info", "version": "0.1.0" }
+  ],
+  "view": {
+    "type": "tabbar",
+    "tabs": [
+      { "title": "Actualités", "icon": "newspaper", "screen": "actualites:feed" },
+      { "title": "Agenda", "icon": "calendar", "screen": "agenda:list" },
+      { "title": "Infos", "icon": "info.circle", "screen": "info:main" }
+    ]
+  }
+}

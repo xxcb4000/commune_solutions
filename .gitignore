@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Build artifacts (any location)
+**/build/
+**/.build/
+**/.gradle/
+**/DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
+**/.swiftpm/
+**/Pods/
+
+# xcodegen output (project.yml is the source of truth)
+spike/ios/CommuneSpike.xcodeproj/
+
+# Android local dev
+**/local.properties
+**/captures/
+
+# Secrets — Firebase configs are project-specific, set up locally per repo
+GoogleService-Info.plist
+google-services.json
+.env
+.env.local
+*.keystore
+*.jks

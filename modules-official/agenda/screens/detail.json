@@ -1,0 +1,40 @@
+{
+  "screen": "detail",
+  "navigation": {
+    "title": "{{ event.title }}",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "header",
+        "title": "{{ event.title }}",
+        "imageUrl": "{{ event.imageUrl }}",
+        "height": 280
+      },
+      {
+        "type": "vstack",
+        "spacing": 12,
+        "padding": 16,
+        "children": [
+          {
+            "type": "text",
+            "value": "{{ event.date }}",
+            "style": "headline"
+          },
+          {
+            "type": "text",
+            "value": "{{ event.location }}",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "markdown",
+            "value": "{{ event.description }}"
+          }
+        ]
+      }
+    ]
+  }
+}

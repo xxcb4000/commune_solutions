@@ -1,0 +1,80 @@
+{
+  "screen": "info",
+  "navigation": {
+    "title": "Infos pratiques",
+    "displayMode": "large"
+  },
+  "data": {
+    "info": "firestore:info/main"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "header",
+        "title": "{{ info.communeName }}",
+        "imageUrl": "{{ info.headerImageUrl }}",
+        "height": 220
+      },
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 16,
+        "children": [
+          {
+            "type": "text",
+            "value": "Adresse",
+            "style": "headline"
+          },
+          {
+            "type": "text",
+            "value": "{{ info.address }}",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "text",
+            "value": "Heures d'ouverture",
+            "style": "headline"
+          },
+          {
+            "type": "markdown",
+            "value": "{{ info.hoursMd }}"
+          },
+          {
+            "type": "text",
+            "value": "Contact",
+            "style": "headline"
+          },
+          {
+            "type": "markdown",
+            "value": "{{ info.contactMd }}"
+          },
+          {
+            "type": "card",
+            "action": { "type": "logout" },
+            "child": {
+              "type": "vstack",
+              "spacing": 4,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Changer de commune",
+                  "style": "headline",
+                  "color": "accent"
+                },
+                {
+                  "type": "text",
+                  "value": "Retourner au sélecteur de tenant.",
+                  "style": "caption",
+                  "color": "secondary"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

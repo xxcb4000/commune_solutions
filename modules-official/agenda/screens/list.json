@@ -1,0 +1,84 @@
+{
+  "screen": "list",
+  "navigation": {
+    "title": "Agenda",
+    "displayMode": "inline"
+  },
+  "data": {
+    "events": "firestore:events"
+  },
+  "view": {
+    "type": "scroll",
+    "refreshable": true,
+    "children": [
+      {
+        "type": "calendar",
+        "in": "events",
+        "dateField": "dateStart"
+      },
+      {
+        "type": "vstack",
+        "spacing": 16,
+        "padding": 16,
+        "children": [
+          {
+            "type": "for",
+            "in": "events",
+            "as": "event",
+            "child": {
+              "type": "card",
+              "action": {
+                "type": "navigate",
+                "to": "detail",
+                "with": {
+                  "event": "{{ event }}"
+                }
+              },
+              "child": {
+                "type": "vstack",
+                "spacing": 0,
+                "children": [
+                  {
+                    "type": "image",
+                    "url": "{{ event.imageUrl }}",
+                    "aspectRatio": 1.78
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 4,
+                    "padding": 14,
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "{{ event.title }}",
+                        "style": "title3"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ event.date }}",
+                        "style": "body",
+                        "color": "secondary"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ event.location }}",
+                        "style": "caption",
+                        "color": "tertiary"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "text",
+            "value": "Données CF reçues à {{ events.0.fetchedAt }}",
+            "style": "caption",
+            "color": "tertiary"
+          }
+        ]
+      }
+    ]
+  }
+}
