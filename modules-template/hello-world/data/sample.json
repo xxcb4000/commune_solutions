@@ -1,0 +1,17 @@
+[
+  {
+    "id": "1",
+    "title": "Premier élément",
+    "body": "Modifiez ce JSON ou branchez votre module sur Firestore en remplaçant `module:sample` par `firestore:<collection>` dans screens/main.json."
+  },
+  {
+    "id": "2",
+    "title": "Deuxième élément",
+    "body": "Toutes les chaînes peuvent contenir des templates Mustache (`{{ path.to.value }}`) qui sont résolus avec la donnée de l'écran."
+  },
+  {
+    "id": "3",
+    "title": "Troisième élément",
+    "body": "Consultez `docs/developers.md` pour la liste complète des primitives DSL et le schéma manifest."
+  }
+]

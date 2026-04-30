@@ -1,0 +1,19 @@
+{
+  "id": "hello-world",
+  "version": "0.1.0",
+  "displayName": "Hello World",
+  "icon": "info.circle",
+  "description": "Module template — point de départ pour écrire votre propre module Commune Solutions.",
+  "longDescription": "Module minimal mais représentatif : un seul écran qui montre les primitives DSL de base (scroll, vstack, card, image, text, button) et la liaison à des données statiques. Clonez ce dossier sous `modules-community/<votre-id>/` pour démarrer.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": false,
+  "tags": ["template", "exemple"],
+  "capabilities": [],
+  "screens": {
+    "main": "screens/main.json"
+  },
+  "data": {
+    "sample": "data/sample.json"
+  }
+}

@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCES = [ROOT / "modules-official", ROOT / "modules-community"]
+SOURCES = [ROOT / "modules-official", ROOT / "modules-community", ROOT / "modules-template"]
 
 REQUIRED_FIELDS = ["id", "version", "displayName", "icon", "description",
                    "author", "licence", "screens"]
