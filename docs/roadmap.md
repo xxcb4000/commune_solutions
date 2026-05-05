@@ -89,7 +89,7 @@ Tout le pipeline contributeur n'existe que sur papier. À matérialiser :
   - ✅ Spike iOS bundle `modules-community/` (project.yml sources). Android symlink dans assets
   - ✅ Marketplace : 6 modules listés (5 officiels + 1 communauté), filtre Communauté désormais peuplé
   - ✅ Bug fix : préfixe data static `module:` corrigé en `@` dans hello-world template + docs/developers.md (les renderers utilisaient `@` mais la doc disait `module:`)
-- **⏭ 13.2 — CLI `create-commune-module`** : génère un squelette manifest + screens + data depuis un template
+- **✅ 13.2 — CLI `create-commune-module`** : `tools/create-commune-module.sh <id> [<display-name>]` clone `modules-template/hello-world` vers `modules-community/<id>/` avec manifest pré-rempli (id, displayName, license MIT). Validation kebab-case + détection collisions. README minimal généré dans le module. Documenté dans `docs/developers.md`
 - **⏭ 13.3 — Emulator local commune fictive** : Firebase emulator + app simulator + DSL hot-reload pour développer sans device
 - **⏭ 13.4 — Capability `cf.external`** : permettre à un module tiers d'héberger ses propres CFs en recevant un ID token de la commune (cf platform.md, validée 2026-04-30)
 - **🤔 Repo split** : `commune_solutions` (plateforme + officiels) vs `commune_solutions-modules-community` (PRs tiers) — décision à prendre selon le rythme d'arrivée des contribs

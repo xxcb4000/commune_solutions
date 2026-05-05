@@ -5,7 +5,11 @@ Ce guide vous permet d'écrire votre premier module en moins d'une heure. Le con
 ## Quickstart
 
 1. **Forker** [github.com/xxcb4000/commune_solutions](https://github.com/xxcb4000/commune_solutions)
-2. **Copier** `modules-template/hello-world/` dans `modules-community/<votre-id>/`
+2. **Scaffolder** le squelette :
+   ```sh
+   tools/create-commune-module.sh mon-module "Mon module"
+   ```
+   Cela crée `modules-community/mon-module/` à partir du template `hello-world`, avec le manifest pré-rempli (id, displayName, license MIT par défaut). Voir aussi `modules-community/associations/` comme exemple de référence.
 3. **Adapter** `manifest.json`, `screens/`, `data/` pour décrire votre module
 4. **Vérifier** localement : `python3 tools/validate-manifests.py`
 5. **Soumettre** une PR vers `main`
