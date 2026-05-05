@@ -227,8 +227,19 @@ async function renderModules(container, user) {
 }
 
 // Schémas par collection — pilotent la génération du formulaire d'édition
-// et le rendu de la liste. Articles + events ont CRUD ; polls + info gardent
-// le rendu read-only en attendant les phases 14.4 / 14.6.
+// et le rendu de la liste.
+//   - `singleton: true` = un doc fixe (pas de + Nouveau, pas de Supprimer)
+//   - `image` field type → upload Firebase Storage (14.2)
+//   - `number` field type → input numérique (lat/lng pour places)
+//   - `options` field type → liste dynamique d'objets {id,label} (polls)
+const PLACE_CATEGORIES = [
+    { value: "services", label: "Services communaux" },
+    { value: "ecole", label: "Écoles" },
+    { value: "sport", label: "Sport" },
+    { value: "culture", label: "Culture" },
+    { value: "nature", label: "Nature" },
+];
+
 const SCHEMAS = {
     articles: {
         label: "Article",
@@ -241,7 +252,7 @@ const SCHEMAS = {
         fields: [
             { key: "title", label: "Titre", type: "text", required: true },
             { key: "excerpt", label: "Extrait (max 200 chars, affiché dans le feed)", type: "textarea", maxLength: 200 },
-            { key: "imageUrl", label: "URL image (1.6:1 conseillé)", type: "url" },
+            { key: "imageUrl", label: "Image (1.6:1 conseillé)", type: "image", folder: "articles" },
             { key: "date", label: "Date affichée (long)", type: "text", placeholder: "30 avril 2026" },
             { key: "dateEyebrow", label: "Eyebrow (compact)", type: "text", placeholder: "30 avril · Travaux" },
             { key: "category", label: "Catégorie", type: "select", options: ["Travaux", "Loisirs", "Environnement", "Vie communale", "Culture", "Mobilité"] },
@@ -262,42 +273,77 @@ const SCHEMAS = {
             { key: "date", label: "Date affichée", type: "text", placeholder: "samedi 3 mai · 9h–17h" },
             { key: "dateStart", label: "Date ISO (utilisée par le calendrier)", type: "date", placeholder: "2026-05-03" },
             { key: "location", label: "Lieu", type: "text" },
-            { key: "imageUrl", label: "URL image (1.78:1 conseillé)", type: "url" },
+            { key: "imageUrl", label: "Image (1.78:1 conseillé)", type: "image", folder: "events" },
             { key: "description", label: "Description (Markdown)", type: "markdown" },
+        ],
+    },
+    polls: {
+        label: "Sondage",
+        labelPlural: "Sondages",
+        renderItem: (p) => `
+            <h3>${esc(p.title)}</h3>
+            <p class="meta">${esc(p.description ?? "")}</p>
+            <p class="body"><strong>Question :</strong> ${esc(p.question ?? "")}</p>
+            ${(p.options ?? []).length ? `<ul>${p.options.map((o) => `<li>${esc(o.label)} <small>(${esc(o.id)})</small></li>`).join("")}</ul>` : ""}
+        `,
+        fields: [
+            { key: "title", label: "Titre interne (visible dans la liste app)", type: "text", required: true },
+            { key: "description", label: "Description courte", type: "textarea", maxLength: 200 },
+            { key: "question", label: "Question posée à l'utilisateur", type: "text", required: true },
+            { key: "options", label: "Réponses possibles (id technique + label affiché)", type: "options" },
+        ],
+    },
+    places: {
+        label: "Lieu",
+        labelPlural: "Lieux",
+        renderItem: (p) => `
+            <h3>${esc(p.name)}</h3>
+            <p class="meta">${esc(p.categoryLabel ?? p.category ?? "")} — ${esc(p.address ?? "")}</p>
+            <p class="body">${esc(p.meta ?? "")}</p>
+        `,
+        fields: [
+            { key: "name", label: "Nom du lieu", type: "text", required: true },
+            { key: "category", label: "Catégorie (id technique pour la couleur du pin)", type: "select", options: PLACE_CATEGORIES.map((c) => c.value), required: true },
+            { key: "categoryLabel", label: "Catégorie (libellé affiché)", type: "text", placeholder: "Services communaux" },
+            { key: "address", label: "Adresse", type: "text" },
+            { key: "meta", label: "Sous-titre liste (ex. « Place 1 · ouvert jusqu'à 12h »)", type: "text" },
+            { key: "lat", label: "Latitude (ex. 50.6695)", type: "number", required: true },
+            { key: "lng", label: "Longitude (ex. 5.4762)", type: "number", required: true },
+            { key: "hours", label: "Horaires (multi-ligne)", type: "textarea" },
+            { key: "body", label: "Description (Markdown)", type: "markdown" },
+        ],
+    },
+    info: {
+        label: "Infos pratiques",
+        labelPlural: "Infos pratiques",
+        singleton: true,        // 1 doc fixe = info/main
+        singletonDocId: "main",
+        renderItem: (d) => `
+            <h3>${esc(d.communeName ?? "")}</h3>
+            <p class="meta">${esc(d.address ?? "").replace(/\n/g, " · ")}</p>
+            <p class="body">${esc(d.tagline ?? "")}</p>
+        `,
+        fields: [
+            { key: "communeName", label: "Nom de la commune (affiché en hero)", type: "text", required: true },
+            { key: "tagline", label: "Tagline (italic, sous le nom)", type: "text", placeholder: "à votre service depuis 1830" },
+            { key: "address", label: "Adresse postale (multi-ligne)", type: "textarea" },
+            { key: "hours", label: "Horaires (multi-ligne)", type: "textarea" },
+            { key: "phone", label: "Téléphone", type: "text" },
+            { key: "email", label: "Email", type: "text" },
         ],
     },
 };
 
 async function renderSection(name, container) {
     try {
-        if (SCHEMAS[name]) {
+        if (!SCHEMAS[name]) {
+            container.innerHTML = `<p class="empty">Onglet « ${esc(name)} » sans schéma.</p>`;
+            return;
+        }
+        if (SCHEMAS[name].singleton) {
+            await renderSingleton(name, container);
+        } else {
             await renderEditableList(name, container);
-            return;
-        }
-        // Read-only fallbacks (CRUD à venir en 14.4 / 14.6)
-        if (name === "polls") {
-            const html = await listCollectionHTML("polls", (p) => `
-                <h3>${esc(p.title)}</h3>
-                <p class="meta">${esc(p.description ?? "")}</p>
-                <p class="body"><strong>Question :</strong> ${esc(p.question ?? "")}</p>
-                ${(p.options ?? []).length ? `<ul>${p.options.map((o) => `<li>${esc(o.label)} <small>(${esc(o.id)})</small></li>`).join("")}</ul>` : ""}
-            `);
-            container.innerHTML = html;
-            return;
-        }
-        if (name === "info") {
-            const snap = await getDoc(doc(db, "info", "main"));
-            if (!snap.exists()) {
-                container.innerHTML = `<p class="empty">Aucun document <code>info/main</code>.</p>`;
-                return;
-            }
-            const d = snap.data();
-            container.innerHTML = `<div class="item">
-                <h3>${esc(d.communeName ?? "")}</h3>
-                <p class="meta">${esc(d.address ?? "").replace(/\n/g, "<br>")}</p>
-                <p class="body">${esc(d.contactMd ?? "")}</p>
-            </div>`;
-            return;
         }
     } catch (e) {
         container.innerHTML = `<p class="empty">Erreur : ${esc(e.message)}</p>`;
@@ -336,10 +382,24 @@ async function renderEditableList(collectionName, container) {
     });
 }
 
-async function listCollectionHTML(name, render) {
-    const snap = await getDocs(collection(db, name));
-    if (snap.empty) return `<p class="empty">Aucun document.</p>`;
-    return snap.docs.map((d) => `<div class="item">${render(d.data())}</div>`).join("");
+async function renderSingleton(collectionName, container) {
+    const schema = SCHEMAS[collectionName];
+    const docId = schema.singletonDocId;
+    const snap = await getDoc(doc(db, collectionName, docId));
+    const data = snap.exists() ? { _docId: docId, ...snap.data() } : { _docId: docId };
+
+    container.innerHTML = `
+        <div class="section-toolbar">
+            <h2>${esc(schema.label)}</h2>
+            <button type="button" class="new" id="singleton-edit">Éditer</button>
+        </div>
+        <div class="item">
+            ${snap.exists() ? schema.renderItem(data) : `<p class="empty">Aucun document <code>${esc(collectionName)}/${esc(docId)}</code> pour l'instant. Cliquez sur Éditer pour le créer.</p>`}
+        </div>
+    `;
+    container.querySelector("#singleton-edit").addEventListener("click", () => {
+        openEditor(collectionName, data);
+    });
 }
 
 // MARK: - Editor modal
@@ -354,19 +414,26 @@ function openEditor(collectionName, existingDoc) {
     const closeBtn = dialog.querySelector("[data-slot='close']");
     const deleteBtn = dialog.querySelector("[data-slot='delete']");
 
-    const isNew = !existingDoc;
-    titleEl.textContent = isNew ? `Nouveau ${schema.label.toLowerCase()}` : `Éditer ${schema.label.toLowerCase()}`;
-    deleteBtn.hidden = isNew;
+    // Singletons : on traite TOUJOURS comme "existingDoc" (le doc id est fixe),
+    // même quand le doc n'existe pas encore en Firestore — pas de "+ Nouveau",
+    // pas de bouton Supprimer.
+    const isSingleton = !!schema.singleton;
+    const isNew = !isSingleton && !existingDoc;
+    titleEl.textContent = isNew
+        ? `Nouveau ${schema.label.toLowerCase()}`
+        : `Éditer ${schema.label.toLowerCase()}`;
+    deleteBtn.hidden = isNew || isSingleton;
     statusEl.textContent = "";
     statusEl.className = "editor-status";
 
     fieldsEl.innerHTML = schema.fields.map((f) => fieldHTML(f, existingDoc?.[f.key])).join("");
+    attachFieldHandlers(fieldsEl, schema, collectionName);
 
     closeBtn.onclick = () => dialog.close();
     dialog.addEventListener("cancel", (e) => { e.preventDefault(); dialog.close(); }, { once: true });
 
     deleteBtn.onclick = async () => {
-        if (!existingDoc) return;
+        if (!existingDoc || isSingleton) return;
         if (!confirm(`Supprimer ce ${schema.label.toLowerCase()} ? Cette action est irréversible.`)) return;
         statusEl.textContent = "Suppression…";
         statusEl.className = "editor-status";
@@ -388,10 +455,15 @@ function openEditor(collectionName, existingDoc) {
         statusEl.textContent = "Enregistrement…";
         statusEl.className = "editor-status";
         try {
-            if (isNew) {
+            if (isSingleton) {
+                await setDoc(doc(db, collectionName, schema.singletonDocId), {
+                    ...data,
+                    updatedAt: serverTimestamp(),
+                }, { merge: true });
+            } else if (isNew) {
                 const ref = await addDoc(collection(db, collectionName), {
                     ...data,
-                    id: "", // placeholder, sync below
+                    id: "",
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                 });
@@ -420,51 +492,175 @@ function openEditor(collectionName, existingDoc) {
 function fieldHTML(f, value) {
     const v = value ?? "";
     const required = f.required ? "required" : "";
+    const labelHTML = `<span>${esc(f.label)}${f.required ? " *" : ""}</span>`;
     switch (f.type) {
         case "textarea":
-            return `<label class="field"><span>${esc(f.label)}${f.required ? " *" : ""}</span>
+            return `<label class="field">${labelHTML}
                 <textarea name="${esc(f.key)}" ${f.maxLength ? `maxlength="${f.maxLength}"` : ""} ${required}>${esc(v)}</textarea></label>`;
         case "markdown":
-            return `<label class="field"><span>${esc(f.label)}${f.required ? " *" : ""}</span>
+            return `<label class="field">${labelHTML}
                 <textarea name="${esc(f.key)}" data-tall ${required}>${esc(v)}</textarea></label>`;
         case "checkbox":
             return `<label class="checkbox">
                 <input type="checkbox" name="${esc(f.key)}" ${v ? "checked" : ""}>
                 <span>${esc(f.label)}</span></label>`;
         case "select":
-            return `<label class="field"><span>${esc(f.label)}${f.required ? " *" : ""}</span>
+            return `<label class="field">${labelHTML}
                 <select name="${esc(f.key)}" ${required}>
                     <option value="">—</option>
                     ${f.options.map((o) => `<option value="${esc(o)}" ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}
                 </select></label>`;
         case "date":
-            return `<label class="field"><span>${esc(f.label)}${f.required ? " *" : ""}</span>
+            return `<label class="field">${labelHTML}
                 <input type="date" name="${esc(f.key)}" value="${esc(v)}" ${required}></label>`;
+        case "number":
+            return `<label class="field">${labelHTML}
+                <input type="number" step="any" name="${esc(f.key)}" value="${esc(v)}" ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ""} ${required}></label>`;
         case "url":
-            return `<label class="field"><span>${esc(f.label)}${f.required ? " *" : ""}</span>
+            return `<label class="field">${labelHTML}
                 <input type="url" name="${esc(f.key)}" value="${esc(v)}" ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ""} ${required}></label>`;
+        case "image":
+            // Image upload : URL stockée comme string ; preview + bouton upload.
+            // Si l'URL existe déjà, on l'affiche en preview ; un nouveau upload
+            // remplace. Storage path = uploads/<folder>/<random>.
+            return `<div class="field">${labelHTML}
+                <div class="image-field">
+                    <img class="image-preview" data-preview-for="${esc(f.key)}"
+                         src="${esc(v)}" ${v ? "" : "hidden"}>
+                    <input type="hidden" name="${esc(f.key)}" value="${esc(v)}">
+                    <input type="file" accept="image/*" data-upload-for="${esc(f.key)}" data-folder="${esc(f.folder ?? "uploads")}">
+                    <span class="image-status" data-upload-status="${esc(f.key)}"></span>
+                </div></div>`;
+        case "options": {
+            // Tableau dynamique d'objets {id,label} pour les sondages.
+            // Chaque ligne : input id (technique) + input label (affiché).
+            // Bouton + Ajouter en bas. Bouton × supprime la ligne.
+            // La valeur initiale est sérialisée en data-initial pour que
+            // attachFieldHandlers puisse la lire après injection HTML.
+            const initialOpts = Array.isArray(value) ? value : [];
+            const serialized = esc(JSON.stringify(initialOpts));
+            return `<div class="field">${labelHTML}
+                <div class="options-field" data-options-for="${esc(f.key)}" data-initial="${serialized}">
+                    <div class="options-rows" data-rows></div>
+                    <button type="button" class="options-add" data-add-option="${esc(f.key)}">+ Ajouter une option</button>
+                </div></div>`;
+        }
         case "text":
         default:
-            return `<label class="field"><span>${esc(f.label)}${f.required ? " *" : ""}</span>
+            return `<label class="field">${labelHTML}
                 <input type="text" name="${esc(f.key)}" value="${esc(v)}" ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ""} ${required}></label>`;
     }
+}
+
+function attachFieldHandlers(container, schema, collectionName) {
+    // Image upload : sur changement de fichier, upload vers Storage, met
+    // l'URL dans le hidden input + preview.
+    container.querySelectorAll("input[type='file'][data-upload-for]").forEach((input) => {
+        input.addEventListener("change", async (e) => {
+            const key = input.dataset.uploadFor;
+            const folder = input.dataset.folder || "uploads";
+            const file = input.files?.[0];
+            if (!file) return;
+            const status = container.querySelector(`[data-upload-status="${key}"]`);
+            const preview = container.querySelector(`[data-preview-for="${key}"]`);
+            const hidden = container.querySelector(`input[type="hidden"][name="${key}"]`);
+            status.textContent = "Upload…";
+            status.className = "image-status";
+            try {
+                const url = await uploadImage(file, folder);
+                hidden.value = url;
+                preview.src = url;
+                preview.hidden = false;
+                status.textContent = "✓ Image envoyée.";
+                status.className = "image-status success";
+            } catch (err) {
+                status.textContent = err?.code === "storage/unauthorized"
+                    ? "Permission refusée (claim admin manquant)."
+                    : `Erreur upload : ${err.message}`;
+                status.className = "image-status error";
+            }
+        });
+    });
+
+    // Options dynamiques (polls) : init avec la valeur existante (sérialisée
+    // en data-initial par fieldHTML) + bouton add.
+    container.querySelectorAll("[data-options-for]").forEach((wrapper) => {
+        const rowsEl = wrapper.querySelector("[data-rows]");
+        const initialJson = wrapper.dataset.initial || "[]";
+        let parsed;
+        try { parsed = JSON.parse(initialJson); } catch { parsed = []; }
+        for (const opt of parsed) {
+            rowsEl.appendChild(buildOptionRow(opt));
+        }
+        if (parsed.length === 0) {
+            rowsEl.appendChild(buildOptionRow({ id: "", label: "" }));
+        }
+        wrapper.querySelector("[data-add-option]").addEventListener("click", () => {
+            rowsEl.appendChild(buildOptionRow({ id: "", label: "" }));
+        });
+    });
+}
+
+function buildOptionRow(opt) {
+    const row = document.createElement("div");
+    row.className = "options-row";
+    row.innerHTML = `
+        <input type="text" data-opt-id placeholder="id (yes, no, …)" value="${esc(opt.id ?? "")}">
+        <input type="text" data-opt-label placeholder="Label affiché" value="${esc(opt.label ?? "")}">
+        <button type="button" class="options-remove" aria-label="Supprimer">×</button>
+    `;
+    row.querySelector(".options-remove").addEventListener("click", () => row.remove());
+    return row;
 }
 
 function collectFormData(fields, container) {
     const data = {};
     for (const f of fields) {
+        if (f.type === "options") {
+            const wrapper = container.querySelector(`[data-options-for="${f.key}"]`);
+            if (!wrapper) continue;
+            const rows = wrapper.querySelectorAll(".options-row");
+            const opts = Array.from(rows).map((r) => ({
+                id: r.querySelector("[data-opt-id]").value.trim(),
+                label: r.querySelector("[data-opt-label]").value.trim(),
+            })).filter((o) => o.id && o.label);
+            data[f.key] = opts;
+            continue;
+        }
         const el = container.querySelector(`[name="${f.key}"]`);
         if (!el) continue;
         if (f.type === "checkbox") {
             data[f.key] = el.checked;
         } else if (f.type === "select" && el.value === "") {
-            // skip empty selects to avoid storing literal ""
             continue;
+        } else if (f.type === "number") {
+            const num = parseFloat(el.value);
+            data[f.key] = Number.isFinite(num) ? num : 0;
         } else {
             data[f.key] = el.value;
         }
     }
     return data;
+}
+
+// MARK: - Image upload (Firebase Storage)
+
+let storage = null;
+async function uploadImage(file, folder) {
+    if (!storage) {
+        const mod = await import("https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js");
+        storage = mod.getStorage(app);
+        // Cache mod pour réutilisation
+        uploadImage._mod = mod;
+    }
+    const mod = uploadImage._mod;
+    // Random suffix pour éviter les collisions et faciliter le cache busting
+    const ext = (file.name.match(/\.[^.]+$/)?.[0] || ".bin").toLowerCase();
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    const path = `${folder}/${filename}`;
+    const ref = mod.ref(storage, path);
+    await mod.uploadBytes(ref, file, { contentType: file.type });
+    return await mod.getDownloadURL(ref);
 }
 
 function esc(s) {
