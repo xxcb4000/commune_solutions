@@ -1,8 +1,12 @@
 # Commune Solutions
 
+[![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](LICENSE)
+
 > Plateforme civic tech open source à destination des communes wallonnes.
 >
 > **Statut** : design + spike technique en cours (avril 2026). Pas de prod.
+
+**Contribuer** : [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow PR, modules communauté, évolutions core. Code de conduite : [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Sécurité : [`SECURITY.md`](SECURITY.md).
 
 ## Idée
 
@@ -42,34 +46,17 @@ commune_solutions/
 
 Le spike reste comme banc de test consommateur de la library — toute évolution du renderer y est validée avant d'être propagée. Le repo continuera à grossir : `sdk/`, `cli/`, `modules-official/`, `dashboard/`, etc.
 
-## Roadmap haut niveau
+## Roadmap
 
-### Spike (terminé, validé GO 2026-04-30)
+Vue détaillée + chantiers à venir : [`docs/roadmap.md`](docs/roadmap.md).
 
-| Phase | Statut | Description |
-|---|---|---|
-| 0. Design contrat plateforme | ✅ Fait | `docs/platform.md` — 4 modules officiels passés à la moulinette (Sondages, Carte, Actualités, Agenda) |
-| 1. Spike technique DSL renderer | ✅ GO | 13 primitives natives validées sur iVince + Android device. Cf `spike/SPIKE_VERDICT.md` |
-| 2. Renderer extrait en library | ✅ Fait | `core/renderer-ios/` (Swift Package) + `core/renderer-android/` (:renderer module). Spike consomme |
-| 3. Manifest + structure module + tenant | ✅ Fait | `modules-official/<id>/{manifest.json,screens,data}` + `tenants/<id>/app.json`. ModuleRegistry résout `<module>:<screen>` à la volée |
-| 4. Loader HTTP | ✅ Fait | `AssetPreloader` fetch tenant + manifests + screens + data au démarrage ; cache mémoire, fallback bundle si HTTP injoignable |
-| 5. CF + data dynamique | ✅ Fait | Backend dev `tools/dev-server.py` (Python stdlib). Primitive `calendar` ajoutée |
-| 6a. Multi-tenant + persist | ✅ Fait | TenantPicker natif, persistance UserDefaults / SharedPreferences, action DSL `logout`. 2 tenants côte à côte (`spike` / `spike-2`) |
-| 6b. Auth Firebase | ✅ Fait | 2 projets Firebase, `CommuneFirebase.configure([...])` au démarrage, AuthGate + LoginForm natif par tenant. Logout sign-out + clear tenant |
-| 6c. Firestore par tenant | ✅ Fait | DSL data source `firestore:<path>` (collection ou doc). 3 modules scopés : `articles`, `events`, `info/main`. Chaque tenant lit dans son propre projet. Rules : read = authed, write = denied côté client |
-
-### Au-delà du spike (à attaquer en mode prod)
-
-| Phase | Statut | Description |
-|---|---|---|
-| 7. Backend Python réel | ✅ Fait | `core/cloud-functions/main.py` — 2nd-gen Python CFs (`submit_contact`, `submit_vote`) déployées par projet Firebase, vérification ID token Firebase Auth, écriture Firestore scopée au tenant. iOS + Android routent vers `tenant.functionsBaseURL` quand défini, sinon dev-server. |
-| 8. Form fields DSL | ✅ Fait | Primitives `field.email`, `field.secret`, `field.text`, `field.text.long`, `field.yesno`, `field.radio`, `field.scale` + form state + action `cf` |
-| 9. Premier vrai module greenfield | ✅ Fait | Module `sondages` construit from scratch sur le contrat (3 sondages, vote via CF, résultats par poll) |
-| 10. Dashboard admin commune | ✅ Fait (read-only) | `dashboard/` — single-page HTML + ES modules + Firebase Web SDK (CDN, pas de build). Tenant picker → login → 4 onglets (Sondages, Événements, Actualités, Infos) lus depuis Firestore par tenant. Édition + dashboard DSL-driven = phase ultérieure |
-| 11. Marketplace web v0 | ✅ Fait | `marketplace/` — site statique servi à `communesolutions.be/marketplace` via Firebase Hosting (projet `be-mde-commune-notification`, site `commune-solutions`). Catalogue des 4 modules officiels + page détail (capabilities style permissions Android, écrans, auteur, licence). Manifests enrichis (`description`, `author`, `licence`, `capabilities`). Build unifié landing + marketplace via `tools/build-site.sh`. Validation manifest via `tools/validate-manifests.py` |
-| 11.2. Doc dev + hello-world + CI | ✅ Fait | `docs/developers.md` (guide module communautaire), `modules-template/hello-world/` (clonable), `.github/workflows/validate-manifests.yml` (CI sur chaque PR) |
-| 11.3. Tenant config Firestore + dashboard d'activation | ✅ Fait | Liste des modules + tabbar migrés de `tenants/<id>/app.json` vers Firestore (`_config/modules` par projet commune). Preloader iOS + Android lit depuis Firestore avec fallback bundle. Rules : public read sur `_config/*`, write réservé aux admins (custom claim `admin: true`). Dashboard onglet « Modules » qui toggle activation + auto-sync tabbar. Validé end-to-end sur iVince |
-| 12. Onboarding première commune | À faire | Provisioning auto (Firebase project + sous-domaine + tenant config). Choix de la commune pilote = ouvert |
+**Résumé** :
+- ✅ **Spike technique** validé GO 2026-04-30 — DSL renderer iOS + Android, multi-tenant, auth Firebase, Firestore par tenant
+- ✅ **Au-delà du spike** : backend Python réel, form fields DSL, modules `sondages` / `info` / `actualites` / `agenda` / `carte`, dashboard admin commune (toggle modules), marketplace web v0, polish editorial
+- ⏭ **Phase 12 — onboarding commune** : pipeline CI build par commune, provisioning Firebase auto, sous-domaine, choix commune pilote
+- ⏭ **Phase 13 — communauté ouverte** : `modules-community/`, capability `cf.external`, CLI `create-commune-module`, emulator local
+- ⏭ **Phase 14 — dashboard édition** : passer du toggle modules au CRUD contenu (articles, events, polls)
+- ✅ **Phase 15 — hygiène repo + ouverture publique** : LICENSE EUPL-1.2, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, audit secrets clean
 
 ## Setup local
 

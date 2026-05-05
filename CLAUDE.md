@@ -10,9 +10,10 @@ Phases qui restent (cf README — section "Au-delà du spike") : backend Python 
 
 ## Docs à lire en priorité
 
-1. **`README.md`** — vision, roadmap, structure du repo, setup local
-2. **`docs/platform.md`** — design complet du contrat module : manifest, DSL UI, capabilities, extension points, marketplace, tenant model, licence, gouvernance, décisions ouvertes
-3. **`spike/SPIKE_VERDICT.md`** — verdict GO du spike, primitives validées, surprises rencontrées, recommandations
+1. **`README.md`** — vision, structure du repo, setup local, roadmap résumée
+2. **`docs/roadmap.md`** — état exhaustif fait / à faire / décisions ouvertes
+3. **`docs/platform.md`** — design complet du contrat module : manifest, DSL UI, capabilities, extension points, marketplace, tenant model, licence, gouvernance, décisions ouvertes
+4. **`spike/SPIKE_VERDICT.md`** — verdict GO du spike, primitives validées, surprises rencontrées, recommandations
 
 ## Décisions structurantes déjà prises (cf `docs/platform.md`)
 
@@ -28,4 +29,6 @@ Phases qui restent (cf README — section "Au-delà du spike") : backend Python 
 - **Pas de framework tiers pour le renderer** (Hyperview, etc.). SwiftUI + Compose nativement.
 - **Pas de feature flag, pas de migration prématurée.** Le spike est resté jetable, le code de prod sera réécrit en s'appuyant sur sa structure.
 - Quand le doc `docs/platform.md` doit évoluer : pas de fichiers MD intermédiaires, on l'édite directement (il sera découpé plus tard quand il grossit trop).
-- Aucune référence à des communes spécifiques dans le code public. Les tenants de test s'appellent `spike` / `spike-2` (labels affichés "Démo A" / "Démo B").
+- **Code de la plateforme** (renderer, modules officiels, dashboard, tooling) : aucune référence à des communes spécifiques. Les tenants de test s'appellent `spike` / `spike-2` (labels affichés "Démo A" / "Démo B"). Les modules sont packagés comme des contributions externes : neutres.
+- **Landing / marketing** (`landing/`, `design/`) : peut mentionner Awans (première commune adoptante) et autres clients réels — c'est du discours commercial, pas du code plateforme.
+- Repo **public** sur `github.com/xxcb4000/commune_solutions` (compte perso). Apple Team : Mosa Data Engineering (compte central, signe les apps des communes).
