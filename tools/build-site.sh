@@ -18,6 +18,7 @@ mkdir -p "$OUT"
 
 python3 tools/build-marketplace.py
 
+mkdir -p "$OUT/marketplace" "$OUT/core/renderer-web" "$OUT/modules-official" "$OUT/modules-community"
 rsync -a --delete landing/public/ "$OUT/"
 rsync -a --delete marketplace/public/ "$OUT/marketplace/"
 rsync -a --delete core/renderer-web/ "$OUT/core/renderer-web/"
