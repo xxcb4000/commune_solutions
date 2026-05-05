@@ -218,6 +218,39 @@ Au-delà des primitives DSL et des champs manifest simples (phase 17), [`docs/pl
   - Time-to-live commune : viser < 30 min après signup
   - Bloquant à plus de 5 communes en prod (sinon support manuel ne tient pas)
 
+### 19. Modules envisagés (motivent les features de phase 17 et 18)
+
+Plutôt que builder phase 17/18 en vacuum, on imagine des **modules concrets** qui exercent ces features. Le module devient à la fois la justification (« pourquoi on a besoin de X ») et le banc de test (« est-ce que X marche en réel »).
+
+#### Top 5 modules à fort levier
+
+| Module | Features de phase 17/18 exercées | Cas civic |
+|---|---|---|
+| **Signalements voirie** | `field.photo`, `field.map.picker`, `device.camera`, `device.location`, `moderation full pattern`, `permissions device aggregation`, `deep-links`, `notifications push` (8 features) | Citoyen photographie un nid-de-poule, place un pin, l'admin voit dans la queue, valide → publication + push retour citoyen |
+| **Boîte à idées** | `moderation full`, `extension points dashboard widget`, `capability runtime check`, `deep-links` (4 features) | « Que voudriez-vous voir au parc ? » — citoyens postent texte, admin trie, top idées remontent en sondage |
+| **Météo locale** | `secrets` (clé OpenWeather), `scheduledJobs`, `cf.external`, `dashboard extension point` (tile), `publicEndpoints` (4 features) | Sync 4×/jour → tile dashboard + widget mobile + endpoint pour communes voisines |
+| **Notifications push** | `permissions device`, `deep-links` (target screen), `config.ui` (préférences citoyen), `capability runtime` (4 features) | Commune envoie « alerte travaux » → tap notif → ouvre app sur l'article. Citoyen choisit ses topics |
+| **Agenda fédéré** | `extension points cross-module` (autres modules contribuent events), `publicEndpoints` (iCal), `scheduledJobs` (sync calendriers tiers), `device.addToCalendar` (4 features) | Agenda cumule events commune + événements modules tiers (Marchés, Sport club, Culture asbl). Export iCal pour aggrégateurs |
+
+**Reco priorité** : **Signalements voirie** comme premier « module-killer ». Il exerce 8 features de phase 17/18 d'un coup et c'est le cas civic-tech le plus emblématique. Une fois shippé, ~80% de la valeur de phase 17/18 est exercée et validée. Les autres modules de la table (idées, météo, agenda fédéré) bénéficient des features et sont plus rapides à ajouter.
+
+#### Autres modules civic à coder un jour (motivés par cas commune)
+
+- **Réservation salles communales / RDV état civil** — `field.date` / `field.date.range` + slot picker + CF `book_slot` avec lock atomique
+- **Inscriptions stages d'été** — `field.date.range` + `field.checkbox` (activités multiples)
+- **Calendrier collectes déchets** — data simple + `device.addToCalendar`
+- **Citoyen ambassadeur** — exerce `extension points cross-module` (contribue card actualités feed)
+- **Marchés / brocantes** — agenda variant + carte combinée
+- **Petites annonces / trocs / dons** — UGC modéré, photo + categorie
+- **Avis d'enquête publique** — pétition citoyenne avec seuil de signatures
+- **Budget participatif** — votes pondérés sur projets + carte des projets
+- **Sentiers / balades / points de vue** — annuaire géolocalisé carte
+- **Newsletter inscription** — form + double opt-in via CF
+- **Signaler un véhicule abandonné** — variante Signalements
+- **Open data export** — `publicEndpoints` (CSV de tout le contenu public commune)
+
+Cette liste n'est pas un engagement de roadmap — c'est un **catalogue d'idées** qui montre la richesse civic possible une fois phase 17 + 18 shippées. Chaque module candidat sera priorisé par le besoin réel d'une commune adoptante.
+
 ### 15. Hygiène repo + ouverture publique — ✅ fait (2026-05-05)
 
 - ✅ **Audit secrets historique git** : clean — Firebase configs (GoogleService-Info, google-services, firebase-config-spike-*) jamais committées, aucune clé API, aucun token, aucun secret hardcodé détecté
