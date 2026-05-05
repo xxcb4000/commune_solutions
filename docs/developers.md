@@ -251,6 +251,42 @@ La table actuelle est minimale (~10 noms). Pour ajouter une icône, soumettez un
 
 ## Tester localement
 
+### Aperçu navigateur via le 3ème renderer (le plus rapide)
+
+Pour itérer sur le DSL sans rien installer (pas Xcode, pas Android Studio, pas Firebase) — votre module est rendu dans le navigateur via le renderer web (`core/renderer-web/`) :
+
+```sh
+# Build le site puis lance un serveur HTTP local
+bash tools/build-site.sh
+cd _site && python3 -m http.server 8765
+# → http://localhost:8765/marketplace/preview.html?module=<votre-id>
+# → http://localhost:8765/marketplace/preview.html?module=<votre-id>&screen=<screen-id>
+```
+
+Itération typique : éditez votre JSON → relancez `bash tools/build-site.sh` (~1s) → rechargez le navigateur (Cmd+Shift+R) → vous voyez le rendu mis à jour.
+
+Une fois la PR mergée, l'aperçu est accessible publiquement à `https://communesolutions.be/marketplace/preview.html?module=<votre-id>` (auto-deploy CI). Sur la page détail de votre module dans le catalog, les boutons « Aperçu → » et chaque pill d'écran ouvrent l'aperçu.
+
+#### Données mockées en aperçu
+
+Pour les sources `@<name>` (data bundlée), c'est votre vrai contenu qui s'affiche.
+
+Pour les sources `firestore:<collection>`, l'aperçu navigateur cherche un fichier de fixture optionnel à `modules-{official,community}/<votre-module>/preview-mock/<collection>.json` (ou pour un singleton à `firestore:<collection>/<doc>`, le path est `preview-mock/<collection>.json` aussi). Si présent, il est utilisé comme données ; sinon le binding est vide et la liste/feed sera blanche (le contributeur voit que le layout est correct mais pas le contenu).
+
+Convention : un fichier de fixture par collection lue par votre module.
+
+```
+modules-community/mon-module/
+├── manifest.json
+├── screens/
+│   ├── list.json           # data: { items: "firestore:my_things" }
+│   └── detail.json
+└── preview-mock/
+    └── my_things.json      # tableau JSON de 3-5 items représentatifs
+```
+
+Les sources `cf:<endpoint>` ne sont pas mockées (elles restent vides en aperçu). Si votre flow dépend du retour d'une CF, testez avec un projet Firebase réel ou les emulators (sections suivantes).
+
 ### Avec un projet Firebase existant
 
 1. Le module est déjà dans `modules-community/<id>/` (créé via `tools/create-commune-module.sh`)
