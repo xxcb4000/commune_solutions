@@ -1,0 +1,20 @@
+{
+  "id": "restos-locaux",
+  "version": "0.1.0",
+  "displayName": "Restaurants locaux",
+  "icon": "fork.knife",
+  "description": "Sélection des restaurants et bistrots de la commune. Curé par la communauté Slow Food locale.",
+  "longDescription": "Annuaire des restaurants, bistrots, fritkots et cafés de la commune. Chaque adresse a un nom, une cuisine, une fourchette de prix, des horaires et une note communauté. Données bundlées dans le module ; pour adapter à votre commune, forkez et éditez `data/restaurants.json`.",
+  "author": "Slow Food Wallonie (asbl)",
+  "licence": "MIT",
+  "official": false,
+  "tags": ["communauté", "gastronomie", "commerce-local"],
+  "capabilities": [],
+  "screens": {
+    "list": "screens/list.json",
+    "detail": "screens/detail.json"
+  },
+  "data": {
+    "restaurants": "data/restaurants.json"
+  }
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "resto-001",
+    "name": "Le Petit Bistrot",
+    "cuisine": "Cuisine belge traditionnelle",
+    "priceRange": "€€",
+    "address": "Place communale 4, 4000 Démo A",
+    "hours": "Mar–dim · 12h–14h, 18h–22h\nFermé lundi",
+    "logoUrl": "https://picsum.photos/seed/resto-bistrot/600/400",
+    "description": "Bistrot familial tenu par Marie depuis 1998. Spécialités : carbonnades flamandes, vol-au-vent, tarte au sucre maison. Cadre intime, 30 couverts.",
+    "phone": "04 / 000 11 11"
+  },
+  {
+    "id": "resto-002",
+    "name": "Friterie de la Place",
+    "cuisine": "Frites & snacks",
+    "priceRange": "€",
+    "address": "Place communale 12, 4000 Démo A",
+    "hours": "Lun–dim · 11h30–14h, 18h–22h",
+    "logoUrl": "https://picsum.photos/seed/resto-friterie/600/400",
+    "description": "Friterie communale historique. Frites fraîches au blanc de bœuf, sauces maison, mitraillette légendaire. Terrasse en saison.",
+    "phone": "04 / 000 22 22"
+  },
+  {
+    "id": "resto-003",
+    "name": "L'Olivier",
+    "cuisine": "Méditerranéenne",
+    "priceRange": "€€€",
+    "address": "Rue de l'Église 8, 4000 Démo A",
+    "hours": "Mer–sam · 19h–22h30\nDim · 12h–15h\nFermé lun-mar",
+    "logoUrl": "https://picsum.photos/seed/resto-olivier/600/400",
+    "description": "Cuisine méditerranéenne contemporaine, produits sourcés en circuit court. Carte de saison, 35 couverts. Réservation conseillée.",
+    "phone": "04 / 000 33 33"
+  },
+  {
+    "id": "resto-004",
+    "name": "Café des Sports",
+    "cuisine": "Brasserie",
+    "priceRange": "€€",
+    "address": "Avenue des Tilleuls 2, 4000 Démo A",
+    "hours": "Lun–dim · 9h–minuit",
+    "logoUrl": "https://picsum.photos/seed/resto-sports/600/400",
+    "description": "Brasserie populaire. Petit-déjeuner, lunchs rapides, plats du jour, boudin compote, croque-monsieur géant. Diffusion matchs RSCL et équipe nationale.",
+    "phone": "04 / 000 44 44"
+  },
+  {
+    "id": "resto-005",
+    "name": "La Maison Verte",
+    "cuisine": "Végétarien & vegan",
+    "priceRange": "€€",
+    "address": "Rue Haute 22, 4000 Démo A",
+    "hours": "Mar–sam · 12h–14h30, 18h30–22h",
+    "logoUrl": "https://picsum.photos/seed/resto-vegan/600/400",
+    "description": "100% végétarien, options vegan/sans gluten. Carte courte de saison avec produits bio régionaux. Bières locales, jus pressés maison.",
+    "phone": "04 / 000 55 55"
+  }
+]
