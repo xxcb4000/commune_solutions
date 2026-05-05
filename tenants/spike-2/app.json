@@ -25,6 +25,7 @@
       { "title": "Actualités", "icon": "newspaper", "screen": "actualites:feed" },
       { "title": "Agenda", "icon": "calendar", "screen": "agenda:list" },
       { "title": "Carte", "icon": "map", "screen": "carte:list" },
+      { "title": "Signalements", "icon": "exclamationmark.triangle.fill", "screen": "signalements:list" },
       { "title": "Sondages", "icon": "chart.bar.fill", "screen": "sondages:list" },
       { "title": "Infos", "icon": "info.circle", "screen": "info:main" }
     ]
