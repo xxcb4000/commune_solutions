@@ -18,11 +18,15 @@ mkdir -p "$OUT"
 
 python3 tools/build-marketplace.py
 
+# Pas de --delete : `rm -rf "$OUT"` au-dessus a déjà wipé tout l'output,
+# donc une simple copie suffit. Le --delete sur landing → $OUT/ avait
+# l'effet de bord de supprimer $OUT/core/ et $OUT/marketplace/ créés par
+# les autres rsync, d'où le fail CI précédent.
+rsync -a landing/public/ "$OUT/"
 mkdir -p "$OUT/marketplace" "$OUT/core/renderer-web" "$OUT/modules-official" "$OUT/modules-community"
-rsync -a --delete landing/public/ "$OUT/"
-rsync -a --delete marketplace/public/ "$OUT/marketplace/"
-rsync -a --delete core/renderer-web/ "$OUT/core/renderer-web/"
-rsync -a --delete modules-official/ "$OUT/modules-official/"
-rsync -a --delete modules-community/ "$OUT/modules-community/"
+rsync -a marketplace/public/ "$OUT/marketplace/"
+rsync -a core/renderer-web/ "$OUT/core/renderer-web/"
+rsync -a modules-official/ "$OUT/modules-official/"
+rsync -a modules-community/ "$OUT/modules-community/"
 
 echo "site assemblé → $OUT"
