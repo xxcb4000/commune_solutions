@@ -74,7 +74,13 @@ Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomp
   - ⏭ Test live (lane testflight sur tenant `spike`) : pas encore — nécessite création du record App Store Connect pour `be.communesolutions.spike`
   - ⏭ Workflow CI `release-commune-app.yml` : à écrire après validation du lane local
 - **⏭ 12.4b — Distribution Google Play** : `fastlane supply` + service account JSON pour Play Console
-- **⏭ 12.5 — Sous-domaine `<commune>.communesolutions.be`** : automation DNS + Firebase Hosting custom domain
+- **🚧 12.5 — Sous-domaine + Universal Links / App Links**
+  - ✅ Template `commune-sites/_template/` : landing branded + AASA + assetlinks.json + firebase.json
+  - ✅ `tools/build-commune-site.py <commune-id>` : matérialise `commune-sites/<commune-id>/` depuis `tenants/<commune-id>/app.json`. Substitue label, dots, bundle ID, Apple Team ID
+  - ✅ Skill doc `docs/skills/onboard-commune-dns.md` — étapes manuelles DNS Infomaniak + Firebase Hosting custom domain (vérification TXT, A records, SSL Let's Encrypt, troubleshooting)
+  - ✅ AASA + assetlinks.json servis avec `Content-Type: application/json` (sinon iOS/Android refusent)
+  - ⏭ Automation Infomaniak DNS API + Firebase Hosting custom domain API → quand on aura > 5 communes en prod (pas justifié avant)
+  - ⏭ Compléter sha256_cert_fingerprints Android dans assetlinks.json après premier build release signé (cf phase 12.4)
 - **⏭ Universal Links / App Links à l'échelle** : `apple-app-site-association` mutualisé sur `communesolutions.be` 🤔 (cf décision ouverte platform.md)
 - **⏭ Choix commune pilote** : à arbitrer
 

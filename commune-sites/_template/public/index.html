@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{COMMUNE_NAME}} — Commune Solutions</title>
+    <meta name="description" content="L'app citoyenne de la commune de {{COMMUNE_NAME}}. Actualités, agenda, sondages, lieux d'intérêt, infos pratiques.">
+    <meta name="theme-color" content="{{BRAND_TEXT_COLOR}}">
+    <link rel="stylesheet" href="/style.css">
+
+    <meta property="og:title" content="{{COMMUNE_NAME}} — Commune Solutions">
+    <meta property="og:description" content="L'app citoyenne de la commune de {{COMMUNE_NAME}}.">
+    <meta property="og:url" content="https://{{COMMUNE_ID}}.communesolutions.be">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_BE">
+
+    <!-- Universal Links (iOS) — l'app est associée à ce domain via le AASA
+         à /.well-known/apple-app-site-association. Tap d'un lien
+         https://{{COMMUNE_ID}}.communesolutions.be/article/<id> ouvre l'app
+         si elle est installée. -->
+</head>
+<body>
+    <main class="hero">
+        <span class="brand-label" style="color: {{BRAND_TEXT_COLOR}};">{{BRAND_LABEL}}</span>
+        <div class="brand-dots">
+            {{BRAND_DOTS_HTML}}
+        </div>
+        <h1>{{COMMUNE_NAME}}</h1>
+        <p class="tagline">L'app citoyenne pour rester connecté à votre commune.</p>
+
+        <div class="downloads">
+            <!-- App Store + Play Store : à compléter avec les vrais URLs après publication -->
+            <a class="store-btn" href="#" aria-label="Télécharger sur l'App Store">App Store</a>
+            <a class="store-btn" href="#" aria-label="Télécharger sur Google Play">Google Play</a>
+        </div>
+
+        <p class="footnote">
+            Propulsé par <a href="https://communesolutions.be">Commune Solutions</a> — open source, EUPL 1.2.
+        </p>
+    </main>
+</body>
+</html>

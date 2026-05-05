@@ -1,0 +1,14 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "{{APPLE_TEAM_ID}}.{{IOS_BUNDLE_ID}}",
+                "paths": ["*"]
+            }
+        ]
+    },
+    "webcredentials": {
+        "apps": ["{{APPLE_TEAM_ID}}.{{IOS_BUNDLE_ID}}"]
+    }
+}
