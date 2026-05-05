@@ -1,0 +1,88 @@
+{
+  "screen": "propose",
+  "navigation": {
+    "title": "Signaler un problème",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 14,
+        "padding": 22,
+        "children": [
+          {
+            "type": "text",
+            "value": "Décrivez un problème du domaine public (voirie, éclairage, propreté…). Le service technique de la commune validera votre signalement avant publication sur la carte des problèmes en cours.",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "title",
+            "label": "Titre court (1 ligne)",
+            "placeholder": "Ex. Nid-de-poule rue de l'Église",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "radio",
+            "id": "category",
+            "label": "Type de problème",
+            "options": [
+              { "id": "voirie", "label": "Voirie (chaussée, trottoir)" },
+              { "id": "eclairage", "label": "Éclairage public" },
+              { "id": "proprete", "label": "Propreté (déchets, dépôts)" },
+              { "id": "mobilier", "label": "Mobilier urbain (banc, panneau)" },
+              { "id": "espaces-verts", "label": "Espaces verts (arbres, haies)" },
+              { "id": "autre", "label": "Autre" }
+            ]
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "address",
+            "label": "Adresse / lieu précis",
+            "placeholder": "Ex. Rue Haute 8 ou angle X / Y",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "imageUrl",
+            "label": "URL d'une photo (la primitive photo arrive bientôt)",
+            "placeholder": "https://..."
+          },
+          {
+            "type": "field",
+            "kind": "text.long",
+            "id": "description",
+            "label": "Description (détails utiles, urgence)",
+            "placeholder": "Décrivez le problème : depuis quand, dangerosité, autres infos pratiques…",
+            "minLines": 4
+          },
+          {
+            "type": "button",
+            "label": "Soumettre le signalement",
+            "action": {
+              "type": "cf",
+              "endpoint": "submit_signalement_proposal",
+              "body": {
+                "title": "{{ form.title }}",
+                "category": "{{ form.category }}",
+                "address": "{{ form.address }}",
+                "imageUrl": "{{ form.imageUrl }}",
+                "description": "{{ form.description }}"
+              },
+              "onSuccess": {
+                "toast": "Merci ! Votre signalement est en attente de validation par le service technique."
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

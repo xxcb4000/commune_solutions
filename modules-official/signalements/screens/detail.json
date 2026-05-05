@@ -1,0 +1,97 @@
+{
+  "screen": "detail",
+  "navigation": {
+    "title": "",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "vstack",
+            "spacing": 6,
+            "children": [
+              {
+                "type": "text",
+                "value": "{{ sig.categoryLabel }}",
+                "style": "eyebrow",
+                "color": "terra"
+              },
+              {
+                "type": "text",
+                "value": "{{ sig.title }}",
+                "style": "display-small"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "url": "{{ sig.imageUrl }}",
+            "aspectRatio": 1.5,
+            "cornerRadius": 18
+          },
+          {
+            "type": "text",
+            "value": "{{ sig.description }}",
+            "style": "body"
+          },
+          {
+            "type": "vstack",
+            "spacing": 14,
+            "children": [
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "mappin.and.ellipse",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Lieu", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ sig.address }}", "style": "body" }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "calendar",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Signalé le", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ sig.createdAt }}", "style": "body" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

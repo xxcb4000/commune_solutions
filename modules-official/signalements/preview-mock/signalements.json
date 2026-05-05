@@ -1,0 +1,72 @@
+[
+  {
+    "id": "sig-001",
+    "title": "Nid-de-poule rue de l'Église",
+    "category": "voirie",
+    "categoryLabel": "Voirie",
+    "description": "Trou profond au milieu de la chaussée, dangereux pour les cyclistes. À traiter rapidement avant l'aggravation.",
+    "imageUrl": "https://picsum.photos/seed/sig-pothole/800/500",
+    "address": "Rue de l'Église 14, 4000 Démo A",
+    "lat": 50.6695,
+    "lng": 5.4762,
+    "status": "approved",
+    "createdAt": "2026-04-28",
+    "approvedAt": "2026-04-29"
+  },
+  {
+    "id": "sig-002",
+    "title": "Lampadaire éteint depuis 1 semaine",
+    "category": "eclairage",
+    "categoryLabel": "Éclairage public",
+    "description": "Le lampadaire à l'angle de la rue Haute et de l'avenue des Tilleuls ne s'allume plus le soir. Quartier devenu sombre.",
+    "imageUrl": "https://picsum.photos/seed/sig-lamp/800/500",
+    "address": "Angle rue Haute / avenue des Tilleuls, 4000 Démo A",
+    "lat": 50.6712,
+    "lng": 5.4805,
+    "status": "approved",
+    "createdAt": "2026-04-25",
+    "approvedAt": "2026-04-26"
+  },
+  {
+    "id": "sig-003",
+    "title": "Dépôt sauvage parking arrière",
+    "category": "proprete",
+    "categoryLabel": "Propreté",
+    "description": "Plusieurs sacs et électroménagers déposés à côté des conteneurs collectifs. Récurrent malheureusement.",
+    "imageUrl": "https://picsum.photos/seed/sig-trash/800/500",
+    "address": "Place du Marché (parking arrière), 4000 Démo A",
+    "lat": 50.6680,
+    "lng": 5.4790,
+    "status": "approved",
+    "createdAt": "2026-04-22",
+    "approvedAt": "2026-04-23"
+  },
+  {
+    "id": "sig-004",
+    "title": "Banc cassé au parc",
+    "category": "mobilier",
+    "categoryLabel": "Mobilier urbain",
+    "description": "Le banc en bois côté plaine de jeux a une planche cassée, risque d'écharde.",
+    "imageUrl": "https://picsum.photos/seed/sig-bench/800/500",
+    "address": "Parc des Trois Tilleuls, plaine de jeux, 4000 Démo A",
+    "lat": 50.6665,
+    "lng": 5.4815,
+    "status": "approved",
+    "createdAt": "2026-04-20",
+    "approvedAt": "2026-04-21"
+  },
+  {
+    "id": "sig-005",
+    "title": "Branche dangereuse sur le sentier",
+    "category": "espaces-verts",
+    "categoryLabel": "Espaces verts",
+    "description": "Grosse branche cassée à hauteur de tête sur le sentier qui longe la Méhaigne. À retirer.",
+    "imageUrl": "https://picsum.photos/seed/sig-branch/800/500",
+    "address": "Sentier de la Méhaigne, 4000 Démo A",
+    "lat": 50.6735,
+    "lng": 5.4720,
+    "status": "approved",
+    "createdAt": "2026-04-18",
+    "approvedAt": "2026-04-19"
+  }
+]

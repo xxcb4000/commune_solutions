@@ -1,0 +1,24 @@
+{
+  "id": "signalements",
+  "version": "0.1.0",
+  "displayName": "Signalements",
+  "icon": "exclamationmark.triangle.fill",
+  "description": "Permet aux citoyens de signaler les problèmes du domaine public (voirie, éclairage, propreté). Validation admin avant publication.",
+  "longDescription": "Module de signalement citoyen-vers-administration. Le citoyen documente un problème (titre, catégorie, description, photo, lieu) ; le service technique de la commune valide depuis le dashboard. Une fois publié, le signalement apparaît dans la carte publique des signalements en cours, ce qui évite les doublons et donne aux citoyens un retour visible. Au cœur du module : la file de modération unifiée (`_moderation_queue`) qui traite les soumissions avant publication.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["communication", "voirie", "ugc"],
+  "capabilities": [
+    { "type": "firestore.read", "target": "signalements", "description": "Lecture des signalements approuvés et publiés par la commune" },
+    { "type": "moderation", "target": "signalements", "description": "Les signalements citoyens passent en file de modération admin avant publication" }
+  ],
+  "moderation": [
+    { "collection": "signalements", "label": "Signalements citoyens en attente" }
+  ],
+  "screens": {
+    "list": "screens/list.json",
+    "detail": "screens/detail.json",
+    "propose": "screens/propose.json"
+  }
+}

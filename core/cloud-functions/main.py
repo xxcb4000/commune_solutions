@@ -119,6 +119,61 @@ def submit_event_proposal(req: https_fn.Request) -> https_fn.Response:
     return _ok({"ok": True})
 
 
+@https_fn.on_request(
+    region="europe-west1",
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["POST", "OPTIONS"],
+    ),
+)
+def submit_signalement_proposal(req: https_fn.Request) -> https_fn.Response:
+    """Le citoyen signale un problème du domaine public. Écrit dans
+    _moderation_queue/<id> avec le shape standard moderation. L'admin
+    valide depuis le dashboard — sur approve, le payload est copié dans
+    signalements/ et l'entrée queue supprimée."""
+    if req.method != "POST":
+        return _error(405, "Method not allowed")
+    decoded = _verify_auth_full(req)
+    if not decoded:
+        return _error(401, "Unauthorized")
+    payload = req.get_json(silent=True) or {}
+    title = (payload.get("title") or "").strip()
+    address = (payload.get("address") or "").strip()
+    if not title:
+        return _error(400, "title requis")
+    if not address:
+        return _error(400, "address requis")
+    category = (payload.get("category") or "autre").strip()
+    category_labels = {
+        "voirie": "Voirie",
+        "eclairage": "Éclairage public",
+        "proprete": "Propreté",
+        "mobilier": "Mobilier urbain",
+        "espaces-verts": "Espaces verts",
+        "autre": "Autre",
+    }
+    db = firestore.client()
+    db.collection("_moderation_queue").add({
+        "targetCollection": "signalements",
+        "moduleId": "signalements",
+        "submittedBy": decoded["uid"],
+        "submittedByEmail": decoded.get("email", ""),
+        "submittedAt": firestore.SERVER_TIMESTAMP,
+        "payload": {
+            "title": title,
+            "category": category,
+            "categoryLabel": category_labels.get(category, "Autre"),
+            "address": address,
+            "imageUrl": (payload.get("imageUrl") or "").strip(),
+            "description": (payload.get("description") or "").strip(),
+            "status": "pending",
+            "createdAt": firestore.SERVER_TIMESTAMP,
+            "_summary": f"[{category_labels.get(category, 'Autre')}] {title} — {address}",
+        },
+    })
+    return _ok({"ok": True})
+
+
 def _verify_auth(req: https_fn.Request):
     decoded = _verify_auth_full(req)
     return decoded["uid"] if decoded else None

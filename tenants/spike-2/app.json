@@ -8,8 +8,9 @@
   },
   "modules": [
     { "id": "actualites", "version": "0.1.0" },
-    { "id": "agenda", "version": "0.1.0" },
+    { "id": "agenda", "version": "0.2.0" },
     { "id": "carte", "version": "0.1.0" },
+    { "id": "signalements", "version": "0.1.0" },
     { "id": "sondages", "version": "0.1.0" },
     { "id": "info", "version": "0.1.0" }
   ],
