@@ -1,0 +1,24 @@
+[
+  {
+    "id": "poll-001",
+    "title": "Plan vélo communal",
+    "description": "Aménagement de la mobilité douce — soumis au prochain conseil.",
+    "question": "Êtes-vous favorable au plan vélo proposé ?",
+    "options": [
+      {"id": "yes", "label": "Oui, prioritaire"},
+      {"id": "later", "label": "Plus tard"},
+      {"id": "no", "label": "Non"}
+    ]
+  },
+  {
+    "id": "poll-002",
+    "title": "Aire de jeux du parc central",
+    "description": "Quel type de structure remplacer en priorité ?",
+    "question": "Votre choix de structure ?",
+    "options": [
+      {"id": "swing", "label": "Balançoires"},
+      {"id": "slide", "label": "Toboggan"},
+      {"id": "climb", "label": "Mur d'escalade"}
+    ]
+  }
+]

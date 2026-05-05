@@ -1,0 +1,29 @@
+[
+  {
+    "id": "evt-001",
+    "title": "Marché aux fleurs",
+    "date": "samedi 3 mai · 9h–17h",
+    "dateStart": "2026-05-03",
+    "location": "Place communale",
+    "imageUrl": "https://picsum.photos/seed/demo-a-marche/900/506",
+    "description": "Plus de **30 producteurs locaux** présents le samedi et le dimanche.\n\n### Au programme\n\n- Atelier compostage à 14h (samedi)\n- Animation enfants à 11h (dimanche)\n\nEntrée libre."
+  },
+  {
+    "id": "evt-002",
+    "title": "Conseil communal",
+    "date": "lundi 12 mai · 19h30",
+    "dateStart": "2026-05-12",
+    "location": "Salle du conseil, maison communale",
+    "imageUrl": "https://picsum.photos/seed/demo-a-conseil/900/506",
+    "description": "Séance publique. Ordre du jour : **budget 2026**, plan vélo, rapport PCDR."
+  },
+  {
+    "id": "evt-003",
+    "title": "Concert de printemps",
+    "date": "vendredi 16 mai · 20h",
+    "dateStart": "2026-05-16",
+    "location": "Église centrale",
+    "imageUrl": "https://picsum.photos/seed/demo-a-concert/900/506",
+    "description": "Concert de printemps de l'académie de musique communale."
+  }
+]

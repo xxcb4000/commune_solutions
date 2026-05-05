@@ -1,0 +1,74 @@
+[
+  {
+    "id": "plc-001",
+    "name": "Maison communale",
+    "category": "services",
+    "categoryLabel": "Services communaux",
+    "address": "Place communale 1, 4000 Démo A",
+    "meta": "Place communale 1 · ouvert jusqu'à 12h",
+    "hours": "Lun → ven · 9h–12h\nMardi (perm.) · 14h–18h",
+    "lat": 50.6695,
+    "lng": 5.4762,
+    "body": "L'**accueil principal** de la commune. État civil, cartes d'identité, permis, urbanisme."
+  },
+  {
+    "id": "plc-002",
+    "name": "École communale du Centre",
+    "category": "ecole",
+    "categoryLabel": "Écoles",
+    "address": "Rue de l'École 14, 4000 Démo A",
+    "meta": "Rue de l'École 14 · maternelle + primaire",
+    "hours": "Lun → ven · 8h30–15h30 (mer 12h)",
+    "lat": 50.6712,
+    "lng": 5.4805,
+    "body": "Implantation principale du réseau communal. **220 élèves**, sections maternelle et primaire."
+  },
+  {
+    "id": "plc-003",
+    "name": "Centre culturel",
+    "category": "culture",
+    "categoryLabel": "Culture",
+    "address": "Place du Marché 3, 4000 Démo A",
+    "meta": "Place du Marché 3 · expositions, concerts",
+    "hours": "Mar → sam · 14h–18h\nDim · 14h–17h (selon expo)",
+    "lat": 50.6680,
+    "lng": 5.4790,
+    "body": "Programmation **expositions, concerts, conférences** tout au long de l'année."
+  },
+  {
+    "id": "plc-004",
+    "name": "Hall omnisports",
+    "category": "sport",
+    "categoryLabel": "Sport",
+    "address": "Rue des Sports 12, 4000 Démo A",
+    "meta": "Rue des Sports 12 · réservations en ligne",
+    "hours": "Lun → ven · 9h–22h\nWeek-end · 9h–18h",
+    "lat": 50.6735,
+    "lng": 5.4720,
+    "body": "Salle omnisports communale. **Réservations** : badminton, basket, futsal, volley."
+  },
+  {
+    "id": "plc-005",
+    "name": "Bibliothèque communale",
+    "category": "services",
+    "categoryLabel": "Services communaux",
+    "address": "Rue Haute 8, 4000 Démo A",
+    "meta": "Rue Haute 8 · ouvert mardi → samedi",
+    "hours": "Mar–jeu · 14h–18h\nVen · 14h–19h\nSam · 9h–13h",
+    "lat": 50.6669,
+    "lng": 5.4733,
+    "body": "**12 000 ouvrages**. Section jeunesse, fonds régional, presse, ordinateurs publics."
+  },
+  {
+    "id": "plc-006",
+    "name": "Parc des Trois Tilleuls",
+    "category": "nature",
+    "categoryLabel": "Nature",
+    "address": "Avenue des Tilleuls, 4000 Démo A",
+    "meta": "Avenue des Tilleuls · plaine de jeux",
+    "hours": "Tous les jours · 7h–coucher du soleil",
+    "lat": 50.6665,
+    "lng": 5.4815,
+    "body": "Parc communal **3,2 ha**. Plaine de jeux, vergers, sentiers de promenade, pétanque."
+  }
+]

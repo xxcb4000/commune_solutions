@@ -1,0 +1,35 @@
+[
+  {
+    "id": "art-001",
+    "title": "Travaux rue Centrale : du 5 au 20 mai",
+    "excerpt": "La rue Centrale sera fermée à la circulation pendant deux semaines pour la réfection complète du revêtement.",
+    "imageUrl": "https://picsum.photos/seed/demo-a-travaux/900/506",
+    "date": "30 avril 2026",
+    "dateEyebrow": "nouveau · 30 avril · Travaux",
+    "category": "Travaux",
+    "isNew": true,
+    "body": "## Détails\n\nLa **rue Centrale** sera fermée du **5 au 20 mai 2026**.\n\n### Déviations\n\n- Par la rue du Nord\n- Par la rue du Sud\n\nRiverains : accès piéton conservé."
+  },
+  {
+    "id": "art-002",
+    "title": "Inscriptions stages d'été ouvertes",
+    "excerpt": "Sport, créativité, nature : 12 stages organisés du 1er juillet au 23 août pour les 4–14 ans.",
+    "imageUrl": "https://picsum.photos/seed/demo-a-stages/900/506",
+    "date": "26 avril 2026",
+    "dateEyebrow": "nouveau · 26 avril · Loisirs",
+    "category": "Loisirs",
+    "isNew": true,
+    "body": "Les **inscriptions aux stages d'été 2026** sont ouvertes.\n\n### Thématiques\n\n- Multisports (4–8 ans)\n- Cirque (6–12 ans)\n- Robotique (10–14 ans)\n\nTarif communal : **75€/semaine**."
+  },
+  {
+    "id": "art-003",
+    "title": "Ramassage encombrants : 13 mai",
+    "excerpt": "Inscrivez-vous avant le 6 mai.",
+    "imageUrl": "https://picsum.photos/seed/demo-a-encombrants/900/506",
+    "date": "18 avril 2026",
+    "dateEyebrow": "18 avril · Environnement",
+    "category": "Environnement",
+    "isNew": false,
+    "body": "Prochain **ramassage** le **mardi 13 mai 2026**. Inscription gratuite mais obligatoire avant le 6 mai au 04 / 000 00 00."
+  }
+]

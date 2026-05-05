@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview · Commune Solutions</title>
+    <meta name="description" content="Prévisualisation web d'un module Commune Solutions — rendu fidèle du DSL JSON via le 3ème renderer (TS/JS).">
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/marketplace/css/style.css">
+    <link rel="stylesheet" href="/core/renderer-web/style.css">
+    <style>
+        body { background: #0e0d0c; }
+        .preview-shell {
+            max-width: 420px;
+            margin: 32px auto;
+            background: var(--paper);
+            border-radius: 36px;
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+            position: relative;
+            min-height: 720px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .preview-topbar {
+            max-width: 920px;
+            margin: 24px auto 0;
+            padding: 0 24px;
+            color: #f8f6f2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .preview-topbar .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: ui-serif, Georgia, serif;
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+        .preview-topbar .meta {
+            color: rgba(248, 246, 242, 0.7);
+            font-size: 0.85rem;
+            display: flex;
+            gap: 14px;
+        }
+        .preview-topbar a {
+            color: rgba(248, 246, 242, 0.85);
+            text-decoration: underline;
+        }
+        .preview-error {
+            padding: 60px 24px;
+            text-align: center;
+            color: var(--ink-2);
+            background: var(--paper);
+        }
+        .preview-error h1 {
+            font-family: var(--serif);
+            font-size: 1.6rem;
+            margin-bottom: 12px;
+        }
+        .preview-error code {
+            background: var(--paper-deep);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .preview-screen {
+            display: flex;
+            flex-direction: column;
+            min-height: 720px;
+        }
+        .preview-screen-nav {
+            background: var(--paper);
+            padding: 14px 18px 12px;
+            border-bottom: 1px solid var(--hair);
+            font-family: var(--grot);
+            font-size: 14px;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .preview-screen-nav .nav-back {
+            color: var(--civic-accent);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0 4px;
+        }
+        .preview-screen-nav .nav-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .preview-disclaimer {
+            max-width: 920px;
+            margin: 16px auto 24px;
+            padding: 12px 24px;
+            background: rgba(255, 200, 100, 0.10);
+            border: 1px solid rgba(255, 200, 100, 0.25);
+            border-radius: 10px;
+            color: #f0d795;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header class="preview-topbar">
+        <div class="brand">
+            <span style="font-size:1.4rem;">📱</span>
+            <span>Module preview — Commune Solutions</span>
+        </div>
+        <div class="meta" id="meta-info"></div>
+    </header>
+
+    <main class="preview-shell" id="shell">
+        <div class="preview-error">
+            <h1>Chargement…</h1>
+            <p>Si rien n'apparaît : vérifiez le query param <code>?module=&lt;id&gt;</code></p>
+        </div>
+    </main>
+
+    <p class="preview-disclaimer">
+        ⚠ Cette preview est une approximation web pour les contributeurs. Le rendu officiel reste iOS (SwiftUI) et Android (Compose). Les data <code>firestore:</code> / <code>cf:</code> sont mockées (vides). Les primitives <code>map</code>, <code>calendar</code>, <code>field</code> sont stubbées.
+    </p>
+
+    <script type="module">
+        import { Scope, render, resolve } from "/core/renderer-web/renderer.js";
+
+        const params = new URLSearchParams(location.search);
+        const moduleId = params.get("module");
+        const initialScreen = params.get("screen");
+        const shell = document.getElementById("shell");
+        const meta = document.getElementById("meta-info");
+
+        if (!moduleId) {
+            renderError("Aucun module spécifié.",
+                "Utilisez <code>?module=&lt;id&gt;</code> — ex: <a href='?module=associations'>associations</a>, <a href='?module=restos-locaux'>restos-locaux</a>, <a href='?module=actualites'>actualites</a>.");
+        } else {
+            loadAndRender(moduleId, initialScreen).catch((err) => {
+                console.error(err);
+                renderError(`Erreur : ${err.message}`, "Vérifie l'id du module et que le module est bien commité dans le repo.");
+            });
+        }
+
+        async function loadAndRender(modId, screenId) {
+            // Tente d'abord modules-official, fallback modules-community.
+            let root = "modules-official";
+            let manifest = await fetchJSON(`/${root}/${modId}/manifest.json`);
+            if (!manifest) {
+                root = "modules-community";
+                manifest = await fetchJSON(`/${root}/${modId}/manifest.json`);
+            }
+            if (!manifest) {
+                throw new Error(`manifest introuvable pour le module « ${modId} »`);
+            }
+
+            // Sélection du screen : initial demandé, sinon premier déclaré
+            const screens = manifest.screens || {};
+            const allScreenIds = Object.keys(screens);
+            const targetId = screenId && screens[screenId] ? screenId : allScreenIds[0];
+            if (!targetId) throw new Error(`aucun screen déclaré dans le manifest`);
+
+            // Charge le screen JSON
+            const screenPath = `/${root}/${modId}/${screens[targetId]}`;
+            const screen = await fetchJSON(screenPath);
+            if (!screen) throw new Error(`screen ${targetId} introuvable: ${screenPath}`);
+
+            // Charge les data : @<name> (bundlée) ou firestore:<path> via mock.
+            // Les sources cf: ne sont pas mockées (preview = structure visuelle,
+            // pas le runtime backend).
+            const bindings = {};
+            for (const [key, source] of Object.entries(screen.data || {})) {
+                if (typeof source !== "string") continue;
+                if (source.startsWith("@")) {
+                    const dataName = source.slice(1);
+                    const dataRel = manifest.data?.[dataName];
+                    if (dataRel) {
+                        const data = await fetchJSON(`/${root}/${modId}/${dataRel}`);
+                        if (data != null) bindings[key] = data;
+                    }
+                } else if (source.startsWith("firestore:")) {
+                    // Preview-mock : on cherche `<root>/<modId>/preview-mock/
+                    // <derniere-segment-du-path>.json`. Pour `firestore:events`
+                    // → preview-mock/events.json. Pour `firestore:info/main`
+                    // → preview-mock/info.json (on ignore le sous-doc en preview).
+                    const path = source.slice("firestore:".length);
+                    const collection = path.split("/")[0];
+                    const mock = await fetchJSON(`/${root}/${modId}/preview-mock/${collection}.json`);
+                    if (mock != null) bindings[key] = mock;
+                }
+            }
+
+            // Update meta info
+            meta.innerHTML = `
+                <span>${escape(manifest.displayName)} <code>v${escape(manifest.version)}</code></span>
+                <span>${escape(targetId)}</span>
+                <a href="/marketplace">← retour catalog</a>
+            `;
+            document.title = `Preview · ${manifest.displayName} · Commune Solutions`;
+
+            const ctx = {
+                manifest,
+                root,
+                onNavigate: (screenRef, args) => {
+                    // screenRef peut être "module:screen" ou juste "screen"
+                    const next = screenRef.includes(":")
+                        ? screenRef
+                        : `${modId}:${screenRef}`;
+                    const [navMod, navScreen] = next.split(":");
+                    // Persister les bindings de navigate.with via sessionStorage
+                    if (Object.keys(args ?? {}).length > 0) {
+                        sessionStorage.setItem(`nav:${navMod}:${navScreen}`, JSON.stringify(args));
+                    }
+                    location.search = `?module=${navMod}&screen=${navScreen}`;
+                },
+                makeNavigateHref: (screenRef, args) => {
+                    const next = screenRef.includes(":") ? screenRef : `${modId}:${screenRef}`;
+                    const [navMod, navScreen] = next.split(":");
+                    // Stocke les args en sessionStorage avant le navigate
+                    if (Object.keys(args ?? {}).length > 0) {
+                        sessionStorage.setItem(`nav:${navMod}:${navScreen}`, JSON.stringify(args));
+                    }
+                    return `?module=${navMod}&screen=${navScreen}`;
+                },
+            };
+
+            // Récupère les bindings de navigate.with si on est arrivés ici via un navigate
+            const navKey = `nav:${modId}:${targetId}`;
+            const navArgs = sessionStorage.getItem(navKey);
+            if (navArgs) {
+                try {
+                    Object.assign(bindings, JSON.parse(navArgs));
+                } catch {}
+                sessionStorage.removeItem(navKey);
+            }
+
+            const scope = new Scope(bindings);
+
+            // Render
+            shell.innerHTML = "";
+            const screenWrap = document.createElement("div");
+            screenWrap.className = "preview-screen";
+
+            // Nav bar : montre le titre du screen (mirror du
+            // navigation.title iOS/Android). Bouton back quand on n'est
+            // pas sur le premier screen du module.
+            const nav = document.createElement("div");
+            nav.className = "preview-screen-nav";
+            const isNested = allScreenIds.indexOf(targetId) > 0;
+            const navTitle = resolve(screen.navigation?.title ?? "", scope);
+            if (isNested) {
+                const back = document.createElement("span");
+                back.className = "nav-back";
+                back.textContent = "←";
+                back.title = `retour vers ${allScreenIds[0]}`;
+                back.onclick = () => {
+                    location.search = `?module=${modId}&screen=${allScreenIds[0]}`;
+                };
+                nav.appendChild(back);
+            }
+            const titleEl = document.createElement("span");
+            titleEl.className = "nav-title";
+            titleEl.textContent = navTitle || manifest.displayName;
+            nav.appendChild(titleEl);
+            screenWrap.appendChild(nav);
+
+            screenWrap.appendChild(render(screen.view, scope, ctx));
+            shell.appendChild(screenWrap);
+        }
+
+        async function fetchJSON(path) {
+            try {
+                const r = await fetch(path, { cache: "no-cache" });
+                if (!r.ok) return null;
+                return await r.json();
+            } catch {
+                return null;
+            }
+        }
+
+        function renderError(title, body) {
+            shell.innerHTML = `
+                <div class="preview-error">
+                    <h1>${escape(title)}</h1>
+                    <p>${body}</p>
+                </div>
+            `;
+        }
+
+        function escape(s) {
+            return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+            }[c]));
+        }
+    </script>
+</body>
+</html>
