@@ -60,28 +60,78 @@ Vue détaillée + chantiers à venir : [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Setup local
 
-Les configs Firebase (`GoogleService-Info.plist`, `google-services.json`) et les credentials test sont **gitignored**. Pour faire tourner le spike :
+3 chemins selon ce que vous voulez faire :
 
-1. Créer 2 projets Firebase (`commune-spike-1` et `-2` ou ce que tu veux). Activer **Email/Password** auth + **Firestore** (`europe-west1`, mode test).
-2. Récupérer les 4 configs SDK via Firebase CLI et les placer dans `core/firebase/spike-1/` et `core/firebase/spike-2/` :
-   ```sh
-   firebase apps:create --project <id> IOS --bundle-id be.communesolutions.spike
-   firebase apps:create --project <id> ANDROID --package-name be.communesolutions.spike
-   firebase apps:sdkconfig --project <id> IOS <APP_ID> > core/firebase/spike-1/GoogleService-Info.plist
-   # idem ANDROID + spike-2
-   ```
-3. Créer 2 users test (un par projet, ex: `demo-a@test.be` et `demo-b@test.be`) via console Firebase ou REST `accounts:signUp`.
-4. Seeder Firestore avec des données différentes par tenant : `python3 tools/seed-firestore.py` (passe les Firestore rules en `allow write: if true;` temporairement).
-5. Lancer le dev server : `python3 tools/dev-server.py` (sert les manifests + JSONs en HTTP, et un endpoint CF mock).
-6. Mettre à jour l'IP du Mac dans `spike/ios/Sources/SpikeApp.swift` et `spike/android/app/src/main/kotlin/be/communesolutions/spike/MainActivity.kt`.
-7. iOS : `cd spike/ios && xcodegen generate && xcodebuild -scheme CommuneSpike ...`
-8. Android : `cd spike/android && ./gradlew :app:assembleDebug`
-9. Dashboard admin web :
-   ```sh
-   firebase apps:create --project <id> WEB "Commune Spike Web"
-   firebase apps:sdkconfig --project <id> WEB <APP_ID> > dashboard/firebase-config-spike-1.json
-   # idem pour spike-2
-   cd dashboard && python3 -m http.server 8770
-   # → http://localhost:8770
-   ```
+### A. Contribuer un module communautaire (le plus courant)
+
+**Pré-requis** : compte GitHub, git, Python 3.11+. **Pas besoin** de projet Firebase, d'iPhone ni de compte Apple/Google Developer.
+
+```sh
+git clone <votre-fork>
+cd commune_solutions
+tools/create-commune-module.sh mon-module "Mon Module"
+# adapter modules-community/mon-module/ (manifest + screens + data)
+
+# Preview en navigateur (le 3ème renderer rend votre JSON en HTML/CSS) :
+bash tools/build-site.sh
+cd _site && python3 -m http.server 8765
+# → http://localhost:8765/marketplace/preview.html?module=mon-module
+
+# Validation locale + ouvrir une PR
+python3 tools/validate-manifests.py
+gh pr create
+```
+
+Guide complet : [`docs/developers.md`](docs/developers.md).
+
+### B. Provisionner un projet Firebase pour tester sur device
+
+Pour aller plus loin et tester sur un vrai device avec data Firestore, il faut un projet Firebase. Le script `provision-commune.py` automatise toute la chaîne **post-création-de-projet** (apps SDK + configs + tenant + Firestore _config) :
+
+```sh
+# Pré-requis manuels (one-shot par projet, hors scope du script) :
+#   1. Créer le projet via console Firebase (ex. "commune-mondev")
+#   2. Activer Email/Password auth + Firestore (europe-west1) + Storage
+#   3. Créer un user test via console + lui poser le claim admin :
+#      python3 tools/set-admin-claim.py
+#
+# Auth :
+firebase login
+gcloud auth application-default login
+
+# Provision automatique du reste (apps iOS/Android/Web + configs + tenant) :
+python3 tools/provision-commune.py mondev --display-name "Mon Dev"
+
+# Build + install + launch single-commune sur iVince (UDID via xcrun devicectl list devices) :
+tools/build-commune-app.sh mondev <udid>
+
+# Android : ./gradlew :app:assembleDebug -PcommuneId=mondev (depuis spike/android/)
+
+# Dashboard admin web (point d'entrée pour gérer les modules + contenu) :
+cd dashboard && python3 -m http.server 8770
+# → http://localhost:8770
+```
+
+### C. Dev sans projet Firebase via les emulators
+
+Pour itérer sans dépendance à un vrai projet Firebase (Auth + Firestore + Storage en local) :
+
+```sh
+# Terminal 1 : démarre les emulators (UI sur localhost:4000)
+tools/dev-emulators.sh
+
+# Terminal 2 : seed les emulators
+FIRESTORE_EMULATOR_HOST=localhost:8080 \
+  FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
+  python3 tools/seed-firestore.py
+
+# Build + install Android pointant sur les emulators (Mac host = 10.0.2.2 depuis l'AVD)
+cd spike/android && ./gradlew :app:installDebug -PfirebaseEmulatorHost=10.0.2.2
+```
+
+(iOS : un flag `--emulator-host` dans `build-commune-app.sh` est planifié — phase ultérieure.)
+
+### Provisionnement réel d'une commune
+
+Pour onboarder une vraie commune sur la plateforme (DNS Infomaniak + sous-domaine `<commune>.communesolutions.be` + record App Store Connect + Universal Links + …), voir [`docs/skills/onboard-commune-dns.md`](docs/skills/onboard-commune-dns.md) et la roadmap [`docs/roadmap.md`](docs/roadmap.md) phase 12.
 
