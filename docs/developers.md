@@ -65,6 +65,7 @@ En v0, un module communautaire peut déclarer :
 | `firestore.read` | Nom de collection ou de document | Lit dans le projet Firebase de la commune. RLS activées : pas d'accès aux collections d'autres modules sans accord. |
 | `module.read` | `<autre-module>:<collection>` | Lecture cross-module si l'hôte a déclaré une `extensionPoint` correspondante. |
 | `cf.external` | URL `https://...` complète | Le module appelle ses propres Cloud Functions hébergées par l'auteur (météo, transports, scrapers, etc.). L'ID token Firebase de l'utilisateur est passé en `Authorization: Bearer <token>` ; l'auteur valide côté serveur. Voir section dédiée ci-dessous. |
+| `moderation` | Nom de la collection cible | Le module accepte des soumissions UGC (suggestions, signalements, commentaires…) qui passent par la file `_moderation_queue` avant publication. Voir section dédiée ci-dessous. **Réservé aux modules officiels en v0** (les communautaires ne peuvent pas encore avoir de CF côté serveur). |
 
 Les capabilities **d'écriture sur le projet Firebase de la commune** (`firestore.write`, `cf.write`, `device.*`) sont réservées aux modules officiels en v0.
 
@@ -81,6 +82,50 @@ Format :
 ```
 
 Le champ `description` est **visible par l'admin commune** quand il active votre module — soyez clair sur ce que vous lisez et pourquoi.
+
+### Capability `moderation` — modération UGC
+
+Pour les modules qui acceptent du contenu généré par les citoyens (suggestions, signalements, commentaires, propositions…), le contenu **doit** passer par une file de modération avant publication.
+
+Pattern :
+
+```json
+"moderation": [
+  { "collection": "suggestions", "label": "Suggestions citoyennes" }
+],
+"capabilities": [
+  {
+    "type": "moderation",
+    "target": "suggestions",
+    "description": "Les suggestions postées par les citoyens passent en file admin avant publication"
+  }
+]
+```
+
+Pipeline :
+
+1. **Soumission citoyen** : un écran du module a un formulaire (`field.*` primitives) + bouton avec `action: { type: "cf", endpoint: "submit_suggestion" }`
+2. **Cloud Function du module** (officials uniquement en v0 — communauté pas autorisée à écrire) : valide le payload, écrit dans `_moderation_queue/<auto-id>` :
+   ```json
+   {
+     "targetCollection": "suggestions",
+     "moduleId": "<module-id>",
+     "submittedBy": "<uid>",
+     "submittedAt": <timestamp>,
+     "payload": { "text": "...", "category": "...", "_summary": "..." }
+   }
+   ```
+   Le champ `_summary` est optionnel — affiché tel quel dans la file admin si présent, sinon les premiers champs du payload.
+3. **Modération dashboard** : l'admin voit la file unifiée (tous modules confondus) dans l'onglet « Modération ». Pour chaque item :
+   - **Approuver** : le payload est copié dans `<targetCollection>` (avec `approvedAt`, `approvedBy`, `originalSubmittedBy`), l'entrée queue est supprimée
+   - **Rejeter** : entrée queue supprimée. Pas d'audit log v0 (rajoutable plus tard si besoin)
+4. **Lecture mobile** : la collection `<targetCollection>/` ne contient que les items approuvés (publication automatique). Lecture standard via `firestore:<collection>`.
+
+Sécurité :
+- `_moderation_queue/` : admin read + delete uniquement, write réservée aux CFs (Admin SDK bypasse)
+- `<targetCollection>/` : auth read citoyens + admin write standard (à whitelister dans `firestore.rules` du projet quand le module est activé pour la première fois)
+
+⚠️ **Statut v0** : le contrat manifest, les Firestore rules, et l'UI dashboard sont en place. Aucun module officiel ne produit d'UGC actuellement — la file reste vide tant qu'un premier module n'a pas implémenté le côté soumission.
 
 ### Capability `cf.external` — Cloud Functions externes
 

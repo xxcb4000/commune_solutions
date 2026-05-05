@@ -139,7 +139,13 @@ Aujourd'hui le dashboard ne fait que **toggle des modules** + lecture des collec
   - ✅ Save préserve modules + tabs (merge ciblé sur view.brand)
   - ⏭ Logo upload (pas de slot logo dans le brand schema actuellement — à étendre quand le mobile rendra un logo)
   - ⏭ First-time wizard "vous n'avez pas encore configuré votre commune" — à faire quand on onboarde la première vraie commune (Awans), pour valider la friction réelle
-- **⏭ 14.8 — Modération UGC** : dépend de capabilities UGC qui n'existent pas en v0
+- **🚧 14.8 — Modération UGC** (contrat + UI prêts, exercice à venir avec premier module UGC)
+  - ✅ Capability `moderation` reconnue par le validator + champ top-level `moderation: [{collection, label}]` cross-validated
+  - ✅ Convention queue unifiée `_moderation_queue/<id>` avec shape standard `{targetCollection, payload, moduleId, submittedBy, submittedAt}` + champ `_summary` optionnel pour l'aperçu admin
+  - ✅ Firestore rules : `_moderation_queue` admin read+delete, write réservé aux CFs (Admin SDK), déployées sur spike-1 + spike-2
+  - ✅ Dashboard onglet « Modération » : aggregator unifié, badge module, summary, boutons Approuver / Rejeter, gestion permission-denied
+  - ✅ Pattern documenté dans `docs/developers.md` (capabilities + section dédiée pipeline)
+  - ⏭ Premier module officiel qui produit de l'UGC — exercera le pattern en réel et pourra surfacer les ajustements (rate limit, audit log rejets, notifications citoyens, etc.)
 - **🤔 Dashboard DSL-driven** : appliquer le même contrat plateforme au dashboard que côté mobile (modules contribuent à des extension points dashboard) — cf platform.md
 
 ### 15. Hygiène repo + ouverture publique — ✅ fait (2026-05-05)

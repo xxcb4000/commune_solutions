@@ -22,6 +22,7 @@ SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(-[\w.]+)?$")
 ALLOWED_LICENCES = {"EUPL-1.2", "MIT", "Apache-2.0", "BSD-3-Clause"}
 ALLOWED_CAP_TYPES = {"firestore.read", "firestore.write", "cf.read", "cf.write",
                      "cf.external",
+                     "moderation",
                      "device.location", "device.camera", "device.notifications"}
 HTTPS_RE = re.compile(r"^https://[\w.-]+(:\d+)?(/[\w./%-]*)?$")
 
@@ -89,6 +90,26 @@ def validate(manifest_path: Path) -> list[str]:
                     f"{rel}: capability cf.external « target » ({c.get('target')}) "
                     f"≠ cfExternal.baseURL ({base_url})"
                 )
+
+    # Cohérence moderation : capability `moderation` <=> champ top-level
+    # `moderation: [{collection, label}]`. La capability target doit lister
+    # les collections moderables (séparées par virgule).
+    moderation = data.get("moderation")
+    has_moderation_cap = "moderation" in cap_types
+    if has_moderation_cap and not isinstance(moderation, list):
+        errors.append(f"{rel}: capability moderation présente mais champ top-level moderation[] absent")
+    if isinstance(moderation, list):
+        if not has_moderation_cap:
+            errors.append(f"{rel}: moderation[] déclaré mais aucune capability moderation dans capabilities[]")
+        for entry in moderation:
+            if not isinstance(entry, dict):
+                errors.append(f"{rel}: moderation[] doit contenir des objets {{collection, label}}")
+                continue
+            coll = entry.get("collection", "")
+            if not coll or not re.match(r"^[a-z][a-z0-9_]*$", coll):
+                errors.append(f"{rel}: moderation entry: collection invalide « {coll} » (lowercase + underscores)")
+            if not entry.get("label"):
+                errors.append(f"{rel}: moderation entry « {coll} » sans label (visible admin)")
 
     for name, rel_path in (data.get("screens") or {}).items():
         screen_file = manifest_path.parent / rel_path

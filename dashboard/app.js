@@ -118,6 +118,8 @@ async function renderDashboard(user) {
             await renderModules(content, user);
         } else if (name === "branding") {
             await renderBranding(content, user);
+        } else if (name === "moderation") {
+            await renderModeration(content, user);
         } else {
             await renderSection(name, content);
         }
@@ -335,6 +337,142 @@ const SCHEMAS = {
         ],
     },
 };
+
+// MARK: - Modération UGC (14.8)
+//
+// Pattern :
+//   - Les CFs des modules officiels écrivent les soumissions citoyennes
+//     dans `_moderation_queue/<auto-id>` (Admin SDK bypasse les rules)
+//     avec le shape : { targetCollection, payload, moduleId,
+//     submittedBy, submittedAt }
+//   - Le dashboard lit la queue, propose Approuver / Rejeter par item
+//   - Approuver : `addDoc(targetCollection, payload + approvedAt + approvedBy)`
+//                 puis `deleteDoc(_moderation_queue/<id>)`
+//   - Rejeter : juste `deleteDoc(_moderation_queue/<id>)` (audit log =
+//                 phase ultérieure si besoin)
+//
+// Aucun module officiel ne produit d'UGC en v0 — la queue restera vide
+// tant qu'un module n'aura pas implémenté le côté soumission. Le contrat
+// + l'UI sont prêts pour quand ce cas arrivera.
+
+async function renderModeration(container, user) {
+    let pending = [];
+    try {
+        const snap = await getDocs(collection(db, "_moderation_queue"));
+        pending = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+    } catch (e) {
+        if (e?.code === "permission-denied") {
+            container.innerHTML = `<p class="empty">Permission refusée — votre compte n'a pas le claim admin.</p>`;
+        } else {
+            container.innerHTML = `<p class="empty">Erreur : ${esc(e.message)}</p>`;
+        }
+        return;
+    }
+
+    if (pending.length === 0) {
+        container.innerHTML = `
+            <div class="moderation-pane">
+                <p class="modules-intro">
+                    File de modération unifiée. Les contenus citoyens en attente
+                    (suggestions, signalements, commentaires…) y apparaissent
+                    avant publication. Aucun module officiel ne produit d'UGC
+                    en v0 — cette file reste vide tant qu'un module n'a pas
+                    déclaré la capability <code>moderation</code>.
+                </p>
+                <p class="empty">Aucun contenu en attente.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Tri par date de soumission ascendante (les plus anciennes d'abord)
+    pending.sort((a, b) => {
+        const ta = a.submittedAt?.seconds ?? 0;
+        const tb = b.submittedAt?.seconds ?? 0;
+        return ta - tb;
+    });
+
+    container.innerHTML = `
+        <div class="moderation-pane">
+            <p class="modules-intro">
+                ${esc(pending.length)} contenu${pending.length > 1 ? "s" : ""} en attente de validation.
+            </p>
+            <div class="moderation-list">
+                ${pending.map((item) => moderationCardHTML(item)).join("")}
+            </div>
+        </div>
+    `;
+
+    container.querySelectorAll("[data-mod-action]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const action = btn.dataset.modAction;
+            const docId = btn.dataset.docId;
+            const item = pending.find((p) => p._docId === docId);
+            if (!item) return;
+            await handleModerationAction(action, item, user, container);
+        });
+    });
+}
+
+function moderationCardHTML(item) {
+    const summary = renderModerationPayload(item.payload ?? {});
+    const submittedAt = item.submittedAt?.seconds
+        ? new Date(item.submittedAt.seconds * 1000).toLocaleString("fr-BE")
+        : "—";
+    return `
+        <div class="moderation-item" data-doc-id="${esc(item._docId)}">
+            <div class="moderation-meta">
+                <span class="moderation-badge">${esc(item.moduleId ?? "?")}</span>
+                <span>→ <code>${esc(item.targetCollection ?? "?")}</code></span>
+                <span class="moderation-when">soumis ${esc(submittedAt)}</span>
+            </div>
+            <div class="moderation-payload">${summary}</div>
+            <div class="moderation-actions">
+                <button type="button" class="approve" data-mod-action="approve" data-doc-id="${esc(item._docId)}">Approuver</button>
+                <button type="button" class="danger" data-mod-action="reject" data-doc-id="${esc(item._docId)}">Rejeter</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderModerationPayload(payload) {
+    // Affiche les champs du payload de manière générique. Les modules peuvent
+    // pré-formater leur payload avec un champ `_summary` qu'on privilégie.
+    if (typeof payload._summary === "string") return esc(payload._summary);
+    return Object.entries(payload)
+        .filter(([k]) => !k.startsWith("_"))
+        .slice(0, 4)
+        .map(([k, v]) => `<div><strong>${esc(k)}</strong> : ${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`)
+        .join("");
+}
+
+async function handleModerationAction(action, item, user, container) {
+    const card = container.querySelector(`[data-doc-id="${item._docId}"]`);
+    const actions = card?.querySelector(".moderation-actions");
+    if (actions) actions.innerHTML = `<span class="muted">Traitement…</span>`;
+    try {
+        if (action === "approve") {
+            await addDoc(collection(db, item.targetCollection), {
+                ...item.payload,
+                approvedAt: serverTimestamp(),
+                approvedBy: user.uid,
+                originalSubmittedBy: item.submittedBy ?? null,
+            });
+        }
+        // Dans tous les cas (approve OU reject) on supprime l'entrée queue.
+        // Audit/log des rejets = phase ultérieure si besoin.
+        await deleteDoc(doc(db, "_moderation_queue", item._docId));
+        if (card) card.remove();
+        // Re-render si la liste devient vide
+        if (container.querySelectorAll(".moderation-item").length === 0) {
+            window.__refreshActiveTab?.();
+        }
+    } catch (e) {
+        if (actions) {
+            actions.innerHTML = `<span class="error">${esc(e?.code === "permission-denied" ? "Permission refusée" : e.message)}</span>`;
+        }
+    }
+}
 
 // MARK: - Branding editor (14.7 — onboarding admin partiel)
 
