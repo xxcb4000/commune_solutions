@@ -48,7 +48,13 @@ Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomp
   - ⏭ Injection `GoogleService-Info.plist` / `google-services.json` per-commune (actuellement les 2 sont bundlés via le sources block — à filtrer par `firebase` du tenant)
   - ⏭ Icône d'app + launch screen variables par commune
   - ⏭ Agrégation `NS*UsageDescription` + `<uses-permission>` depuis les modules activés (cf platform.md `device.permissions`)
-- **⏭ 12.2 — Provisioning auto commune** : `tools/provision-commune.py <commune-id>` qui crée le projet Firebase + apps SDK + récupère configs + initialise `_config/modules` + branding
+- **🚧 12.2 — Provisioning auto commune (post-project)** : `tools/provision-commune.py <commune-id> --display-name <nom>` automatise tout ce qui est répétable APRÈS création manuelle du projet Firebase :
+  - ✅ Vérifie projet existe (`firebase projects:list --json`)
+  - ✅ Crée apps iOS / Android / Web (idempotent — détecte par bundle/package/displayName)
+  - ✅ Télécharge SDK configs (`firebase apps:sdkconfig --out`) vers `core/firebase/<id>/` + `dashboard/firebase-config-<id>.json`
+  - ✅ Génère `tenants/<id>/app.json` starter (modules par défaut: actualites + agenda + info, tabbar correspondante, branding)
+  - ✅ Initialise `_config/modules` dans Firestore via firebase-admin SDK + ADC
+  - ⏭ Hors scope (skill séparé à venir) : `firebase projects:create`, activation Firestore/Auth/Functions, custom claim admin, deploy CFs + rules
 - **⏭ 12.3 — CI GitHub Actions** : workflow qui consomme `build-commune-app.sh`, secrets Firebase configs en base64, produit IPA + AAB
 - **⏭ 12.4 — Distribution stores** : fastlane match (certs iOS partagés Mosa Data Engineering) + upload TestFlight + Play Console
 - **⏭ 12.5 — Sous-domaine `<commune>.communesolutions.be`** : automation DNS + Firebase Hosting custom domain
