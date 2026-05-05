@@ -1,4 +1,23 @@
 {
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "functions": {
+      "port": 5001
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": false
+  },
+  "firestore": {
+    "rules": "core/firebase/firestore.rules"
+  },
   "hosting": {
     "target": "site",
     "public": "_site",

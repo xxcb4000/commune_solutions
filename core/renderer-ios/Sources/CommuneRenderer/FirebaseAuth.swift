@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseCore
 import FirebaseAuth
+import FirebaseFirestore
 import SwiftUI
 import Combine
 
@@ -11,8 +12,13 @@ import Combine
 /// configures a named `FirebaseApp`. Tenant configs reference the name via
 /// their `firebase` field; the renderer looks up the matching `FirebaseApp`
 /// at runtime.
+///
+/// Si `emulatorHost` est fourni (ex: "127.0.0.1" ou IP du Mac dev), Auth +
+/// Firestore sont routés vers les emulators locaux (ports standards Firebase
+/// 9099 et 8080). Permet aux contributeurs de développer sans projet Firebase
+/// réel — `tools/dev-emulators.sh` lance les emulators côté Mac.
 public enum CommuneFirebase {
-    public static func configure(_ names: [String]) {
+    public static func configure(_ names: [String], emulatorHost: String? = nil) {
         for name in names {
             if FirebaseApp.app(name: name) != nil { continue }
             let path = "\(Bundle.main.bundlePath)/firebase/\(name)/GoogleService-Info.plist"
@@ -22,7 +28,18 @@ public enum CommuneFirebase {
                 continue
             }
             FirebaseApp.configure(name: name, options: opts)
-            print("CommuneFirebase: configured \(name)")
+            if let host = emulatorHost, !host.isEmpty,
+               let app = FirebaseApp.app(name: name) {
+                Auth.auth(app: app).useEmulator(withHost: host, port: 9099)
+                let settings = Firestore.firestore(app: app).settings
+                settings.host = "\(host):8080"
+                settings.isSSLEnabled = false
+                settings.cacheSettings = MemoryCacheSettings()
+                Firestore.firestore(app: app).settings = settings
+                print("CommuneFirebase: configured \(name) with emulator at \(host)")
+            } else {
+                print("CommuneFirebase: configured \(name)")
+            }
         }
     }
 

@@ -43,6 +43,10 @@ targets:
         # `project.commune.yml` dérivé avant xcodegen.
         CommuneTenantID: ""
         CommuneFirebaseProjects: ""
+        # Si non vide, Auth + Firestore SDK pointent sur les emulators
+        # locaux (ports 9099 + 8080). Set par tools/dev-emulators.sh
+        # via env var pour le build dev. Vide en build prod / commune.
+        FirebaseEmulatorHost: ""
         UILaunchScreen:
           UIColorName: ""
         UISupportedInterfaceOrientations:

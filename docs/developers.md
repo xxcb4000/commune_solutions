@@ -137,12 +137,34 @@ La table actuelle est minimale (~10 noms). Pour ajouter une icône, soumettez un
 
 ## Tester localement
 
-En attendant l'émulateur officiel (`npx commune-emulate` à venir) :
+### Avec un projet Firebase existant
 
-1. Copier votre module dans `modules-official/<id>/` (temporaire, pour utiliser le bundling)
-2. Ajouter votre `id` à `tenants/spike/app.json` dans `modules: [...]`
-3. Lancer le spike iOS (`spike/ios/`) ou Android (`spike/android/`) — voir le README racine
-4. Naviguer vers votre module via le tab "Plus" ou en l'ajoutant à la tabbar
+1. Le module est déjà dans `modules-community/<id>/` (créé via `tools/create-commune-module.sh`)
+2. Activer votre module sur le tenant `spike` via le dashboard admin (`http://localhost:8770` → Modules), ou directement via Firestore (`_config/modules`)
+3. Lancer le spike iOS (`spike/ios/`) ou Android (`spike/android/`) — voir README racine
+
+### Avec les Firebase emulators (sans projet Firebase réel)
+
+Pour développer sans dépendance à un vrai projet Firebase :
+
+```sh
+# Terminal 1 : démarre Auth + Firestore + Functions emulators + UI
+tools/dev-emulators.sh
+
+# Terminal 2 : seed les emulators avec les données de test
+FIRESTORE_EMULATOR_HOST=localhost:8080 \
+  FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
+  python3 tools/seed-firestore.py
+
+# Terminal 3 (Android emulator) : pointer le SDK sur les emulators
+cd spike/android && ./gradlew :app:installDebug \
+  -PfirebaseEmulatorHost=10.0.2.2
+
+# iOS Simulator : pareil mais via xcodegen env var (TODO : flag dans
+# build-commune-app.sh à venir)
+```
+
+L'UI Firebase (`http://localhost:4000`) permet de browser les données et créer des users de test à la volée.
 
 ## Validation manifest
 

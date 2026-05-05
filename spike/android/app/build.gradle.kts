@@ -30,6 +30,10 @@ val effectiveAppId = tenantConfig["applicationId"] ?: "be.communesolutions.spike
 val effectiveTenantBaked = tenantConfig["tenant"] ?: ""
 val effectiveFirebaseProjects = tenantConfig["firebase"] ?: ""
 val effectiveLabel = tenantConfig["displayName"] ?: "Commune Spike"
+// Pointe le SDK sur les emulators locaux quand ce flag est passé.
+// Émulateur Android : 10.0.2.2 = host Mac dev. Device physique :
+// utiliser l'IP réelle du Mac (mêmes ports 9099 + 8080).
+val firebaseEmulatorHost: String = (findProperty("firebaseEmulatorHost") as String?)?.takeIf { it.isNotBlank() } ?: ""
 
 android {
     namespace = "be.communesolutions.spike"
@@ -45,6 +49,7 @@ android {
         // dev (picker). Set = mode single-commune (no picker).
         buildConfigField("String", "COMMUNE_TENANT_ID", "\"$effectiveTenantBaked\"")
         buildConfigField("String", "COMMUNE_FIREBASE_PROJECTS", "\"$effectiveFirebaseProjects\"")
+        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"$firebaseEmulatorHost\"")
         resValue("string", "app_name", effectiveLabel)
     }
 

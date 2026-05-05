@@ -35,6 +35,8 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.JsonPrimitive
@@ -52,7 +54,14 @@ import kotlinx.serialization.json.jsonObject
 object CommuneFirebase {
     private val configured = mutableSetOf<String>()
 
-    fun configure(context: Context, names: List<String>) {
+    /**
+     * Configure les FirebaseApp nommés depuis assets/firebase/<name>/google-services.json.
+     *
+     * Si `emulatorHost` est fourni (ex: "10.0.2.2" pour l'émulateur Android
+     * pointant sur le Mac dev), Auth + Firestore sont routés vers les
+     * emulators locaux (ports standards 9099 + 8080).
+     */
+    fun configure(context: Context, names: List<String>, emulatorHost: String? = null) {
         for (name in names) {
             if (configured.contains(name)) continue
             val opts = loadOptions(context, name)
@@ -61,9 +70,19 @@ object CommuneFirebase {
                 continue
             }
             try {
-                FirebaseApp.initializeApp(context, opts, name)
+                val app = FirebaseApp.initializeApp(context, opts, name)
+                if (!emulatorHost.isNullOrBlank() && app != null) {
+                    FirebaseAuth.getInstance(app).useEmulator(emulatorHost, 9099)
+                    val fs = FirebaseFirestore.getInstance(app)
+                    fs.useEmulator(emulatorHost, 8080)
+                    fs.firestoreSettings = FirebaseFirestoreSettings.Builder()
+                        .setPersistenceEnabled(false)
+                        .build()
+                    Log.i("CommuneFirebase", "configured $name with emulator at $emulatorHost")
+                } else {
+                    Log.i("CommuneFirebase", "configured $name")
+                }
                 configured.add(name)
-                Log.i("CommuneFirebase", "configured $name")
             } catch (e: IllegalStateException) {
                 // Already initialized — pre-existing app of the same name.
                 configured.add(name)

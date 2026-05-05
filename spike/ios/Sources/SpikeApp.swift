@@ -13,8 +13,12 @@ struct SpikeApp: App {
         // Single-commune builds inject `CommuneFirebaseProjects` in
         // Info.plist via xcodegen env substitution → only that one
         // project is loaded.
+        //
+        // Si `FirebaseEmulatorHost` est set dans Info.plist (build dev avec
+        // `tools/dev-emulators.sh`), Auth + Firestore parlent à l'emulator
+        // local au lieu du vrai Firebase.
         let projects = Self.firebaseProjects
-        CommuneFirebase.configure(projects)
+        CommuneFirebase.configure(projects, emulatorHost: Self.emulatorHost)
     }
 
     var body: some Scene {
@@ -44,5 +48,14 @@ struct SpikeApp: App {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         return parsed.isEmpty ? ["spike-1", "spike-2"] : parsed
+    }
+
+    /// Host des Firebase emulators locaux. Set ⇒ Auth + Firestore SDK
+    /// pointent sur les emulators (ports 9099 + 8080). Vide / non set ⇒
+    /// vrai Firebase. Géré via xcodegen env var au build.
+    private static var emulatorHost: String? {
+        let raw = Bundle.main.object(forInfoDictionaryKey: "FirebaseEmulatorHost") as? String
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (trimmed?.isEmpty ?? true) ? nil : trimmed
     }
 }

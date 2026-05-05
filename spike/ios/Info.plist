@@ -24,6 +24,8 @@
 	<string></string>
 	<key>CommuneTenantID</key>
 	<string></string>
+	<key>FirebaseEmulatorHost</key>
+	<string></string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

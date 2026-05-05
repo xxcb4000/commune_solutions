@@ -33,7 +33,12 @@ class MainActivity : ComponentActivity() {
             .filter { it.isNotEmpty() }
             .ifEmpty { listOf("spike-1", "spike-2") }
 
-        be.communesolutions.renderer.CommuneFirebase.configure(this, firebaseProjects)
+        // Si non vide, Auth + Firestore SDK pointent sur les emulators
+        // locaux. Set par tools/dev-emulators.sh via `-PfirebaseEmulatorHost`.
+        // Pour l'émulateur Android pointant sur le Mac dev, utiliser 10.0.2.2.
+        val emulatorHost = BuildConfig.FIREBASE_EMULATOR_HOST.takeIf { it.isNotBlank() }
+
+        be.communesolutions.renderer.CommuneFirebase.configure(this, firebaseProjects, emulatorHost)
         enableEdgeToEdge()
         setContent {
             SpikeTheme {

@@ -90,7 +90,15 @@ Tout le pipeline contributeur n'existe que sur papier. À matérialiser :
   - ✅ Marketplace : 6 modules listés (5 officiels + 1 communauté), filtre Communauté désormais peuplé
   - ✅ Bug fix : préfixe data static `module:` corrigé en `@` dans hello-world template + docs/developers.md (les renderers utilisaient `@` mais la doc disait `module:`)
 - **✅ 13.2 — CLI `create-commune-module`** : `tools/create-commune-module.sh <id> [<display-name>]` clone `modules-template/hello-world` vers `modules-community/<id>/` avec manifest pré-rempli (id, displayName, license MIT). Validation kebab-case + détection collisions. README minimal généré dans le module. Documenté dans `docs/developers.md`
-- **⏭ 13.3 — Emulator local commune fictive** : Firebase emulator + app simulator + DSL hot-reload pour développer sans device
+- **🚧 13.3 — Emulator local Firebase**
+  - ✅ `firebase.json` étendu avec block `emulators` (Auth 9099, Firestore 8080, Functions 5001, UI 4000)
+  - ✅ `CommuneFirebase.configure(_, emulatorHost:)` — iOS + Android, route Auth + Firestore SDK vers les emulators si host fourni
+  - ✅ SpikeApp.swift lit `FirebaseEmulatorHost` depuis Info.plist ; MainActivity.kt lit `BuildConfig.FIREBASE_EMULATOR_HOST` (Gradle property `-PfirebaseEmulatorHost=10.0.2.2`)
+  - ✅ `tools/dev-emulators.sh` lance les emulators
+  - ✅ `seed-firestore.py` respecte automatiquement `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` (firebase-admin natif)
+  - ✅ Workflow documenté dans `docs/developers.md`
+  - ⏭ Flag `--emulator-host` dans `build-commune-app.sh` (iOS) pour exposer la même UX qu'Android
+  - ⏭ DSL hot-reload : pull-to-refresh existant suffit en MVP. Live-reload via WebSocket = future si la friction est réelle
 - **⏭ 13.4 — Capability `cf.external`** : permettre à un module tiers d'héberger ses propres CFs en recevant un ID token de la commune (cf platform.md, validée 2026-04-30)
 - **🤔 Repo split** : `commune_solutions` (plateforme + officiels) vs `commune_solutions-modules-community` (PRs tiers) — décision à prendre selon le rythme d'arrivée des contribs
 
