@@ -77,13 +77,29 @@ else
     DEST="generic/platform=iOS"
 fi
 
-xcodebuild \
-    -project CommuneSpike.xcodeproj \
-    -scheme CommuneSpike \
-    -destination "$DEST" \
-    -configuration Debug \
-    -derivedDataPath build \
-    build 2>&1 | tail -3
+# En CI (variable `CI=true` injectée par GitHub Actions) la signature est
+# skippée — la 12.4 (fastlane) prendra en charge la signature de
+# distribution. En local dev/test, signature automatique via DEVELOPMENT_TEAM.
+# Note: bash 3.2 (macOS default) refuse `${arr[@]}` avec set -u + array vide,
+# donc on construit une commande chaînée à la place.
+if [[ "${CI:-}" == "true" ]]; then
+    xcodebuild \
+        -project CommuneSpike.xcodeproj \
+        -scheme CommuneSpike \
+        -destination "$DEST" \
+        -configuration Debug \
+        -derivedDataPath build \
+        CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
+        build 2>&1 | tail -3
+else
+    xcodebuild \
+        -project CommuneSpike.xcodeproj \
+        -scheme CommuneSpike \
+        -destination "$DEST" \
+        -configuration Debug \
+        -derivedDataPath build \
+        build 2>&1 | tail -3
+fi
 
 APP_PATH="$ROOT/spike/ios/build/Build/Products/Debug-iphoneos/CommuneSpike.app"
 [[ -d "$APP_PATH" ]] || { echo "✗ .app introuvable: $APP_PATH"; exit 1; }

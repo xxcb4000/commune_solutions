@@ -55,7 +55,15 @@ Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomp
   - ✅ Génère `tenants/<id>/app.json` starter (modules par défaut: actualites + agenda + info, tabbar correspondante, branding)
   - ✅ Initialise `_config/modules` dans Firestore via firebase-admin SDK + ADC
   - ⏭ Hors scope (skill séparé à venir) : `firebase projects:create`, activation Firestore/Auth/Functions, custom claim admin, deploy CFs + rules
-- **⏭ 12.3 — CI GitHub Actions** : workflow qui consomme `build-commune-app.sh`, secrets Firebase configs en base64, produit IPA + AAB
+- **🚧 12.3 — CI GitHub Actions** : `.github/workflows/build-commune-app.yml`
+  - ✅ Trigger `workflow_dispatch` avec input `commune_id`
+  - ✅ Job iOS sur `macos-latest` : xcodegen + xcodebuild via `tools/build-commune-app.sh` (avec `CODE_SIGNING_ALLOWED=NO` quand `CI=true`)
+  - ✅ Job Android sur `ubuntu-latest` : `./gradlew :app:assembleDebug -PcommuneId=<id>`
+  - ✅ Decode des Firebase configs depuis les secrets de l'environment GitHub correspondant (`FIREBASE_IOS_CONFIG`, `FIREBASE_ANDROID_CONFIG` en base64)
+  - ✅ Upload des artifacts (`.app` non signé + APK debug-signé)
+  - ⏭ Test live (workflow run réel) : pas encore — nécessite création d'un environment GitHub avec les secrets
+  - ⏭ Trigger automatique sur tag pattern (style `commune-<id>-v*`) : à activer plus tard
+  - ⏭ Signature distribution (IPA prêt pour TestFlight) = phase 12.4
 - **⏭ 12.4 — Distribution stores** : fastlane match (certs iOS partagés Mosa Data Engineering) + upload TestFlight + Play Console
 - **⏭ 12.5 — Sous-domaine `<commune>.communesolutions.be`** : automation DNS + Firebase Hosting custom domain
 - **⏭ Universal Links / App Links à l'échelle** : `apple-app-site-association` mutualisé sur `communesolutions.be` 🤔 (cf décision ouverte platform.md)

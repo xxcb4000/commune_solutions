@@ -1,0 +1,123 @@
+name: build-commune-app
+
+# Construit un binaire iOS (.app non signé) + un APK Android pour une
+# commune donnée, en injectant les Firebase configs depuis les secrets
+# de l'environment correspondant.
+#
+# Setup secrets (par commune) :
+#   1. Créer un GitHub environment avec le `commune_id` (ex : `spike`,
+#      `awans`) — Settings → Environments → New environment
+#   2. Ajouter les secrets de l'environment :
+#        FIREBASE_IOS_CONFIG     base64 du GoogleService-Info.plist
+#        FIREBASE_ANDROID_CONFIG base64 du google-services.json
+#      Encoder en local :
+#        base64 -i core/firebase/<id>/GoogleService-Info.plist | pbcopy
+#
+# Trigger : workflow_dispatch (manuel depuis l'onglet Actions). Plus tard
+# on peut ajouter on:push avec un tag pattern style `commune-<id>-v*`.
+#
+# Signature : iOS = non signé (CODE_SIGNING_ALLOWED=NO). La signature de
+# distribution est le rôle de la phase 12.4 (fastlane match + TestFlight).
+# Android = debug-signé avec le keystore par défaut généré par Gradle.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commune_id:
+        description: 'Commune ID (matches tenants/<id>/, doit avoir un GitHub environment du même nom)'
+        required: true
+        default: spike
+
+jobs:
+  ios:
+    name: iOS build
+    runs-on: macos-latest
+    environment: ${{ inputs.commune_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Resolve firebase subfolder
+        id: tenant
+        run: |
+          FB_SUBDIR=$(python3 -c "import json; print(json.load(open('tenants/${{ inputs.commune_id }}/app.json'))['firebase'])")
+          echo "fb_subdir=$FB_SUBDIR" >> "$GITHUB_OUTPUT"
+          echo "Firebase subfolder: $FB_SUBDIR"
+
+      - name: Decode iOS Firebase config
+        env:
+          IOS_CONFIG_B64: ${{ secrets.FIREBASE_IOS_CONFIG }}
+        run: |
+          if [[ -z "$IOS_CONFIG_B64" ]]; then
+            echo "✗ FIREBASE_IOS_CONFIG vide. Configure les secrets de l'environment '${{ inputs.commune_id }}'."
+            exit 1
+          fi
+          mkdir -p "core/firebase/${{ steps.tenant.outputs.fb_subdir }}"
+          echo "$IOS_CONFIG_B64" | base64 -d > "core/firebase/${{ steps.tenant.outputs.fb_subdir }}/GoogleService-Info.plist"
+          ls -la "core/firebase/${{ steps.tenant.outputs.fb_subdir }}"
+
+      - name: Build .app
+        run: bash tools/build-commune-app.sh ${{ inputs.commune_id }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ inputs.commune_id }}-${{ github.run_number }}
+          path: spike/ios/build/Build/Products/Debug-iphoneos/CommuneSpike.app
+          retention-days: 14
+
+  android:
+    name: Android build
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.commune_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Resolve firebase subfolder
+        id: tenant
+        run: |
+          FB_SUBDIR=$(python3 -c "import json; print(json.load(open('tenants/${{ inputs.commune_id }}/app.json'))['firebase'])")
+          echo "fb_subdir=$FB_SUBDIR" >> "$GITHUB_OUTPUT"
+
+      - name: Decode Android Firebase config
+        env:
+          ANDROID_CONFIG_B64: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
+        run: |
+          if [[ -z "$ANDROID_CONFIG_B64" ]]; then
+            echo "✗ FIREBASE_ANDROID_CONFIG vide. Configure les secrets de l'environment '${{ inputs.commune_id }}'."
+            exit 1
+          fi
+          mkdir -p "core/firebase/${{ steps.tenant.outputs.fb_subdir }}"
+          echo "$ANDROID_CONFIG_B64" | base64 -d > "core/firebase/${{ steps.tenant.outputs.fb_subdir }}/google-services.json"
+
+      - name: Make gradlew executable
+        run: chmod +x spike/android/gradlew
+
+      - name: Build APK
+        working-directory: spike/android
+        run: ./gradlew :app:assembleDebug -PcommuneId=${{ inputs.commune_id }} --no-daemon
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ inputs.commune_id }}-${{ github.run_number }}
+          path: spike/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
