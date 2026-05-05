@@ -10,18 +10,9 @@ Merci de votre intérêt pour le projet ! Ce document décrit le workflow de con
 
 Vous voulez **ajouter une fonctionnalité** (un nouveau module) à la marketplace.
 
-Suivez le guide dédié : [`docs/developers.md`](docs/developers.md).
+→ Suivez le guide complet : [`docs/developers.md`](docs/developers.md). Il couvre les pré-requis (compte GitHub + git + Python 3.11+), les commandes git/CLI exactes, le schéma manifest, les 13 primitives DSL, les capabilities autorisées en v0, et le cycle CI / review / merge / auto-deploy.
 
-En résumé :
-1. Forker ce repo
-2. Cloner `modules-template/hello-world/` dans `modules-community/<votre-id>/`
-3. Adapter le manifest, les écrans DSL, les data
-4. Valider localement : `python3 tools/validate-manifests.py`
-5. Ouvrir une PR
-
-La CI valide automatiquement le manifest. La review humaine porte sur la cohérence DSL, les capabilities demandées, la qualité du contenu.
-
-**Capabilities limitées en v0** : `firestore.read` et `module.read` uniquement. Voir [`docs/developers.md`](docs/developers.md) pour les détails et la roadmap d'ouverture.
+**Important** : pour un point de départ rapide, fork un module communauté existant ([`modules-community/associations`](modules-community/associations) ou [`modules-community/restos-locaux`](modules-community/restos-locaux)) plutôt que d'écrire le DSL depuis zéro.
 
 ### 2. Évolution du core (renderer, dashboard, plateforme)
 

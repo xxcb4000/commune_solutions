@@ -2,19 +2,63 @@
 
 Ce guide vous permet d'écrire votre premier module en moins d'une heure. Le contrat plateforme complet est dans [`platform.md`](platform.md) — ici on se concentre sur le strict nécessaire pour soumettre un module communautaire.
 
+## Pré-requis
+
+- Un compte **GitHub**
+- **git** + **Python 3.11+** sur votre machine
+- C'est tout. Pas besoin de compte Firebase, pas besoin d'iPhone, pas besoin de dev iOS/Android.
+
 ## Quickstart
 
-1. **Forker** [github.com/xxcb4000/commune_solutions](https://github.com/xxcb4000/commune_solutions)
-2. **Scaffolder** le squelette :
-   ```sh
-   tools/create-commune-module.sh mon-module "Mon module"
-   ```
-   Cela crée `modules-community/mon-module/` à partir du template `hello-world`, avec le manifest pré-rempli (id, displayName, license MIT par défaut). Voir aussi `modules-community/associations/` comme exemple de référence.
-3. **Adapter** `manifest.json`, `screens/`, `data/` pour décrire votre module
-4. **Vérifier** localement : `python3 tools/validate-manifests.py`
-5. **Soumettre** une PR vers `main`
+```sh
+# 1. Fork sur github.com/xxcb4000/commune_solutions (bouton Fork en haut à droite)
 
-La CI valide le manifest. La review humaine porte sur la cohérence DSL, les capabilities demandées, la qualité du contenu.
+# 2. Clone votre fork
+git clone git@github.com:<votre-username>/commune_solutions.git
+cd commune_solutions
+
+# 3. Branche thématique
+git checkout -b community/mon-module
+
+# 4. Scaffolder le squelette
+tools/create-commune-module.sh mon-module "Mon Module"
+# → Crée modules-community/mon-module/ avec manifest pré-rempli + 1 écran + data sample
+
+# 5. Adapter
+# Éditer modules-community/mon-module/manifest.json (description, author, capabilities, …)
+# Éditer screens/main.json (DSL JSON, cf section "DSL UI" plus bas)
+# Éditer data/sample.json si vous utilisez @sample (data bundlée dans le module)
+
+# 6. Valider localement
+python3 tools/validate-manifests.py
+
+# 7. Commit + push fork
+git add modules-community/mon-module/
+git commit -m "feat(mon-module): description courte"
+git push -u origin community/mon-module
+
+# 8. Ouvrir la PR (via gh CLI ou via UI GitHub)
+gh pr create --title "modules-community: Mon Module" --body "..."
+```
+
+**Conseil** : le scaffold fait par `create-commune-module.sh` est très minimal. Pour un point de départ plus riche, **fork un module communauté existant** comme [`modules-community/associations`](../modules-community/associations) ou [`modules-community/restos-locaux`](../modules-community/restos-locaux) puis adaptez. Plus rapide qu'écrire le DSL depuis le template.
+
+## Après votre PR
+
+- **CI tourne en ~10s** : le workflow [`validate-manifests.yml`](../.github/workflows/validate-manifests.yml) re-vérifie le manifest sur la PR. Si fail, le check GitHub affiche l'erreur. Push à nouveau sur la branche pour mettre à jour la PR (la CI relance automatiquement).
+- **Review humaine** : un mainteneur core regarde la cohérence DSL, les capabilities demandées, la qualité du contenu. Délai variable, vise <1 semaine pour les modules simples.
+- **Merge** : si OK, le mainteneur squash-merge. **Vous n'avez pas accès au merge** — c'est volontaire (séparation auteur / mainteneur).
+- **Auto-deploy** : dans les **~2 minutes** après le merge, votre module apparaît sur [`communesolutions.be/marketplace`](https://communesolutions.be/marketplace). Le workflow [`deploy-marketplace.yml`](../.github/workflows/deploy-marketplace.yml) régénère le catalog + redeploy le site Firebase Hosting.
+
+## Limites v0 (modules communautaires)
+
+| Vous pouvez | Vous ne pouvez pas |
+|---|---|
+| Bundler du contenu statique (`data/*.json` + `@<name>` source) | Écrire dans Firestore commune (réservé officiels via dashboard admin) |
+| Lire Firestore commune (`firestore.read` capability + collection cible) | Déployer du code Python dans Firebase commune (CFs réservées officiels) |
+| Appeler vos propres CFs externes (`cf.external` + URL) | Demander permissions device (location, camera, notifications) |
+| Choisir parmi 4 licences (EUPL-1.2 / MIT / Apache-2.0 / BSD-3-Clause) | Modifier l'auth, le tenant config, le branding |
+| Utiliser les 13 primitives DSL standard | Ajouter une primitive native (PR sur le core, pas un module) |
 
 ## Manifest schema
 
