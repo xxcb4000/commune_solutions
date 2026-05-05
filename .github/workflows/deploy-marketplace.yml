@@ -1,0 +1,55 @@
+name: deploy-marketplace
+
+# Auto-deploy le site marketplace + landing dès qu'un changement
+# touchant le catalog atterrit sur main (nouveau module officiel,
+# nouveau module communauté mergé, manifest édité, polish marketplace
+# ou landing).
+#
+# Le workflow rebuild les manifests agrégés et publie sur Firebase
+# Hosting (target « site » sur le projet be-mde-commune-notification,
+# domaine custom communesolutions.be).
+#
+# Auth : service account `github-actions-deploy@be-mde-commune-
+# notification.iam.gserviceaccount.com` avec rôle Firebase Hosting
+# Admin. JSON key stocké dans le secret repo `FIREBASE_SERVICE_ACCOUNT`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "modules-official/**"
+      - "modules-community/**"
+      - "modules-template/**"
+      - "marketplace/**"
+      - "landing/**"
+      - "tools/build-marketplace.py"
+      - "tools/build-site.sh"
+      - ".github/workflows/deploy-marketplace.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate manifests (sanity)
+        run: python3 tools/validate-manifests.py
+
+      - name: Build site (landing + marketplace)
+        run: bash tools/build-site.sh
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: be-mde-commune-notification
+          target: site
