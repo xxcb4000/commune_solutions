@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 import FirebaseCore
 import FirebaseFirestore
 
@@ -386,7 +385,9 @@ struct DSLView: View {
         case "for":      ForBlock(node: node, scope: scope)
         case "if":       IfBlock(node: node, scope: scope)
         case "tabbar":   TabBarBlock(node: node, scope: scope)
+        case "segmented": SegmentedBlock(node: node, scope: scope)
         case "calendar": CalendarBlock(node: node, scope: scope)
+        case "map":      MapBlock(node: node, scope: scope)
         case "field":    FieldBlock(node: node, scope: scope)
         case "button":   ButtonBlock(node: node, scope: scope)
         default:
@@ -405,14 +406,16 @@ private struct ScrollContainer: View {
     let scope: DSLScope
 
     var body: some View {
+        let children: [DSLNode] = node.children ?? (node.child.map { [$0] } ?? [])
         let content = ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array((node.children ?? []).enumerated()), id: \.offset) { _, child in
+                ForEach(Array(children.enumerated()), id: \.offset) { _, child in
                     DSLView(node: child, scope: scope)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         if node.refreshable == true {
             content.refreshable {
@@ -429,13 +432,22 @@ private struct VStackContainer: View {
     let scope: DSLScope
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CGFloat(node.spacing ?? 8)) {
+        // `fill: true` opt-in lets a screen-root vstack expand to the
+        // available height (needed when one of its children — typically a
+        // segmented or calendar — drives a flex layout). Default stays
+        // content-sized so cards inside scrolls don't blow up.
+        let stack = VStack(alignment: .leading, spacing: CGFloat(node.spacing ?? 8)) {
             ForEach(Array((node.children ?? []).enumerated()), id: \.offset) { _, child in
                 DSLView(node: child, scope: scope)
             }
         }
         .padding(CGFloat(node.padding ?? 0))
-        .frame(maxWidth: .infinity, alignment: .leading)
+
+        if node.fill == true {
+            stack.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else {
+            stack.frame(maxWidth: .infinity, alignment: .topLeading)
+        }
     }
 }
 
@@ -444,7 +456,14 @@ private struct HStackContainer: View {
     let scope: DSLScope
 
     var body: some View {
-        HStack(alignment: .center, spacing: CGFloat(node.spacing ?? 8)) {
+        let alignment: VerticalAlignment = {
+            switch node.align {
+            case "top":    return .top
+            case "bottom": return .bottom
+            default:       return .center
+            }
+        }()
+        HStack(alignment: alignment, spacing: CGFloat(node.spacing ?? 8)) {
             ForEach(Array((node.children ?? []).enumerated()), id: \.offset) { _, child in
                 DSLView(node: child, scope: scope)
             }
@@ -458,49 +477,94 @@ private struct HStackContainer: View {
 private struct HeaderBlock: View {
     let node: DSLNode
     let scope: DSLScope
+    @Environment(\.currentModule) private var currentModule
 
     var body: some View {
+        if let action = node.action, action.type == "navigate", let to = action.to {
+            NavigationLink(value: makeRoute(to: to, with: action.with ?? [:])) {
+                hero
+            }
+            .buttonStyle(.plain)
+        } else {
+            hero
+        }
+    }
+
+    private var hero: some View {
         let title = Template.resolve(node.title ?? "", scope: scope)
+        let eyebrow = Template.resolve(node.eyebrow ?? "", scope: scope)
         let imageURLString = Template.resolve(node.imageUrl ?? "", scope: scope)
+        let aspect = node.aspectRatio.map { CGFloat($0) }
         let height = CGFloat(node.height ?? 240)
+        let radius = CGFloat(node.cornerRadius ?? 0)
         let url = URL(string: imageURLString)
 
-        // Lock dimensions on the base Color rect, then layer the image as an
-        // overlay so its scaledToFill content is clipped to those bounds.
-        Color(.tertiarySystemFill)
-            .frame(maxWidth: .infinity)
-            .frame(height: height)
-            .overlay {
-                if let url, !imageURLString.isEmpty {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .empty, .failure:
-                            Color(.tertiarySystemFill)
-                        @unknown default:
-                            Color(.tertiarySystemFill)
-                        }
+        // Sizing: aspectRatio wins when set (hero use), else fixed height
+        // (default for full-bleed banners on detail screens).
+        return Group {
+            if let aspect {
+                Color(.tertiarySystemFill)
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(aspect, contentMode: .fit)
+            } else {
+                Color(.tertiarySystemFill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: height)
+            }
+        }
+        .overlay {
+            if let url, !imageURLString.isEmpty {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .empty, .failure:
+                        Color(.tertiarySystemFill)
+                    @unknown default:
+                        Color(.tertiarySystemFill)
                     }
                 }
             }
-            .overlay {
-                LinearGradient(
-                    colors: [.black.opacity(0.0), .black.opacity(0.55)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .overlay(alignment: .bottomLeading) {
+        }
+        .overlay {
+            LinearGradient(
+                colors: [.black.opacity(0.0), .black.opacity(0.55)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .overlay(alignment: .bottomLeading) {
+            VStack(alignment: .leading, spacing: 6) {
+                if !eyebrow.isEmpty {
+                    Text(eyebrow)
+                        .font(.system(size: 13, weight: .light, design: .serif).italic())
+                        .foregroundStyle(.white.opacity(0.92))
+                }
                 if !title.isEmpty {
                     Text(title)
-                        .font(.title2.weight(.bold))
+                        .font(.system(size: 26, weight: .semibold, design: .serif))
                         .foregroundStyle(.white)
-                        .padding(16)
                         .multilineTextAlignment(.leading)
+                        .lineSpacing(2)
                 }
             }
-            .clipped()
+            .padding(.horizontal, 22)
+            .padding(.bottom, 20)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
+
+    private func makeRoute(to: String, with: [String: DSLValue]) -> Route {
+        var resolved: [String: DSLValue] = [:]
+        for (key, value) in with {
+            if case .string(let s) = value {
+                resolved[key] = Template.resolveValue(s, scope: scope)
+            } else {
+                resolved[key] = value
+            }
+        }
+        let qualified = ModuleRegistry.shared.qualify(to, currentModule: currentModule)
+        return Route(qualifiedScreen: qualified, bindings: resolved)
     }
 }
 
@@ -578,11 +642,83 @@ private struct ImageBlock: View {
     let scope: DSLScope
 
     var body: some View {
+        // Two flavors:
+        //   • SF Symbol when `systemName` is set (optionally boxed when `bg` is set)
+        //   • Network image when `url` is set (default)
+        if let symbol = node.systemName, !symbol.isEmpty {
+            symbolView(systemName: symbol)
+        } else {
+            networkImage
+        }
+    }
+
+    @ViewBuilder
+    private func symbolView(systemName: String) -> some View {
+        let size = CGFloat(node.height ?? 18)
+        let icon = Image(systemName: systemName)
+            .font(.system(size: size, weight: .regular))
+            .foregroundStyle(iconColor)
+        if let bgName = node.bg, !bgName.isEmpty {
+            let boxSize: CGFloat = 38
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(bgColor(named: bgName))
+                .frame(width: boxSize, height: boxSize)
+                .overlay(icon)
+        } else {
+            icon
+        }
+    }
+
+    private var iconColor: Color {
+        switch node.color {
+        case "civic":     return .civicAccent
+        case "terra":     return .civicTerra
+        case "secondary": return .secondary
+        case "tertiary":  return Color(.tertiaryLabel)
+        case "accent":    return .accentColor
+        case "white":     return .white
+        case nil, "primary": return .primary
+        default:          return .primary
+        }
+    }
+
+    private func bgColor(named: String) -> Color {
+        switch named {
+        case "civic-soft":  return .civicAccentSoft
+        case "terra-soft":  return .civicTerraSoft
+        case "civic":       return .civicAccent
+        case "terra":       return .civicTerra
+        case "paper":       return Color(red: 0xFA / 255, green: 0xF8 / 255, blue: 0xF4 / 255)
+        case "paper-deep":  return Color(red: 0xF2 / 255, green: 0xEF / 255, blue: 0xE8 / 255)
+        default:            return Color(.systemGray6)
+        }
+    }
+
+    @ViewBuilder
+    private var networkImage: some View {
         let urlString = Template.resolve(node.url ?? "", scope: scope)
         let url = URL(string: urlString)
-        let aspect = node.aspectRatio.map { CGFloat($0) }
+        let aspect = CGFloat(node.aspectRatio ?? 1.6)
+        let explicitW = node.width.map { CGFloat($0) }
+        let explicitH = node.height.map { CGFloat($0) }
 
+        // Lock dimensions on a flexible Color base, then layer the image
+        // as overlay so its scaledToFill content is clipped to those bounds.
+        // Same pattern as HeaderBlock — robust against unbounded parents.
         Group {
+            if let w = explicitW, let h = explicitH {
+                Color(.tertiarySystemFill).frame(width: w, height: h)
+            } else if let h = explicitH {
+                Color(.tertiarySystemFill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: h)
+            } else {
+                Color(.tertiarySystemFill)
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(aspect, contentMode: .fit)
+            }
+        }
+        .overlay {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -600,9 +736,7 @@ private struct ImageBlock: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(aspect, contentMode: .fill)
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: CGFloat(node.cornerRadius ?? 0), style: .continuous))
     }
 }
 
@@ -611,38 +745,82 @@ private struct TextBlock: View {
     let scope: DSLScope
 
     var body: some View {
-        let value = Template.resolve(node.value ?? "", scope: scope)
+        let raw = Template.resolve(node.value ?? "", scope: scope)
+        let value = (node.style == "caps") ? raw.uppercased() : raw
         Text(value)
             .font(font(for: node.style))
             .foregroundStyle(color(for: node.color, style: node.style))
             .modifier(BadgeModifier(active: node.style == "badge"))
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .tracking(tracking(for: node.style))
+            .lineSpacing(lineSpacing(for: node.style))
+            .multilineTextAlignment(textAlign(for: node.align))
+            .frame(maxWidth: .infinity, alignment: frameAlign(for: node.align))
+    }
+
+    private func textAlign(for align: String?) -> TextAlignment {
+        switch align {
+        case "center":   return .center
+        case "trailing": return .trailing
+        default:         return .leading
+        }
+    }
+
+    private func frameAlign(for align: String?) -> Alignment {
+        switch align {
+        case "center":   return .center
+        case "trailing": return .trailing
+        default:         return .leading
+        }
     }
 
     private func font(for style: String?) -> Font {
         switch style {
-        case "title": return .title.weight(.bold)
-        case "title2": return .title2.weight(.semibold)
-        case "title3": return .title3.weight(.semibold)
-        case "headline": return .headline
-        case "body": return .body
-        case "callout": return .callout
-        case "caption": return .caption
-        case "footnote": return .footnote
-        case "badge": return .caption2.weight(.bold)
-        default: return .body
+        case "display":          return .system(size: 36, weight: .semibold, design: .serif)
+        case "display-small":    return .system(size: 28, weight: .semibold, design: .serif)
+        case "serif-title":      return .system(size: 22, weight: .medium, design: .serif)
+        case "serif-title2":     return .system(size: 18, weight: .medium, design: .serif)
+        case "eyebrow":          return .system(size: 13, weight: .light, design: .serif).italic()
+        case "subhead-italic":   return .system(size: 14, weight: .light, design: .serif).italic()
+        case "caps":             return .system(size: 11, weight: .medium)
+        case "title":            return .title.weight(.bold)
+        case "title2":           return .title2.weight(.semibold)
+        case "title3":           return .title3.weight(.semibold)
+        case "headline":         return .headline
+        case "body":             return .body
+        case "callout":          return .callout
+        case "caption":          return .caption
+        case "footnote":         return .footnote
+        case "badge":            return .caption2.weight(.bold)
+        default:                 return .body
+        }
+    }
+
+    private func tracking(for style: String?) -> CGFloat {
+        switch style {
+        case "caps": return 0.7
+        case "display", "display-small", "serif-title", "serif-title2": return -0.4
+        default: return 0
+        }
+    }
+
+    private func lineSpacing(for style: String?) -> CGFloat {
+        switch style {
+        case "display": return 2
+        case "body", "callout": return 1
+        default: return 0
         }
     }
 
     private func color(for color: String?, style: String?) -> Color {
         if style == "badge" { return .white }
         switch color {
-        case "primary": return .primary
+        case "primary":   return .primary
         case "secondary": return .secondary
-        case "tertiary": return Color(.tertiaryLabel)
-        case "accent": return .accentColor
-        default: return .primary
+        case "tertiary":  return Color(.tertiaryLabel)
+        case "accent":    return .accentColor
+        case "civic":     return .civicAccent
+        case "terra":     return .civicTerra
+        default:          return .primary
         }
     }
 }
@@ -763,6 +941,109 @@ private struct MarkdownBlock: View {
     }
 }
 
+// Pill segmented control : container gris clair, segment sélectionné en
+// blanc avec ombre subtile, texte semi-bold sélectionné / regular muted
+// unsélectionné. Switche entre `cases[<option.id>]` localement (state
+// non-persisté pour le v0 — survit pas au navigation pop/push).
+private struct SegmentedBlock: View {
+    let node: DSLNode
+    let scope: DSLScope
+    @State private var selected: String
+
+    init(node: DSLNode, scope: DSLScope) {
+        self.node = node
+        self.scope = scope
+        let initial = node.defaultCase ?? node.options?.first?.id ?? ""
+        self._selected = State(initialValue: initial)
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 4) {
+                ForEach(node.options ?? [], id: \.id) { opt in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            selected = opt.id
+                        }
+                    } label: {
+                        Text(opt.label)
+                            .font(.system(size: 14, weight: selected == opt.id ? .semibold : .regular))
+                            .foregroundColor(selected == opt.id
+                                             ? Color(uiColor: .label)
+                                             : Color(uiColor: .secondaryLabel))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(selected == opt.id
+                                          ? Color(uiColor: .systemBackground)
+                                          : Color.clear)
+                                    .shadow(color: selected == opt.id
+                                            ? Color.black.opacity(0.06)
+                                            : Color.clear,
+                                            radius: 3, y: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(4)
+            .background(
+                Capsule().fill(Color(uiColor: .systemGray6))
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+
+            if let cases = node.cases, let child = cases[selected] {
+                DSLView(node: child, scope: scope)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+}
+
+// Brand header rendu en haut de chaque tab racine. Cache la nav bar
+// système (cf TabBarBlock). Sur push (détail), la nav bar standard
+// reprend, le brand header disparaît du fait du push.
+private struct BrandHeader: View {
+    let brand: DSLBrand
+
+    var body: some View {
+        VStack(spacing: 6) {
+            if let label = brand.label, !label.isEmpty {
+                Text(label)
+                    .font(.system(size: 22, weight: .heavy, design: .serif))
+                    .foregroundColor(parseHex(brand.textColor) ?? .primary)
+                    .tracking(0.5)
+            }
+            if let dots = brand.dots, !dots.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(Array(dots.enumerated()), id: \.offset) { _, hex in
+                        Circle()
+                            .fill(parseHex(hex) ?? .gray)
+                            .frame(width: 7, height: 7)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color(uiColor: .systemBackground))
+    }
+
+    private func parseHex(_ hex: String?) -> Color? {
+        guard let hex else { return nil }
+        let s = hex.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
+        guard let val = UInt32(s, radix: 16), s.count == 6 else { return nil }
+        return Color(
+            red: Double((val >> 16) & 0xFF) / 255,
+            green: Double((val >> 8) & 0xFF) / 255,
+            blue: Double(val & 0xFF) / 255
+        )
+    }
+}
+
 private struct TabBarBlock: View {
     let node: DSLNode
     let scope: DSLScope
@@ -771,10 +1052,16 @@ private struct TabBarBlock: View {
         TabView {
             ForEach(Array((node.tabs ?? []).enumerated()), id: \.offset) { _, tab in
                 NavigationStack {
-                    ScreenView(
-                        qualifiedScreen: tab.screen,
-                        initialBindings: resolveBindings(tab.bindings ?? [:])
-                    )
+                    VStack(spacing: 0) {
+                        if let brand = node.brand {
+                            BrandHeader(brand: brand)
+                        }
+                        ScreenView(
+                            qualifiedScreen: tab.screen,
+                            initialBindings: resolveBindings(tab.bindings ?? [:])
+                        )
+                    }
+                    .toolbar(node.brand != nil ? .hidden : .visible, for: .navigationBar)
                     .navigationDestination(for: Route.self) { route in
                         ScreenView(qualifiedScreen: route.qualifiedScreen, initialBindings: route.bindings)
                     }
@@ -819,10 +1106,12 @@ private struct ForBlock: View {
     }
 }
 
-// Native month-view calendar (UICalendarView, iOS 16+) showing dots on dates
-// that have an event. Reads `in: <events binding>` and `dateField: <key>` —
-// each event's `dateField` is parsed as ISO `yyyy-MM-dd` and used as a marker.
-// Default visible month = month of the earliest parseable event date.
+// Custom SwiftUI month-view calendar — civic editorial direction.
+// Reads `in: <events binding>` + `dateField: <key>` (ISO yyyy-MM-dd).
+// Selected day = filled accent pill with white text; today = accent ring;
+// days with events = small accent dot below the number.
+// When `child` is set, it is rendered below the grid in a scope augmented with
+// `exposes` (default "selectedEvents") = events of the selected day.
 private struct CalendarBlock: View {
     let node: DSLNode
     let scope: DSLScope
@@ -830,68 +1119,252 @@ private struct CalendarBlock: View {
     var body: some View {
         let events = scope.lookup(node.iterable ?? "")?.arrayValue ?? []
         let dateField = node.dateField ?? "date"
-        let isoStrings = events.compactMap { $0.get([dateField])?.stringValue }
-        let markedKeys = Set(isoStrings)
-        let firstISO = isoStrings.compactMap(parseISO).sorted().first
+        return CalendarBlockBody(node: node, scope: scope, events: events, dateField: dateField)
+    }
+}
 
-        CalendarRepresentable(
-            markedISOKeys: markedKeys,
-            visibleMonth: monthComponents(from: firstISO)
-        )
-        .frame(height: 360)
-        .padding(.horizontal, 16)
+private struct CalendarBlockBody: View {
+    let node: DSLNode
+    let scope: DSLScope
+    let events: [DSLValue]
+    let dateField: String
+
+    @State private var visibleMonth: Date = Self.startOfMonth(Date())
+    @State private var selected: Date = Calendar.fr.startOfDay(for: Date())
+
+    private static func startOfMonth(_ d: Date) -> Date {
+        let comps = Calendar.fr.dateComponents([.year, .month], from: d)
+        return Calendar.fr.date(from: comps) ?? d
     }
 
-    private func parseISO(_ str: String) -> Date? {
+    private var markedKeys: Set<String> {
+        Set(events.compactMap { $0.get([dateField])?.stringValue })
+    }
+
+    private var selectedKey: String { Self.iso(selected) }
+
+    private var filteredEvents: [DSLValue] {
+        events.filter { ($0.get([dateField])?.stringValue ?? "") == selectedKey }
+    }
+
+    private static func iso(_ d: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(identifier: "UTC")
         f.locale = Locale(identifier: "en_US_POSIX")
-        return f.date(from: str)
+        return f.string(from: d)
     }
 
-    private func monthComponents(from date: Date?) -> DateComponents {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let now = date ?? Date()
-        let comps = cal.dateComponents([.year, .month], from: now)
-        return DateComponents(year: comps.year, month: comps.month)
+    var body: some View {
+        VStack(spacing: 0) {
+            calendarChrome
+            if let child = node.child {
+                let exposed = node.exposes ?? "selectedEvents"
+                let augmented = scope
+                    .adding(exposed, .array(filteredEvents))
+                    .adding("\(exposed)Count", .int(filteredEvents.count))
+                    .adding("\(exposed)DayLabel", .string(longDayLabel(selected)))
+                    .adding("\(exposed)Pre", .string(Calendar.fr.isDateInToday(selected) ? "Aujourd'hui" : ""))
+                DSLView(node: child, scope: augmented)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    @ViewBuilder
+    private var calendarChrome: some View {
+        VStack(spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                HStack(spacing: 4) {
+                    Text(monthLabel(visibleMonth))
+                        .font(.system(size: 22, weight: .medium, design: .serif))
+                        .foregroundStyle(Color.primary)
+                    Text(yearLabel(visibleMonth))
+                        .font(.system(size: 18, weight: .light, design: .serif).italic())
+                        .foregroundStyle(Color.secondary)
+                }
+                Spacer()
+                HStack(spacing: 2) {
+                    chevronButton(systemName: "chevron.left") { changeMonth(by: -1) }
+                    chevronButton(systemName: "chevron.right") { changeMonth(by: 1) }
+                }
+            }
+            .padding(.horizontal, 6)
+
+            HStack(spacing: 0) {
+                ForEach(Calendar.frWeekdayLabels.indices, id: \.self) { idx in
+                    Text(Calendar.frWeekdayLabels[idx])
+                        .font(.system(size: 11, weight: .medium))
+                        .kerning(0.6)
+                        .textCase(.uppercase)
+                        .foregroundStyle(idx >= 5 ? Color.secondary.opacity(0.6) : Color.secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            let cells = monthGridDays(for: visibleMonth)
+            VStack(spacing: 2) {
+                ForEach(0..<cells.count / 7, id: \.self) { row in
+                    HStack(spacing: 2) {
+                        ForEach(0..<7, id: \.self) { col in
+                            let date = cells[row * 7 + col]
+                            DayCellView(
+                                date: date,
+                                inMonth: Calendar.fr.isDate(date, equalTo: visibleMonth, toGranularity: .month),
+                                isToday: Calendar.fr.isDateInToday(date),
+                                isSelected: Calendar.fr.isDate(date, inSameDayAs: selected),
+                                hasEvent: markedKeys.contains(Self.iso(date))
+                            )
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selected = Calendar.fr.startOfDay(for: date)
+                                if !Calendar.fr.isDate(date, equalTo: visibleMonth, toGranularity: .month) {
+                                    visibleMonth = Self.startOfMonth(date)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.08))
+                .frame(height: 0.5)
+                .padding(.horizontal, 18)
+        }
+    }
+
+    private func chevronButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.secondary)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.clear))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func changeMonth(by delta: Int) {
+        if let next = Calendar.fr.date(byAdding: .month, value: delta, to: visibleMonth) {
+            visibleMonth = Self.startOfMonth(next)
+        }
+    }
+
+    private func monthLabel(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "LLLL"
+        return f.string(from: d).lowercased()
+    }
+
+    private func yearLabel(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "yyyy"
+        return f.string(from: d)
+    }
+
+    private func longDayLabel(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "EEEE d MMMM"
+        let s = f.string(from: d)
+        return s.prefix(1).uppercased() + s.dropFirst()
+    }
+
+    /// Returns 35 or 42 dates: the ISO Monday-anchored 6×7 grid for the month, trimmed
+    /// to 5 rows when the last row would be entirely outside the visible month.
+    private func monthGridDays(for month: Date) -> [Date] {
+        let cal = Calendar.fr
+        let first = cal.dateInterval(of: .month, for: month)?.start ?? month
+        let weekdayMonFirst = (cal.component(.weekday, from: first) + 5) % 7
+        let start = cal.date(byAdding: .day, value: -weekdayMonFirst, to: first) ?? first
+        var dates: [Date] = []
+        for i in 0..<42 {
+            if let d = cal.date(byAdding: .day, value: i, to: start) {
+                dates.append(d)
+            }
+        }
+        // Trim 6th row when it's entirely outside the visible month
+        if dates.count == 42, let row6First = dates.dropFirst(35).first,
+           !cal.isDate(row6First, equalTo: month, toGranularity: .month) {
+            return Array(dates.prefix(35))
+        }
+        return dates
     }
 }
 
-private struct CalendarRepresentable: UIViewRepresentable {
-    let markedISOKeys: Set<String>
-    let visibleMonth: DateComponents
+private struct DayCellView: View {
+    let date: Date
+    let inMonth: Bool
+    let isToday: Bool
+    let isSelected: Bool
+    let hasEvent: Bool
 
-    func makeUIView(context: Context) -> UICalendarView {
-        let cal = UICalendarView()
-        var gregorian = Calendar(identifier: .gregorian)
-        gregorian.firstWeekday = 2  // Monday — fr-FR / ISO convention
-        cal.calendar = gregorian
-        cal.locale = Locale(identifier: "fr_FR")
-        cal.delegate = context.coordinator
-        cal.visibleDateComponents = visibleMonth
-        return cal
-    }
-
-    func updateUIView(_ view: UICalendarView, context: Context) {
-        context.coordinator.markedISOKeys = markedISOKeys
-        view.visibleDateComponents = visibleMonth
-        view.reloadDecorations(forDateComponents: [], animated: false)
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator(markedISOKeys: markedISOKeys) }
-
-    final class Coordinator: NSObject, UICalendarViewDelegate {
-        var markedISOKeys: Set<String>
-        init(markedISOKeys: Set<String>) { self.markedISOKeys = markedISOKeys }
-
-        func calendarView(_ calendarView: UICalendarView, decorationFor dateComponents: DateComponents) -> UICalendarView.Decoration? {
-            guard let y = dateComponents.year, let m = dateComponents.month, let d = dateComponents.day else { return nil }
-            let key = String(format: "%04d-%02d-%02d", y, m, d)
-            return markedISOKeys.contains(key) ? .default(color: .systemOrange, size: .large) : nil
+    var body: some View {
+        ZStack {
+            // Selected pill
+            if isSelected {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.civicAccent)
+                    .padding(2)
+            } else if isToday {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.civicAccent, lineWidth: 1.5)
+                    .padding(4)
+            }
+            VStack(spacing: 2) {
+                Text("\(Calendar.fr.component(.day, from: date))")
+                    .font(.system(size: 15, weight: weight))
+                    .foregroundStyle(numberColor)
+                if hasEvent {
+                    Circle()
+                        .fill(isSelected ? Color.white.opacity(0.9) : Color.civicAccent)
+                        .frame(width: 4, height: 4)
+                        .padding(.top, -1)
+                }
+            }
         }
+        .frame(height: 44)
     }
+
+    private var weight: Font.Weight {
+        if isSelected { return .semibold }
+        if isToday { return .bold }
+        return .medium
+    }
+
+    private var numberColor: Color {
+        if isSelected { return .white }
+        if !inMonth { return Color.secondary.opacity(0.45) }
+        return Color.primary
+    }
+}
+
+extension Calendar {
+    static var fr: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.firstWeekday = 2
+        c.locale = Locale(identifier: "fr_FR")
+        return c
+    }
+
+    static let frWeekdayLabels = ["L", "Ma", "Me", "J", "V", "S", "D"]
+}
+
+extension Color {
+    static let civicAccent = Color(red: 0x2C / 255, green: 0x4A / 255, blue: 0x6B / 255)
+    static let civicAccentSoft = Color(red: 0xDD / 255, green: 0xE6 / 255, blue: 0xF0 / 255)
+    static let civicTerra = Color(red: 0xC8 / 255, green: 0x45 / 255, blue: 0x1B / 255)
+    static let civicTerraSoft = Color(red: 0xF5 / 255, green: 0xE5 / 255, blue: 0xDD / 255)
+    static let civicHair = Color(red: 0xE6 / 255, green: 0xE0 / 255, blue: 0xD6 / 255)
 }
 
 private struct IfBlock: View {

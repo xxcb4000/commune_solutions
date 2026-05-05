@@ -1,0 +1,120 @@
+{
+  "screen": "detail",
+  "navigation": {
+    "title": "",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "vstack",
+            "spacing": 6,
+            "children": [
+              {
+                "type": "text",
+                "value": "{{ place.categoryLabel }}",
+                "style": "eyebrow",
+                "color": "terra"
+              },
+              {
+                "type": "text",
+                "value": "{{ place.name }}",
+                "style": "display-small"
+              }
+            ]
+          },
+          {
+            "type": "map",
+            "from": "place",
+            "latField": "lat",
+            "lngField": "lng",
+            "categoryField": "category",
+            "height": 220
+          },
+          {
+            "type": "vstack",
+            "spacing": 14,
+            "children": [
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "mappin.and.ellipse",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Adresse",
+                        "style": "caps",
+                        "color": "tertiary"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ place.address }}",
+                        "style": "body"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "clock",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Horaires",
+                        "style": "caps",
+                        "color": "tertiary"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ place.hours }}",
+                        "style": "body"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "if",
+            "condition": "place.body",
+            "then": {
+              "type": "markdown",
+              "value": "{{ place.body }}"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

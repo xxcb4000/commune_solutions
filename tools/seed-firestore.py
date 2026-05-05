@@ -4,22 +4,20 @@
 Each tenant Firebase project gets distinct collections so the spike can prove
 tenant isolation visually (different data per commune).
 
-Auth: writes go through unauthenticated Firestore REST while rules are open
-during the seed window. Re-tighten with `firebase deploy --only firestore:rules`
-after seeding (the repo's `firestore.rules` is locked-down: read = authed only,
-write = denied).
+Auth: uses Firebase Admin SDK with Application Default Credentials. ADC
+bypasses Firestore security rules (admin path), so the locked-down
+`firestore.rules` (read = authed, write = denied) doesn't need to be
+loosened for seed runs.
 
 Usage:
-    1. Loosen rules: edit firestore.rules to `allow write: if true;`,
-       `firebase deploy --project commune-spike-X --only firestore:rules`.
-    2. python3 tools/seed-firestore.py
-    3. Re-lock rules and re-deploy.
+    1. `gcloud auth application-default login` (one-off)
+    2. `python3 tools/seed-firestore.py`
 """
 
-import json
 import sys
-import urllib.error
-import urllib.request
+
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # ─── Tenant Démo A (commune-spike-1) ──────────────────────────────────
 
@@ -66,6 +64,8 @@ ARTICLES_A = [
         "excerpt": "La rue Centrale sera fermée à la circulation pendant deux semaines pour la réfection complète du revêtement.",
         "imageUrl": "https://picsum.photos/seed/demo-a-travaux/900/506",
         "date": "30 avril 2026",
+        "dateEyebrow": "nouveau · 30 avril · Travaux",
+        "category": "Travaux",
         "isNew": True,
         "body": "## Détails\n\nLa **rue Centrale** sera fermée du **5 au 20 mai 2026**.\n\n### Déviations\n\n- Par la rue du Nord\n- Par la rue du Sud\n\nRiverains : accès piéton conservé."
     },
@@ -75,6 +75,8 @@ ARTICLES_A = [
         "excerpt": "Sport, créativité, nature : 12 stages organisés du 1er juillet au 23 août pour les 4–14 ans.",
         "imageUrl": "https://picsum.photos/seed/demo-a-stages/900/506",
         "date": "26 avril 2026",
+        "dateEyebrow": "nouveau · 26 avril · Loisirs",
+        "category": "Loisirs",
         "isNew": True,
         "body": "Les **inscriptions aux stages d'été 2026** sont ouvertes.\n\n### Thématiques\n\n- Multisports (4–8 ans)\n- Cirque (6–12 ans)\n- Robotique (10–14 ans)\n\nTarif communal : **75€/semaine**."
     },
@@ -84,18 +86,96 @@ ARTICLES_A = [
         "excerpt": "Inscrivez-vous avant le 6 mai.",
         "imageUrl": "https://picsum.photos/seed/demo-a-encombrants/900/506",
         "date": "18 avril 2026",
+        "dateEyebrow": "18 avril · Environnement",
+        "category": "Environnement",
         "isNew": False,
         "body": "Prochain **ramassage** le **mardi 13 mai 2026**. Inscription gratuite mais obligatoire avant le 6 mai au 04 / 000 00 00."
     },
 ]
 
 INFO_A = {
-    "communeName": "Maison communale Démo A",
+    "communeName": "Démo A",
+    "tagline": "à votre service depuis 1830",
     "address": "Place communale 1\n4000 Démo A",
-    "hoursMd": "**Lundi → vendredi** : 9h–12h\n\n**Mardi** : 14h–18h (permanence guichet)\n\n*Fermé samedi et dimanche.*",
-    "contactMd": "Téléphone : **04 / 000 00 00**\n\nE-mail : info@demo-a.test",
-    "headerImageUrl": "https://picsum.photos/seed/demo-a-mc/900/506",
+    "hours": "Lundi → vendredi  ·  9h – 12h\nMardi (permanence)  ·  14h – 18h\nSamedi & dimanche  ·  fermé",
+    "phone": "04 / 000 00 00",
+    "email": "info@demo-a.test",
 }
+
+PLACES_A = [
+    {
+        "id": "plc-001",
+        "name": "Maison communale",
+        "category": "services",
+        "categoryLabel": "Services communaux",
+        "address": "Place communale 1, 4000 Démo A",
+        "meta": "Place communale 1 · ouvert jusqu'à 12h",
+        "hours": "Lun → ven · 9h–12h\nMardi (perm.) · 14h–18h",
+        "lat": 50.6695,
+        "lng": 5.4762,
+        "body": "L'**accueil principal** de la commune. État civil, cartes d'identité, permis, urbanisme.",
+    },
+    {
+        "id": "plc-002",
+        "name": "École communale du Centre",
+        "category": "ecole",
+        "categoryLabel": "Écoles",
+        "address": "Rue de l'École 14, 4000 Démo A",
+        "meta": "Rue de l'École 14 · maternelle + primaire",
+        "hours": "Lun → ven · 8h30–15h30 (mer 12h)",
+        "lat": 50.6712,
+        "lng": 5.4805,
+        "body": "Implantation principale du réseau communal. **220 élèves**, sections maternelle et primaire.",
+    },
+    {
+        "id": "plc-003",
+        "name": "Centre culturel",
+        "category": "culture",
+        "categoryLabel": "Culture",
+        "address": "Place du Marché 3, 4000 Démo A",
+        "meta": "Place du Marché 3 · expositions, concerts",
+        "hours": "Mar → sam · 14h–18h\nDim · 14h–17h (selon expo)",
+        "lat": 50.6680,
+        "lng": 5.4790,
+        "body": "Programmation **expositions, concerts, conférences** tout au long de l'année.",
+    },
+    {
+        "id": "plc-004",
+        "name": "Hall omnisports",
+        "category": "sport",
+        "categoryLabel": "Sport",
+        "address": "Rue des Sports 12, 4000 Démo A",
+        "meta": "Rue des Sports 12 · réservations en ligne",
+        "hours": "Lun → ven · 9h–22h\nWeek-end · 9h–18h",
+        "lat": 50.6735,
+        "lng": 5.4720,
+        "body": "Salle omnisports communale. **Réservations** : badminton, basket, futsal, volley.",
+    },
+    {
+        "id": "plc-005",
+        "name": "Bibliothèque communale",
+        "category": "services",
+        "categoryLabel": "Services communaux",
+        "address": "Rue Haute 8, 4000 Démo A",
+        "meta": "Rue Haute 8 · ouvert mardi → samedi",
+        "hours": "Mar–jeu · 14h–18h\nVen · 14h–19h\nSam · 9h–13h",
+        "lat": 50.6669,
+        "lng": 5.4733,
+        "body": "**12 000 ouvrages**. Section jeunesse, fonds régional, presse, ordinateurs publics.",
+    },
+    {
+        "id": "plc-006",
+        "name": "Parc des Trois Tilleuls",
+        "category": "nature",
+        "categoryLabel": "Nature",
+        "address": "Avenue des Tilleuls, 4000 Démo A",
+        "meta": "Avenue des Tilleuls · plaine de jeux",
+        "hours": "Tous les jours · 7h–coucher du soleil",
+        "lat": 50.6665,
+        "lng": 5.4815,
+        "body": "Parc communal **3,2 ha**. Plaine de jeux, vergers, sentiers de promenade, pétanque.",
+    },
+]
 
 POLLS_A = [
     {
@@ -157,6 +237,8 @@ ARTICLES_B = [
         "excerpt": "Action commune avec une asbl locale le 10 mai. Bottes et bonne humeur.",
         "imageUrl": "https://picsum.photos/seed/demo-b-sentiers/900/506",
         "date": "29 avril 2026",
+        "dateEyebrow": "nouveau · 29 avril · Environnement",
+        "category": "Environnement",
         "isNew": True,
         "body": "Action **bénévole** de nettoyage des sentiers communaux le **samedi 10 mai 2026**.\n\n### Pratique\n\n- RDV à 9h Maison du Tourisme\n- Sacs et gants fournis\n- Goûter à 13h pour clôturer"
     },
@@ -166,18 +248,96 @@ ARTICLES_B = [
         "excerpt": "Circulation alternée jusqu'au 30 mai.",
         "imageUrl": "https://picsum.photos/seed/demo-b-parc/900/506",
         "date": "25 avril 2026",
+        "dateEyebrow": "nouveau · 25 avril · Travaux",
+        "category": "Travaux",
         "isNew": True,
         "body": "Travaux de remise à neuf de la barrière du parc communal jusqu'au 30 mai. **Circulation alternée** par feux temporaires."
     },
 ]
 
 INFO_B = {
-    "communeName": "Maison communale Démo B",
+    "communeName": "Démo B",
+    "tagline": "votre commune, en plus simple",
     "address": "Rue du Centre 1\n4000 Démo B",
-    "hoursMd": "**Lundi → vendredi** : 8h30–12h\n\n**Mardi** : 14h–17h\n\n*Fermé samedi et dimanche.*",
-    "contactMd": "Téléphone : **00 / 00 00 00**\n\nE-mail : info@demo-b.test",
-    "headerImageUrl": "https://picsum.photos/seed/demo-b-mc/900/506",
+    "hours": "Lundi → vendredi  ·  8h30 – 12h\nMardi (permanence)  ·  14h – 17h\nSamedi & dimanche  ·  fermé",
+    "phone": "00 / 00 00 00",
+    "email": "info@demo-b.test",
 }
+
+PLACES_B = [
+    {
+        "id": "plc-101",
+        "name": "Hôtel de ville",
+        "category": "services",
+        "categoryLabel": "Services communaux",
+        "address": "Rue du Centre 1, 4000 Démo B",
+        "meta": "Rue du Centre 1 · administration générale",
+        "hours": "Lun → ven · 8h30–12h\nMar (perm.) · 14h–17h",
+        "lat": 50.6286,
+        "lng": 6.0367,
+        "body": "**Hôtel de ville** : tous les services communaux centralisés.",
+    },
+    {
+        "id": "plc-102",
+        "name": "Bibliothèque & médiathèque",
+        "category": "services",
+        "categoryLabel": "Services communaux",
+        "address": "Rue Mitoyenne 22, 4000 Démo B",
+        "meta": "Rue Mitoyenne 22 · livres, jeux, presse",
+        "hours": "Mar–sam · 14h–18h",
+        "lat": 50.6310,
+        "lng": 6.0335,
+        "body": "**Bibliothèque communale** avec section ludothèque (jeux à emprunter).",
+    },
+    {
+        "id": "plc-103",
+        "name": "Athénée Royal",
+        "category": "ecole",
+        "categoryLabel": "Écoles",
+        "address": "Rue de l'Athénée 5, 4000 Démo B",
+        "meta": "Rue de l'Athénée 5 · primaire + secondaire",
+        "hours": "Lun → ven · 8h–16h",
+        "lat": 50.6260,
+        "lng": 6.0410,
+        "body": "**Athénée royal**. Section primaire et secondaire, options sciences et langues.",
+    },
+    {
+        "id": "plc-104",
+        "name": "Salle communale",
+        "category": "culture",
+        "categoryLabel": "Culture",
+        "address": "Place du Centre 2, 4000 Démo B",
+        "meta": "Place du Centre 2 · concerts, théâtre",
+        "hours": "Selon programmation",
+        "lat": 50.6298,
+        "lng": 6.0380,
+        "body": "**Salle polyvalente** communale. Concerts, théâtre amateur, fêtes scolaires.",
+    },
+    {
+        "id": "plc-105",
+        "name": "Stade communal",
+        "category": "sport",
+        "categoryLabel": "Sport",
+        "address": "Avenue des Sports 18, 4000 Démo B",
+        "meta": "Avenue des Sports 18 · football, athlétisme",
+        "hours": "Selon clubs",
+        "lat": 50.6325,
+        "lng": 6.0290,
+        "body": "**Stade communal**. Terrain de foot, piste d'athlétisme, vestiaires modernes.",
+    },
+    {
+        "id": "plc-106",
+        "name": "Réserve naturelle des Hautes Fagnes",
+        "category": "nature",
+        "categoryLabel": "Nature",
+        "address": "Sentier Botrange, 4000 Démo B",
+        "meta": "Sentier Botrange · randonnée balisée",
+        "hours": "Accès libre · sentiers balisés",
+        "lat": 50.6240,
+        "lng": 6.0455,
+        "body": "Accès aux **Hautes Fagnes**. Sentiers balisés, point de vue, guide nature à la maison du parc.",
+    },
+]
 
 POLLS_B = [
     {
@@ -196,62 +356,42 @@ POLLS_B = [
 
 # ─── Plumbing ────────────────────────────────────────────────────────
 
-def to_value(v):
-    if v is None:
-        return {"nullValue": None}
-    if isinstance(v, bool):
-        return {"booleanValue": v}
-    if isinstance(v, int):
-        return {"integerValue": str(v)}
-    if isinstance(v, float):
-        return {"doubleValue": v}
-    if isinstance(v, str):
-        return {"stringValue": v}
-    if isinstance(v, list):
-        return {"arrayValue": {"values": [to_value(x) for x in v]}}
-    if isinstance(v, dict):
-        return {"mapValue": {"fields": {k: to_value(val) for k, val in v.items()}}}
-    return {"stringValue": str(v)}
-
-
-def to_fields(d):
-    return {k: to_value(v) for k, v in d.items()}
-
-
-def upsert(project, doc_path, data):
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{project}"
-        f"/databases/(default)/documents/{doc_path}"
+def client_for(project):
+    """One firebase_admin app per project — each has its own Firestore client."""
+    app = firebase_admin.initialize_app(
+        credentials.ApplicationDefault(),
+        {"projectId": project},
+        name=project,
     )
-    body = json.dumps({"fields": to_fields(data)}).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=body,
-        method="PATCH",
-        headers={"Content-Type": "application/json"},
-    )
+    return firestore.client(app)
+
+
+def upsert(db, project, collection, doc_id, data):
     try:
-        with urllib.request.urlopen(req) as resp:
-            print(f"  ✓ {project}/{doc_path} ({resp.status})")
-    except urllib.error.HTTPError as e:
-        print(f"  ✗ {project}/{doc_path}: {e.code} {e.read().decode()}")
+        db.collection(collection).document(doc_id).set(data, merge=True)
+        print(f"  ✓ {project}/{collection}/{doc_id}")
+    except Exception as e:
+        print(f"  ✗ {project}/{collection}/{doc_id}: {e}")
         sys.exit(1)
 
 
-def seed(project, events, articles, info, polls):
+def seed(project, events, articles, info, polls, places):
     print(f"Seeding {project}…")
+    db = client_for(project)
     for evt in events:
-        upsert(project, f"events/{evt['id']}", evt)
+        upsert(db, project, "events", evt["id"], evt)
     for art in articles:
-        upsert(project, f"articles/{art['id']}", art)
-    upsert(project, "info/main", info)
+        upsert(db, project, "articles", art["id"], art)
+    upsert(db, project, "info", "main", info)
     for poll in polls:
-        upsert(project, f"polls/{poll['id']}", poll)
+        upsert(db, project, "polls", poll["id"], poll)
+    for place in places:
+        upsert(db, project, "places", place["id"], place)
 
 
 def main():
-    seed("commune-spike-1", EVENTS_A, ARTICLES_A, INFO_A, POLLS_A)
-    seed("commune-spike-2", EVENTS_B, ARTICLES_B, INFO_B, POLLS_B)
+    seed("commune-spike-1", EVENTS_A, ARTICLES_A, INFO_A, POLLS_A, PLACES_A)
+    seed("commune-spike-2", EVENTS_B, ARTICLES_B, INFO_B, POLLS_B, PLACES_B)
 
 
 if __name__ == "__main__":

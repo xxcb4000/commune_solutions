@@ -8,76 +8,126 @@
     "events": "firestore:events"
   },
   "view": {
-    "type": "scroll",
-    "refreshable": true,
+    "type": "vstack",
+    "spacing": 0,
+    "fill": true,
     "children": [
       {
-        "type": "calendar",
-        "in": "events",
-        "dateField": "dateStart"
-      },
-      {
-        "type": "vstack",
-        "spacing": 16,
-        "padding": 16,
-        "children": [
-          {
-            "type": "for",
+        "type": "segmented",
+        "default": "calendar",
+        "options": [
+          { "id": "list", "label": "Liste" },
+          { "id": "calendar", "label": "Calendrier" }
+        ],
+        "cases": {
+          "calendar": {
+            "type": "calendar",
             "in": "events",
-            "as": "event",
+            "dateField": "dateStart",
+            "exposes": "selectedEvents",
             "child": {
-              "type": "card",
-              "action": {
-                "type": "navigate",
-                "to": "detail",
-                "with": {
-                  "event": "{{ event }}"
+              "type": "scroll",
+              "children": [
+                {
+                  "type": "vstack",
+                  "spacing": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "{{ selectedEventsDayLabel }}",
+                      "style": "title3"
+                    },
+                    {
+                      "type": "for",
+                      "in": "selectedEvents",
+                      "as": "event",
+                      "child": {
+                        "type": "card",
+                        "action": {
+                          "type": "navigate",
+                          "to": "detail",
+                          "with": {
+                            "event": "{{ event }}"
+                          }
+                        },
+                        "child": {
+                          "type": "vstack",
+                          "spacing": 0,
+                          "children": [
+                            {
+                              "type": "image",
+                              "url": "{{ event.imageUrl }}",
+                              "aspectRatio": 1.78
+                            },
+                            {
+                              "type": "vstack",
+                              "spacing": 6,
+                              "padding": 14,
+                              "children": [
+                                { "type": "text", "value": "{{ event.title }}", "style": "title3" },
+                                { "type": "text", "value": "{{ event.date }}", "style": "body", "color": "secondary" },
+                                { "type": "text", "value": "{{ event.location }}", "style": "caption", "color": "tertiary" }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
-              },
-              "child": {
+              ]
+            }
+          },
+          "list": {
+            "type": "scroll",
+            "children": [
+              {
                 "type": "vstack",
-                "spacing": 0,
+                "spacing": 16,
+                "padding": 16,
                 "children": [
                   {
-                    "type": "image",
-                    "url": "{{ event.imageUrl }}",
-                    "aspectRatio": 1.78
-                  },
-                  {
-                    "type": "vstack",
-                    "spacing": 4,
-                    "padding": 14,
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "{{ event.title }}",
-                        "style": "title3"
+                    "type": "for",
+                    "in": "events",
+                    "as": "event",
+                    "child": {
+                      "type": "card",
+                      "action": {
+                        "type": "navigate",
+                        "to": "detail",
+                        "with": {
+                          "event": "{{ event }}"
+                        }
                       },
-                      {
-                        "type": "text",
-                        "value": "{{ event.date }}",
-                        "style": "body",
-                        "color": "secondary"
-                      },
-                      {
-                        "type": "text",
-                        "value": "{{ event.location }}",
-                        "style": "caption",
-                        "color": "tertiary"
+                      "child": {
+                        "type": "vstack",
+                        "spacing": 0,
+                        "children": [
+                          {
+                            "type": "image",
+                            "url": "{{ event.imageUrl }}",
+                            "aspectRatio": 1.78
+                          },
+                          {
+                            "type": "vstack",
+                            "spacing": 6,
+                            "padding": 14,
+                            "children": [
+                              { "type": "text", "value": "{{ event.title }}", "style": "title3" },
+                              { "type": "text", "value": "{{ event.date }}", "style": "body", "color": "secondary" },
+                              { "type": "text", "value": "{{ event.location }}", "style": "caption", "color": "tertiary" }
+                            ]
+                          }
+                        ]
                       }
-                    ]
+                    }
                   }
                 ]
               }
-            }
-          },
-          {
-            "type": "text",
-            "value": "Données CF reçues à {{ events.0.fetchedAt }}",
-            "style": "caption",
-            "color": "tertiary"
+            ]
           }
-        ]
+        }
       }
     ]
   }

@@ -6,20 +6,21 @@ runtime-config dans Firestore plutôt que JSON versionné. Ce script lit
 `tenants/<id>/app.json` et écrit la partie runtime dans `_config/modules`
 du projet Firebase correspondant.
 
-Idempotent : peut être relancé sans danger (PATCH overwrite).
+Auth : Firebase Admin SDK + ADC. Bypasse les règles (pas besoin de loosen).
+
+Idempotent : peut être relancé sans danger.
 
 Usage :
-    1. Loosen rules : `allow write: if true;` sur `_config/{doc}` (ou globalement)
-    2. python3 tools/seed-tenant-config.py
-    3. Re-lock rules avec la version qui distingue `_config/*` (public read,
-       admin write) du reste.
+    1. `gcloud auth application-default login` (one-off)
+    2. `python3 tools/seed-tenant-config.py`
 """
 from __future__ import annotations
 import json
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
+
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 ROOT = Path(__file__).resolve().parent.parent
 TENANTS_DIR = ROOT / "tenants"
@@ -31,42 +32,13 @@ TENANT_TO_PROJECT = {
 }
 
 
-def to_value(v):
-    if v is None:
-        return {"nullValue": None}
-    if isinstance(v, bool):
-        return {"booleanValue": v}
-    if isinstance(v, int):
-        return {"integerValue": str(v)}
-    if isinstance(v, float):
-        return {"doubleValue": v}
-    if isinstance(v, str):
-        return {"stringValue": v}
-    if isinstance(v, list):
-        return {"arrayValue": {"values": [to_value(x) for x in v]}}
-    if isinstance(v, dict):
-        return {"mapValue": {"fields": {k: to_value(val) for k, val in v.items()}}}
-    return {"stringValue": str(v)}
-
-
-def upsert(project: str, doc_path: str, data: dict):
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{project}"
-        f"/databases/(default)/documents/{doc_path}"
+def client_for(project: str):
+    app = firebase_admin.initialize_app(
+        credentials.ApplicationDefault(),
+        {"projectId": project},
+        name=project,
     )
-    body = json.dumps({"fields": {k: to_value(v) for k, v in data.items()}}).encode()
-    req = urllib.request.Request(
-        url,
-        data=body,
-        method="PATCH",
-        headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            print(f"  ✓ {project}/{doc_path} ({resp.status})")
-    except urllib.error.HTTPError as e:
-        print(f"  ✗ {project}/{doc_path}: {e.code} {e.read().decode()}")
-        sys.exit(1)
+    return firestore.client(app)
 
 
 def seed_tenant(tenant_id: str):
@@ -87,7 +59,13 @@ def seed_tenant(tenant_id: str):
         "seededFromBundle": True,
     }
     print(f"Seed {tenant_id} → {project} (modules={len(runtime['modules'])})")
-    upsert(project, "_config/modules", runtime)
+    db = client_for(project)
+    try:
+        db.collection("_config").document("modules").set(runtime)
+        print(f"  ✓ {project}/_config/modules")
+    except Exception as e:
+        print(f"  ✗ {project}/_config/modules: {e}")
+        sys.exit(1)
 
 
 def main():

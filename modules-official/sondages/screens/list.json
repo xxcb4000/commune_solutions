@@ -2,7 +2,7 @@
   "screen": "list",
   "navigation": {
     "title": "Sondages",
-    "displayMode": "large"
+    "displayMode": "inline"
   },
   "data": {
     "polls": "firestore:polls"
@@ -14,7 +14,7 @@
       {
         "type": "vstack",
         "spacing": 16,
-        "padding": 16,
+        "padding": 18,
         "children": [
           {
             "type": "for",
@@ -29,13 +29,19 @@
               },
               "child": {
                 "type": "vstack",
-                "spacing": 6,
-                "padding": 14,
+                "spacing": 8,
+                "padding": 18,
                 "children": [
                   {
                     "type": "text",
+                    "value": "Consultation en cours",
+                    "style": "eyebrow",
+                    "color": "terra"
+                  },
+                  {
+                    "type": "text",
                     "value": "{{ poll.title }}",
-                    "style": "title3"
+                    "style": "serif-title"
                   },
                   {
                     "type": "text",

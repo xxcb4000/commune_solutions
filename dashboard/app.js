@@ -198,9 +198,14 @@ async function renderModules(container, user) {
         status.textContent = "Enregistrement…";
         status.classList.remove("error", "success");
         try {
+            // Préserve les autres champs du view (e.g. brand) qui ne sont pas
+            // édités depuis cet écran — ne pas écraser tout le doc.
+            const preservedView = { ...(runtime.view ?? {}) };
+            preservedView.type = "tabbar";
+            preservedView.tabs = newTabs;
             await setDoc(doc(db, "_config", "modules"), {
                 modules: newModules,
-                view: { type: "tabbar", tabs: newTabs },
+                view: preservedView,
                 updatedAt: serverTimestamp(),
                 updatedBy: user.uid,
             });

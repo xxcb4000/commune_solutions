@@ -32,6 +32,15 @@ data class DSLNavigation(
     val displayMode: String? = null,
 )
 
+// Branding affiché en haut du tabbar root : label texte + ronds colorés.
+// Optionnel — quand absent, le tabbar montre l'app bar système classique.
+@Serializable
+data class DSLBrand(
+    val label: String? = null,
+    val textColor: String? = null,
+    val dots: List<String>? = null,
+)
+
 @Serializable
 data class DSLNode(
     val type: String,
@@ -40,23 +49,41 @@ data class DSLNode(
     val value: String? = null,
     val url: String? = null,
     val imageUrl: String? = null,
+    val systemName: String? = null,  // SF Symbol name (mapped to Material Icon on Android)
+    val bg: String? = null,          // Background color name for boxed icon mode
     val style: String? = null,
     val color: String? = null,
+    val align: String? = null,       // "leading" (default) | "center" | "trailing"
     val height: Double? = null,
+    val width: Double? = null,
     val spacing: Double? = null,
     val padding: Double? = null,
     val aspectRatio: Double? = null,
+    val cornerRadius: Double? = null,
+    val fill: Boolean? = null,
+    val eyebrow: String? = null,
     val refreshable: Boolean? = null,
     val condition: String? = null,
     @SerialName("in") val iterable: String? = null,
     @SerialName("as") val alias: String? = null,
     val dateField: String? = null,
+    val from: String? = null,           // map: single-object binding
+    val latField: String? = null,       // map: doc field with latitude
+    val lngField: String? = null,       // map: doc field with longitude
+    val categoryField: String? = null,  // map: doc field for pin color
     val action: DSLAction? = null,
     val children: List<DSLNode>? = null,
     val child: DSLNode? = null,
+    // Calendar (and similar selection primitives) inject a filtered list into
+    // the child scope under this name. Read by `for in: <exposes>` below.
+    val exposes: String? = null,
     val then: DSLNode? = null,
     @SerialName("else") val elseNode: DSLNode? = null,
     val tabs: List<DSLTab>? = null,
+    val brand: DSLBrand? = null,
+    // Segmented : map d'option id → enfant à rendre quand sélectionnée
+    val cases: Map<String, DSLNode>? = null,
+    @SerialName("default") val defaultCase: String? = null,
     // Form primitives
     val kind: String? = null,
     val id: String? = null,

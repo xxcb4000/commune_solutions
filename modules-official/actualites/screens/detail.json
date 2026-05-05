@@ -1,37 +1,32 @@
 {
   "screen": "detail",
   "navigation": {
-    "title": "{{ article.title }}",
+    "title": "",
     "displayMode": "inline"
   },
   "view": {
     "type": "scroll",
     "children": [
       {
-        "type": "header",
-        "title": "{{ article.title }}",
-        "imageUrl": "{{ article.imageUrl }}",
-        "height": 280
+        "type": "image",
+        "url": "{{ article.imageUrl }}",
+        "aspectRatio": 1.5
       },
       {
         "type": "vstack",
-        "spacing": 12,
-        "padding": 16,
+        "spacing": 14,
+        "padding": 22,
         "children": [
           {
-            "type": "if",
-            "condition": "{{ article.isNew }}",
-            "then": {
-              "type": "text",
-              "value": "NOUVEAU",
-              "style": "badge"
-            }
+            "type": "text",
+            "value": "{{ article.dateEyebrow }}",
+            "style": "eyebrow",
+            "color": "tertiary"
           },
           {
             "type": "text",
-            "value": "{{ article.date }}",
-            "style": "caption",
-            "color": "secondary"
+            "value": "{{ article.title }}",
+            "style": "display-small"
           },
           {
             "type": "markdown",

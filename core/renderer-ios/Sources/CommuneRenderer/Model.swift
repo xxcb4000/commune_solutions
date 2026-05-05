@@ -63,6 +63,15 @@ enum DSLValue: Codable {
         if case .array(let a) = self { return a } else { return nil }
     }
 
+    var doubleValue: Double? {
+        switch self {
+        case .double(let d): return d
+        case .int(let i):    return Double(i)
+        case .string(let s): return Double(s)
+        default:             return nil
+        }
+    }
+
     func get(_ path: [String]) -> DSLValue? {
         var current: DSLValue = self
         for part in path {
@@ -84,6 +93,14 @@ enum DSLValue: Codable {
 struct DSLOption: Decodable {
     let id: String
     let label: String
+}
+
+// Branding affiché en haut du tabbar root : label texte + ronds colorés.
+// Optionnel — quand absent, le tabbar montre la nav bar système classique.
+struct DSLBrand: Decodable {
+    let label: String?
+    let textColor: String?
+    let dots: [String]?
 }
 
 struct DSLAction: Codable {
@@ -110,27 +127,45 @@ struct DSLNavigation: Decodable {
 final class DSLNode: Decodable {
     let type: String
     let title: String?
+    let eyebrow: String?
     let subtitle: String?
     let value: String?
     let url: String?
     let imageUrl: String?
+    let systemName: String?     // SF Symbol (image primitive, icon mode)
+    let bg: String?             // Background color name (image-as-icon boxed mode)
     let style: String?
     let color: String?
+    let align: String?              // "leading" (default) | "center" | "trailing"
     let height: Double?
+    let width: Double?
     let spacing: Double?
     let padding: Double?
     let aspectRatio: Double?
+    let cornerRadius: Double?
+    let fill: Bool?           // vstack opt-in to claim full available height
     let refreshable: Bool?
     let condition: String?
     let iterable: String?
     let alias: String?
     let dateField: String?
+    let from: String?           // map: single-object binding (alternative to `in`)
+    let latField: String?       // map: doc field with latitude (Double)
+    let lngField: String?       // map: doc field with longitude (Double)
+    let categoryField: String?  // map: doc field used to colorize the pin
     let action: DSLAction?
     let children: [DSLNode]?
     let child: DSLNode?
+    // Calendar (and similar selection primitives) inject a filtered list into
+    // the child scope under this name. Read by `for in: <exposes>` below.
+    let exposes: String?
     let then: DSLNode?
     let elseNode: DSLNode?
     let tabs: [DSLTab]?
+    let brand: DSLBrand?
+    // Segmented : map d'option id → enfant à rendre quand l'option est sélectionnée
+    let cases: [String: DSLNode]?
+    let defaultCase: String?
     // Form primitives:
     let kind: String?         // "text" | "email" | "secret" | "text.long" | "yesno"
     let id: String?
@@ -143,13 +178,15 @@ final class DSLNode: Decodable {
     let max: Int?
 
     enum CodingKeys: String, CodingKey {
-        case type, title, subtitle, value, url, imageUrl, style, color
-        case height, spacing, padding, aspectRatio, refreshable, condition
-        case action, children, child, then, tabs, dateField
+        case type, title, eyebrow, subtitle, value, url, imageUrl, systemName, bg, style, color, align
+        case height, width, spacing, padding, aspectRatio, cornerRadius, fill, refreshable, condition
+        case action, children, child, then, tabs, dateField, from, latField, lngField, categoryField, brand, cases
         case kind, id, label, placeholder, required, minLines, options, min, max
+        case exposes
         case iterable = "in"
         case alias = "as"
         case elseNode = "else"
+        case defaultCase = "default"
     }
 }
 

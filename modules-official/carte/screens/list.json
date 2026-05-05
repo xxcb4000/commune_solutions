@@ -1,11 +1,11 @@
 {
-  "screen": "feed",
+  "screen": "list",
   "navigation": {
-    "title": "Actualités",
+    "title": "Carte",
     "displayMode": "inline"
   },
   "data": {
-    "articles": "firestore:articles"
+    "places": "firestore:places"
   },
   "view": {
     "type": "scroll",
@@ -13,64 +13,64 @@
     "children": [
       {
         "type": "vstack",
-        "spacing": 22,
-        "padding": 22,
+        "spacing": 18,
+        "padding": 18,
         "children": [
           {
-            "type": "header",
-            "imageUrl": "{{ articles.0.imageUrl }}",
-            "eyebrow": "{{ articles.0.dateEyebrow }}",
-            "title": "{{ articles.0.title }}",
-            "aspectRatio": 1.33,
-            "cornerRadius": 22,
+            "type": "map",
+            "in": "places",
+            "as": "place",
+            "latField": "lat",
+            "lngField": "lng",
+            "categoryField": "category",
+            "height": 280,
             "action": {
               "type": "navigate",
               "to": "detail",
-              "with": { "article": "{{ articles.0 }}" }
+              "with": { "place": "{{ place }}" }
             }
           },
           {
+            "type": "text",
+            "value": "À proximité",
+            "style": "serif-title",
+            "color": "primary"
+          },
+          {
             "type": "for",
-            "in": "articles",
-            "as": "article",
+            "in": "places",
+            "as": "place",
             "child": {
               "type": "card",
               "action": {
                 "type": "navigate",
                 "to": "detail",
-                "with": { "article": "{{ article }}" }
+                "with": { "place": "{{ place }}" }
               },
               "child": {
                 "type": "hstack",
                 "spacing": 14,
                 "padding": 14,
-                "align": "top",
+                "align": "center",
                 "children": [
                   {
                     "type": "image",
-                    "url": "{{ article.imageUrl }}",
-                    "width": 88,
-                    "height": 88,
-                    "cornerRadius": 14
+                    "systemName": "mappin.circle.fill",
+                    "color": "civic",
+                    "height": 26
                   },
                   {
                     "type": "vstack",
-                    "spacing": 4,
+                    "spacing": 2,
                     "children": [
                       {
                         "type": "text",
-                        "value": "{{ article.dateEyebrow }}",
-                        "style": "eyebrow",
-                        "color": "tertiary"
-                      },
-                      {
-                        "type": "text",
-                        "value": "{{ article.title }}",
+                        "value": "{{ place.name }}",
                         "style": "serif-title2"
                       },
                       {
                         "type": "text",
-                        "value": "{{ article.excerpt }}",
+                        "value": "{{ place.meta }}",
                         "style": "body",
                         "color": "secondary"
                       }

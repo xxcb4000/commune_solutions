@@ -5,14 +5,21 @@
   "modules": [
     { "id": "actualites", "version": "0.1.0" },
     { "id": "agenda", "version": "0.1.0" },
+    { "id": "carte", "version": "0.1.0" },
     { "id": "sondages", "version": "0.1.0" },
     { "id": "info", "version": "0.1.0" }
   ],
   "view": {
     "type": "tabbar",
+    "brand": {
+      "label": "DÉMO B",
+      "textColor": "#0f172a",
+      "dots": ["#16a34a", "#0ea5e9", "#f59e0b", "#dc2626", "#9333ea", "#06b6d4"]
+    },
     "tabs": [
       { "title": "Actualités", "icon": "newspaper", "screen": "actualites:feed" },
       { "title": "Agenda", "icon": "calendar", "screen": "agenda:list" },
+      { "title": "Carte", "icon": "map", "screen": "carte:list" },
       { "title": "Sondages", "icon": "chart.bar.fill", "screen": "sondages:list" },
       { "title": "Infos", "icon": "info.circle", "screen": "info:main" }
     ]

@@ -60,6 +60,37 @@
       "dataCount": 0
     },
     {
+      "id": "carte",
+      "version": "0.1.0",
+      "displayName": "Carte",
+      "icon": "map",
+      "description": "Lieux d'intérêt de la commune sur une carte interactive.",
+      "longDescription": "Module de découverte locale : carte avec pins par catégorie (services, écoles, sport, culture, nature) et liste des lieux. Chaque lieu a sa fiche détaillée (adresse, horaires, description).",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "découverte",
+        "lieux"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "places",
+          "description": "Lecture des lieux publiés par la commune"
+        }
+      ],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json"
+      },
+      "data": {
+        "places": "data/places.json"
+      },
+      "screenCount": 2,
+      "dataCount": 1
+    },
+    {
       "id": "info",
       "version": "0.1.0",
       "displayName": "Infos pratiques",

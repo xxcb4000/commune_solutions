@@ -24,15 +24,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WarningAmber
@@ -72,13 +82,16 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import coil.compose.AsyncImage
@@ -315,7 +328,8 @@ fun TabBarRoot(node: DSLNode) {
                 androidx.compose.runtime.key(selectedIndex) {
                     SingleNavStack(
                         startQualifiedScreen = tab.screen,
-                        startBindings = tab.bindings ?: emptyMap()
+                        startBindings = tab.bindings ?: emptyMap(),
+                        brand = node.brand
                     )
                 }
             }
@@ -324,8 +338,16 @@ fun TabBarRoot(node: DSLNode) {
 }
 
 @Composable
-fun SingleNavStack(startQualifiedScreen: String, startBindings: Map<String, JsonElement>) {
+fun SingleNavStack(
+    startQualifiedScreen: String,
+    startBindings: Map<String, JsonElement>,
+    brand: DSLBrand? = null,
+) {
     val nav = rememberNavController()
+    // Observer du back-stack pour recomposer quand l'utilisateur push / pop.
+    val currentEntry by nav.currentBackStackEntryAsState()
+    val isAtRoot = currentEntry == null || nav.previousBackStackEntry == null
+
     NavHost(
         navController = nav,
         startDestination = ScreenRoute(
@@ -335,13 +357,123 @@ fun SingleNavStack(startQualifiedScreen: String, startBindings: Map<String, Json
     ) {
         composable<ScreenRoute> { entry ->
             val route: ScreenRoute = entry.toRoute()
-            ScreenView(
-                qualifiedScreen = route.qualifiedScreen,
-                initialBindings = decodeBindings(route.bindingsJson),
-                nav = nav
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (isAtRoot && brand != null) {
+                    BrandHeader(brand)
+                }
+                ScreenView(
+                    qualifiedScreen = route.qualifiedScreen,
+                    initialBindings = decodeBindings(route.bindingsJson),
+                    nav = nav
+                )
+            }
         }
     }
+}
+
+// Pill segmented control : container gris clair, segment sélectionné en
+// blanc (avec ombre subtile), texte semi-bold sélectionné / regular muted
+// unsélectionné. Switche entre `cases[<option.id>]` localement (state
+// non persisté pour le v0).
+@Composable
+fun SegmentedBlock(node: DSLNode, scope: DSLScope, nav: NavController) {
+    val opts = node.options ?: emptyList()
+    var selected by remember { mutableStateOf(node.defaultCase ?: opts.firstOrNull()?.id ?: "") }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            for (opt in opts) {
+                val isSelected = opt.id == selected
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.surface
+                            else Color.Transparent
+                        )
+                        .clickable { selected = opt.id }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = opt.label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        node.cases?.get(selected)?.let { child ->
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                DSLView(child, scope, nav)
+            }
+        }
+    }
+}
+
+// Brand header rendu en haut de chaque tab racine (parité iOS).
+// Cache implicitement la app bar système car le tab root n'a pas de TopAppBar.
+// Sur push (détail), `isAtRoot` repasse à false, BrandHeader disparaît.
+@Composable
+private fun BrandHeader(brand: DSLBrand) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(vertical = 14.dp)
+    ) {
+        brand.label?.takeIf { it.isNotEmpty() }?.let { label ->
+            Text(
+                text = label,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Serif,
+                letterSpacing = 0.5.sp,
+                color = parseHex(brand.textColor) ?: MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        brand.dots?.takeIf { it.isNotEmpty() }?.let { dots ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                dots.forEach { hex ->
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(parseHex(hex) ?: Color.Gray)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun parseHex(hex: String?): Color? {
+    if (hex.isNullOrBlank()) return null
+    val s = hex.trim().removePrefix("#")
+    if (s.length != 6) return null
+    val v = s.toLongOrNull(16) ?: return null
+    return Color(
+        red = ((v shr 16) and 0xFF).toInt() / 255f,
+        green = ((v shr 8) and 0xFF).toInt() / 255f,
+        blue = (v and 0xFF).toInt() / 255f,
+    )
 }
 
 // MARK: - Screen
@@ -442,7 +574,7 @@ fun ScreenView(
                 }
             }
         ) { padding ->
-            Box(modifier = Modifier.padding(padding)) {
+            Box(modifier = Modifier.padding(padding).fillMaxSize()) {
                 DSLView(resolved.view, scope, nav)
             }
         }
@@ -490,7 +622,9 @@ fun DSLView(node: DSLNode, scope: DSLScope, nav: NavController) {
         "for" -> ForBlock(node, scope, nav)
         "if" -> IfBlock(node, scope, nav)
         "tabbar" -> TabBarRoot(node)
-        "calendar" -> CalendarBlock(node, scope)
+        "segmented" -> SegmentedBlock(node, scope, nav)
+        "calendar" -> CalendarBlock(node, scope, nav)
+        "map" -> MapBlock(node, scope)
         "field" -> FieldBlock(node, scope)
         "button" -> ButtonBlock(node, scope)
         else -> Text(
@@ -548,11 +682,19 @@ fun VStackContainer(node: DSLNode, scope: DSLScope, nav: NavController) {
     Column(
         verticalArrangement = Arrangement.spacedBy((node.spacing ?: 8.0).dp),
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding((node.padding ?: 0.0).dp)
     ) {
         node.children?.forEach { child ->
-            DSLView(child, scope, nav)
+            // If a child is a flex container (scroll / segmented / calendar with child),
+            // weight it so it fills remaining vertical space; otherwise let it size to content.
+            if (child.type in setOf("scroll", "segmented", "calendar")) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    DSLView(child, scope, nav)
+                }
+            } else {
+                DSLView(child, scope, nav)
+            }
         }
     }
 }
@@ -673,6 +815,16 @@ fun CardBlock(node: DSLNode, scope: DSLScope, nav: NavController) {
 
 @Composable
 fun ImageBlock(node: DSLNode, scope: DSLScope) {
+    // Two flavors:
+    //  • SF Symbol (mapped to Material icon) when `systemName` is set, optionally
+    //    rendered inside a 38×38 rounded square when `bg` is set.
+    //  • Network image when `url` is set.
+    val systemName = node.systemName
+    if (!systemName.isNullOrEmpty()) {
+        SymbolView(systemName = systemName, node = node)
+        return
+    }
+
     val urlString = Template.resolve(node.url ?: "", scope)
     val aspect = node.aspectRatio?.toFloat()
 
@@ -689,10 +841,39 @@ fun ImageBlock(node: DSLNode, scope: DSLScope) {
 }
 
 @Composable
+private fun SymbolView(systemName: String, node: DSLNode) {
+    val size = (node.height ?: 18.0).dp
+    val iconColor = colorFor(node.color)
+    val icon: @Composable () -> Unit = {
+        Icon(
+            imageVector = iconForName(systemName),
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(size)
+        )
+    }
+    val bgName = node.bg
+    if (!bgName.isNullOrEmpty()) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(bgColorFor(bgName)),
+            contentAlignment = Alignment.Center
+        ) {
+            icon()
+        }
+    } else {
+        icon()
+    }
+}
+
+@Composable
 fun TextBlock(node: DSLNode, scope: DSLScope) {
     val value = Template.resolve(node.value ?: "", scope)
     val style = node.style
 
+    val displayed = if (style == "caps") value.uppercase(java.util.Locale.getDefault()) else value
     if (style == "badge") {
         Surface(
             color = MaterialTheme.colorScheme.primary,
@@ -706,10 +887,16 @@ fun TextBlock(node: DSLNode, scope: DSLScope) {
             )
         }
     } else {
+        val align = when (node.align) {
+            "center" -> TextAlign.Center
+            "trailing" -> TextAlign.End
+            else -> TextAlign.Start
+        }
         Text(
-            text = value,
+            text = displayed,
             style = textStyleFor(style),
             color = colorFor(node.color),
+            textAlign = align,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -717,6 +904,40 @@ fun TextBlock(node: DSLNode, scope: DSLScope) {
 
 @Composable
 fun textStyleFor(style: String?): TextStyle = when (style) {
+    "display" -> TextStyle(
+        fontSize = 36.sp, fontWeight = FontWeight.SemiBold,
+        fontFamily = FontFamily.Serif, letterSpacing = (-0.4).sp,
+        lineHeight = 40.sp,
+    )
+    "display-small" -> TextStyle(
+        fontSize = 28.sp, fontWeight = FontWeight.SemiBold,
+        fontFamily = FontFamily.Serif, letterSpacing = (-0.4).sp,
+        lineHeight = 32.sp,
+    )
+    "serif-title" -> TextStyle(
+        fontSize = 22.sp, fontWeight = FontWeight.Medium,
+        fontFamily = FontFamily.Serif, letterSpacing = (-0.3).sp,
+        lineHeight = 26.sp,
+    )
+    "serif-title2" -> TextStyle(
+        fontSize = 18.sp, fontWeight = FontWeight.Medium,
+        fontFamily = FontFamily.Serif, letterSpacing = (-0.3).sp,
+        lineHeight = 22.sp,
+    )
+    "eyebrow" -> TextStyle(
+        fontSize = 13.sp, fontWeight = FontWeight.Light,
+        fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic,
+        letterSpacing = 0.2.sp,
+    )
+    "subhead-italic" -> TextStyle(
+        fontSize = 14.sp, fontWeight = FontWeight.Light,
+        fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic,
+        letterSpacing = 0.1.sp,
+    )
+    "caps" -> TextStyle(
+        fontSize = 11.sp, fontWeight = FontWeight.Medium,
+        letterSpacing = 0.7.sp,
+    )
     "title" -> MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
     "title2" -> MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
     "title3" -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -728,13 +949,33 @@ fun textStyleFor(style: String?): TextStyle = when (style) {
     else -> MaterialTheme.typography.bodyLarge
 }
 
+private val CivicAccentSoft = Color(0xFFDDE6F0)
+private val CivicTerra = Color(0xFFC8451B)
+private val CivicTerraSoft = Color(0xFFF5E5DD)
+private val CivicHair = Color(0xFFE6E0D6)
+private val CivicPaper = Color(0xFFFAF8F4)
+private val CivicPaperDeep = Color(0xFFF2EFE8)
+
 @Composable
 fun colorFor(color: String?): Color = when (color) {
     "primary" -> MaterialTheme.colorScheme.onSurface
     "secondary" -> MaterialTheme.colorScheme.onSurfaceVariant
     "tertiary" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     "accent" -> MaterialTheme.colorScheme.primary
+    "civic" -> CivicAccent
+    "terra" -> CivicTerra
+    "white" -> Color.White
     else -> MaterialTheme.colorScheme.onSurface
+}
+
+private fun bgColorFor(name: String?): Color = when (name) {
+    "civic-soft" -> CivicAccentSoft
+    "terra-soft" -> CivicTerraSoft
+    "civic" -> CivicAccent
+    "terra" -> CivicTerra
+    "paper" -> CivicPaper
+    "paper-deep" -> CivicPaperDeep
+    else -> Color.LightGray
 }
 
 // MARK: - Markdown
@@ -861,92 +1102,262 @@ private fun parseInlineMarkdown(text: String): AnnotatedString = buildAnnotatedS
 
 // MARK: - Control flow
 
-// Compose-native month-view calendar with markers on dates that have an event.
-// Reads `in: <events binding>` and `dateField: <key>` — each event's
-// `dateField` is parsed as ISO `yyyy-MM-dd`. Default visible month = month of
-// the earliest parseable event date. Material 3 has no markable calendar
-// out of the box, so we render a simple grid with a dot under marked days.
+// Custom Compose month-view calendar — civic editorial direction.
+// Reads `in: <events binding>` + `dateField: <key>` (ISO yyyy-MM-dd).
+// Selected day = filled accent pill (white text); today = accent ring;
+// days with events = small accent dot below the number.
+// When `child` is set, it is rendered below the grid in a scope augmented with
+// `exposes` (default "selectedEvents") = events of the selected day.
+private val CivicAccent = Color(0xFF2C4A6B)
+private val FrenchLocale = java.util.Locale.forLanguageTag("fr-FR")
+private val FrenchWeekdayLabels = listOf("L", "Ma", "Me", "J", "V", "S", "D")
+
 @Composable
-fun CalendarBlock(node: DSLNode, scope: DSLScope) {
+fun CalendarBlock(node: DSLNode, scope: DSLScope, nav: NavController) {
     val events = scope.lookup(node.iterable ?: "")?.let { it as? JsonArray } ?: return
     val dateField = node.dateField ?: "date"
-    val markedDates = events.mapNotNull { ev ->
-        val obj = ev as? JsonObject ?: return@mapNotNull null
-        val raw = (obj[dateField] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-        runCatching { java.time.LocalDate.parse(raw) }.getOrNull()
-    }.toSet()
 
-    val month = markedDates.minOrNull()
-        ?.let { java.time.YearMonth.from(it) }
-        ?: java.time.YearMonth.now()
+    val markedDates = remember(events, dateField) {
+        events.mapNotNull { ev ->
+            val obj = ev as? JsonObject ?: return@mapNotNull null
+            val raw = (obj[dateField] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+            runCatching { java.time.LocalDate.parse(raw) }.getOrNull()
+        }.toSet()
+    }
 
-    val locale = java.util.Locale.forLanguageTag("fr-FR")
-    val monthLabel = month
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", locale))
-        .replaceFirstChar { it.titlecase(locale) }
+    val today = remember { java.time.LocalDate.now() }
+    var selected by rememberSaveable(stateSaver = LocalDateSaver) { mutableStateOf(today) }
+    var visibleMonth by rememberSaveable(stateSaver = YearMonthSaver) {
+        mutableStateOf(java.time.YearMonth.from(today))
+    }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Text(monthLabel, style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(12.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            for (label in listOf("L", "M", "M", "J", "V", "S", "D")) {
-                Text(
-                    text = label,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        val firstDay = month.atDay(1)
-        // ISO: Monday=1, Sunday=7
-        val leadingBlanks = firstDay.dayOfWeek.value - 1
-        val daysInMonth = month.lengthOfMonth()
-        val totalCells = leadingBlanks + daysInMonth
-        val rows = (totalCells + 6) / 7
-        for (row in 0 until rows) {
-            Row(modifier = Modifier.fillMaxWidth().height(44.dp)) {
-                for (col in 0 until 7) {
-                    val cellIndex = row * 7 + col
-                    val day = cellIndex - leadingBlanks + 1
-                    val date = if (day in 1..daysInMonth) month.atDay(day) else null
-                    DayCell(
-                        date = date,
-                        marked = date != null && date in markedDates,
-                        modifier = Modifier.weight(1f)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            CalendarHeader(
+                month = visibleMonth,
+                onPrev = { visibleMonth = visibleMonth.minusMonths(1) },
+                onNext = { visibleMonth = visibleMonth.plusMonths(1) }
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                FrenchWeekdayLabels.forEachIndexed { idx, label ->
+                    Text(
+                        text = label.uppercase(FrenchLocale),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        color = if (idx >= 5)
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.6.sp,
+                        )
                     )
                 }
+            }
+            Spacer(Modifier.height(6.dp))
+
+            val grid = remember(visibleMonth) { monthGrid(visibleMonth) }
+            val rows = grid.size / 7
+            for (row in 0 until rows) {
+                Row(modifier = Modifier.fillMaxWidth().height(44.dp)) {
+                    for (col in 0 until 7) {
+                        val date = grid[row * 7 + col]
+                        DayCell(
+                            date = date,
+                            inMonth = java.time.YearMonth.from(date) == visibleMonth,
+                            isToday = date == today,
+                            isSelected = date == selected,
+                            hasEvent = date in markedDates,
+                            onTap = {
+                                selected = date
+                                if (java.time.YearMonth.from(date) != visibleMonth) {
+                                    visibleMonth = java.time.YearMonth.from(date)
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+        // Hairline separating the calendar from its child content
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 18.dp)
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+        )
+
+        node.child?.let { child ->
+            val exposed = node.exposes ?: "selectedEvents"
+            val selectedKey = selected.toString()  // yyyy-MM-dd
+            val filtered = events.filter { ev ->
+                val obj = ev as? JsonObject ?: return@filter false
+                val raw = (obj[dateField] as? JsonPrimitive)?.contentOrNull ?: return@filter false
+                raw == selectedKey
+            }
+            val isToday = selected == today
+            val dayLabel = selected.format(
+                java.time.format.DateTimeFormatter.ofPattern("EEEE d MMMM", FrenchLocale)
+            ).replaceFirstChar { it.titlecase(FrenchLocale) }
+            val augmented = scope
+                .adding(exposed, JsonArray(filtered))
+                .adding("${exposed}Count", JsonPrimitive(filtered.size))
+                .adding("${exposed}DayLabel", JsonPrimitive(dayLabel))
+                .adding("${exposed}Pre", JsonPrimitive(if (isToday) "Aujourd'hui" else ""))
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                DSLView(child, augmented, nav)
             }
         }
     }
 }
 
 @Composable
-private fun DayCell(date: java.time.LocalDate?, marked: Boolean, modifier: Modifier) {
-    Box(modifier = modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
-        if (date != null) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "${date.dayOfMonth}",
-                    style = MaterialTheme.typography.bodyMedium
+private fun CalendarHeader(
+    month: java.time.YearMonth,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+) {
+    val monthName = month.month
+        .getDisplayName(java.time.format.TextStyle.FULL, FrenchLocale)
+        .lowercase(FrenchLocale)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = monthName,
+                style = TextStyle(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.Serif,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(Modifier.height(2.dp))
-                if (marked) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                } else {
-                    Spacer(Modifier.height(6.dp))
+            )
+            Spacer(Modifier.size(width = 6.dp, height = 1.dp))
+            Text(
+                text = "${month.year}",
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Light,
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Italic,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+        }
+        IconButton(onClick = onPrev, modifier = Modifier.size(36.dp)) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Mois précédent",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(180f)
+            )
+        }
+        IconButton(onClick = onNext, modifier = Modifier.size(36.dp)) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Mois suivant",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DayCell(
+    date: java.time.LocalDate,
+    inMonth: Boolean,
+    isToday: Boolean,
+    isSelected: Boolean,
+    hasEvent: Boolean,
+    onTap: () -> Unit,
+    modifier: Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(onClick = onTap),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            isSelected -> Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CivicAccent)
+            )
+            isToday -> androidx.compose.foundation.Canvas(modifier = Modifier.size(36.dp)) {
+                drawRoundRect(
+                    color = CivicAccent,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx(), 12.dp.toPx()),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
+                )
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "${date.dayOfMonth}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = when {
+                    isSelected -> Color.White
+                    !inMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+                fontWeight = when {
+                    isSelected -> FontWeight.SemiBold
+                    isToday -> FontWeight.Bold
+                    else -> FontWeight.Medium
                 }
+            )
+            if (hasEvent) {
+                Spacer(Modifier.height(2.dp))
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) Color.White.copy(alpha = 0.9f) else CivicAccent)
+                )
             }
         }
     }
 }
+
+private fun monthGrid(month: java.time.YearMonth): List<java.time.LocalDate> {
+    val first = month.atDay(1)
+    // ISO Monday=1; we want Monday-first column 0
+    val leading = (first.dayOfWeek.value - 1)
+    val start = first.minusDays(leading.toLong())
+    val raw = (0 until 42).map { start.plusDays(it.toLong()) }
+    // Trim 6th row when entirely outside the visible month
+    val row6First = raw[35]
+    return if (java.time.YearMonth.from(row6First) != month) raw.take(35) else raw
+}
+
+private val LocalDateSaver = androidx.compose.runtime.saveable.Saver<java.time.LocalDate, String>(
+    save = { it.toString() },
+    restore = { java.time.LocalDate.parse(it) }
+)
+
+private val YearMonthSaver = androidx.compose.runtime.saveable.Saver<java.time.YearMonth, String>(
+    save = { it.toString() },
+    restore = { java.time.YearMonth.parse(it) }
+)
 
 @Composable
 fun ForBlock(node: DSLNode, scope: DSLScope, nav: NavController) {
@@ -995,5 +1406,16 @@ private fun iconForName(name: String): ImageVector = when (name) {
     "calendar.day" -> Icons.Filled.Event
     "map" -> Icons.Filled.Map
     "chart.bar.fill" -> Icons.Filled.BarChart
+    "mappin.and.ellipse", "mappin" -> Icons.Filled.LocationOn
+    "clock" -> Icons.Filled.Schedule
+    "phone" -> Icons.Filled.Phone
+    "envelope" -> Icons.Filled.Email
+    "doc.text" -> Icons.Filled.Description
+    "building.columns" -> Icons.Filled.AccountBalance
+    "person.2" -> Icons.Filled.Group
+    "calendar.badge.plus" -> Icons.Filled.EventAvailable
+    "arrow.up.right" -> Icons.AutoMirrored.Filled.OpenInNew
+    "checkmark.circle" -> Icons.Filled.CheckCircle
+    "chevron.right" -> Icons.AutoMirrored.Filled.KeyboardArrowRight
     else -> Icons.Filled.Apps
 }
