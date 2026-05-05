@@ -13,6 +13,51 @@
     "fill": true,
     "children": [
       {
+        "type": "vstack",
+        "padding": 14,
+        "spacing": 0,
+        "children": [
+          {
+            "type": "card",
+            "action": {
+              "type": "navigate",
+              "to": "propose"
+            },
+            "child": {
+              "type": "hstack",
+              "spacing": 12,
+              "padding": 14,
+              "align": "center",
+              "children": [
+                {
+                  "type": "image",
+                  "systemName": "plus.circle.fill",
+                  "color": "civic",
+                  "height": 22
+                },
+                {
+                  "type": "vstack",
+                  "spacing": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Proposer un événement",
+                      "style": "serif-title2"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Soumettez une suggestion à valider par la commune",
+                      "style": "body",
+                      "color": "secondary"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
         "type": "segmented",
         "default": "calendar",
         "options": [

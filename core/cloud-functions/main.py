@@ -1,13 +1,15 @@
-"""Spike Phase 7 — Cloud Functions Python (rev 2 — refresh post-IAM grant).
+"""Cloud Functions Python officielles (v0.2 + agenda moderation).
 
 Each Firebase project deploys the same code. Per-tenant data scoping is
 implicit because each function runs against its own project's Firestore.
 
-Endpoints:
-  - submit_contact : persist contact form submission
-  - submit_vote    : persist a poll vote (idempotent per user/poll)
+Endpoints :
+  - submit_contact         : persist contact form submission
+  - submit_vote            : persist a poll vote (idempotent per user/poll)
+  - submit_event_proposal  : citoyen propose un event → file de modération
+                              admin (`_moderation_queue/`)
 
-Both require a FirebaseAuth ID token in `Authorization: Bearer <token>`.
+Tous requièrent un FirebaseAuth ID token en `Authorization: Bearer <token>`.
 """
 from firebase_admin import initialize_app, auth as fb_auth, firestore
 from firebase_functions import https_fn, options
@@ -73,13 +75,61 @@ def submit_vote(req: https_fn.Request) -> https_fn.Response:
     return _ok({"ok": True})
 
 
+@https_fn.on_request(
+    region="europe-west1",
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["POST", "OPTIONS"],
+    ),
+)
+def submit_event_proposal(req: https_fn.Request) -> https_fn.Response:
+    """Le citoyen propose un événement. Écrit dans _moderation_queue/<id>
+    avec le shape standard moderation. L'admin valide depuis le dashboard
+    (onglet Modération) — sur approve, le payload est copié dans events/
+    et l'entrée queue supprimée."""
+    if req.method != "POST":
+        return _error(405, "Method not allowed")
+    decoded = _verify_auth_full(req)
+    if not decoded:
+        return _error(401, "Unauthorized")
+    payload = req.get_json(silent=True) or {}
+    title = (payload.get("title") or "").strip()
+    location = (payload.get("location") or "").strip()
+    if not title:
+        return _error(400, "title requis")
+    if not location:
+        return _error(400, "location requis")
+    db = firestore.client()
+    db.collection("_moderation_queue").add({
+        "targetCollection": "events",
+        "moduleId": "agenda",
+        "submittedBy": decoded["uid"],
+        "submittedByEmail": decoded.get("email", ""),
+        "submittedAt": firestore.SERVER_TIMESTAMP,
+        "payload": {
+            "title": title,
+            "location": location,
+            "date": (payload.get("date") or "").strip(),
+            "dateStart": (payload.get("dateStart") or "").strip(),
+            "description": (payload.get("description") or "").strip(),
+            "imageUrl": "",
+            "_summary": f"« {title} » — {location}",
+        },
+    })
+    return _ok({"ok": True})
+
+
 def _verify_auth(req: https_fn.Request):
+    decoded = _verify_auth_full(req)
+    return decoded["uid"] if decoded else None
+
+
+def _verify_auth_full(req: https_fn.Request):
     header = req.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
         return None
     try:
-        decoded = fb_auth.verify_id_token(header[7:])
-        return decoded["uid"]
+        return fb_auth.verify_id_token(header[7:])
     except Exception:
         return None
 

@@ -1,0 +1,81 @@
+{
+  "screen": "propose",
+  "navigation": {
+    "title": "Proposer un événement",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 14,
+        "padding": 22,
+        "children": [
+          {
+            "type": "text",
+            "value": "Proposez un événement à votre commune. Votre proposition sera relue par un administrateur avant publication dans l'agenda public.",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "title",
+            "label": "Titre de l'événement",
+            "placeholder": "Ex. Brocante du quartier",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "location",
+            "label": "Lieu",
+            "placeholder": "Ex. Place communale",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "date",
+            "label": "Date affichée (libre)",
+            "placeholder": "Ex. samedi 15 mai · 9h–17h"
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "dateStart",
+            "label": "Date ISO pour le calendrier (AAAA-MM-JJ)",
+            "placeholder": "2026-05-15"
+          },
+          {
+            "type": "field",
+            "kind": "text.long",
+            "id": "description",
+            "label": "Description",
+            "placeholder": "Décrivez l'événement, le programme, les infos pratiques…",
+            "minLines": 5
+          },
+          {
+            "type": "button",
+            "label": "Soumettre la proposition",
+            "action": {
+              "type": "cf",
+              "endpoint": "submit_event_proposal",
+              "body": {
+                "title": "{{ form.title }}",
+                "location": "{{ form.location }}",
+                "date": "{{ form.date }}",
+                "dateStart": "{{ form.dateStart }}",
+                "description": "{{ form.description }}"
+              },
+              "onSuccess": {
+                "toast": "Merci ! Votre proposition est en attente de validation."
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

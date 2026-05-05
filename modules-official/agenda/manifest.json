@@ -1,19 +1,24 @@
 {
   "id": "agenda",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Agenda",
   "icon": "calendar",
   "description": "Calendrier des événements communaux : conseils, fêtes, rencontres citoyennes.",
-  "longDescription": "Vue calendrier mensuelle + liste chronologique. Chaque événement a une page détail avec date, lieu, description et lien d'inscription si applicable. Source : Firestore (`events`).",
+  "longDescription": "Vue calendrier mensuelle + liste chronologique. Chaque événement a une page détail avec date, lieu, description et lien d'inscription si applicable. Les citoyens peuvent proposer des événements via un formulaire ; les propositions passent par la file de modération admin avant publication. Source : Firestore (`events`).",
   "author": "Commune Solutions Core",
   "licence": "EUPL-1.2",
   "official": true,
   "tags": ["communication", "événements"],
   "capabilities": [
-    { "type": "firestore.read", "target": "events", "description": "Lecture des événements publiés par la commune" }
+    { "type": "firestore.read", "target": "events", "description": "Lecture des événements publiés par la commune" },
+    { "type": "moderation", "target": "events", "description": "Les propositions citoyennes d'événements passent en file de modération admin avant publication" }
+  ],
+  "moderation": [
+    { "collection": "events", "label": "Propositions d'événements citoyennes" }
   ],
   "screens": {
     "list": "screens/list.json",
-    "detail": "screens/detail.json"
+    "detail": "screens/detail.json",
+    "propose": "screens/propose.json"
   }
 }
