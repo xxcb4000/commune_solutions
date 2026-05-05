@@ -3,8 +3,10 @@
 > **Statut** (mai 2026) : pipeline complet exercé end-to-end sur 2 tenants test. 5 modules officiels (`actualites`, `agenda`, `sondages`, `info`, `carte`) + 2 modules communauté + dashboard admin CRUD complet + modération UGC + marketplace + auto-deploy CI tous live. **3 renderers** : iOS (SwiftUI), Android (Compose), web (preview JS). 14 primitives validées en natif sur device + 13 sur web. Première vraie commune (Awans) pas encore déployée — c'est le test final restant.
 >
 > Spike GO initial : 2026-04-30, cf [`spike/SPIKE_VERDICT.md`](../spike/SPIKE_VERDICT.md).
+
+> ⚠️ **Scope de ce document** : il décrit le **design complet** du contrat plateforme — pas uniquement ce qui est livré en v0. Plusieurs sections décrivent des **features designées mais pas encore implémentées** (notamment : `secrets` Google Secret Manager, `scheduledJobs` Cloud Scheduler, `deepLinks` Universal Links / FCM routing, `publicEndpoints`, `config.ui` form-driven, `ownedCollections` avec `moderation: true`). Elles servent de **boussole** pour l'évolution de la plateforme, et reflètent les intentions, pas l'état actuel du code. Pour le statut exact « shipped vs planned », voir [`docs/roadmap.md`](roadmap.md). Pour le contrat actuellement supporté par les renderers + le validator manifest, voir [`docs/developers.md`](developers.md).
 >
-> Ce document capture les décisions de conception. Il est vivant et sera découpé en sous-documents quand il grossira.
+> Ce document est vivant et sera découpé en sous-documents quand il grossira.
 
 ## Les deux chantiers
 
