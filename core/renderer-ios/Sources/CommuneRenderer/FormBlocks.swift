@@ -187,8 +187,44 @@ struct ButtonBlock: View {
         switch action.type {
         case "cf":
             await submitCF(action: action)
+        case "device.location":
+            await fetchLocation(action: action)
         default:
             feedback = "Action non gérée: \(action.type)"
+            feedbackError = true
+        }
+    }
+
+    @MainActor
+    private func fetchLocation(action: DSLAction) async {
+        loading = true
+        feedback = nil
+        defer { loading = false }
+        do {
+            let coord = try await LocationProvider.shared.requestCurrentLocation()
+            // Action peut spécifier `body: { lat: "lat", lng: "lng" }` pour
+            // mapper les coords vers des form fields. Sans body, défaut
+            // sur les ids "lat" et "lng".
+            let latKey: String
+            let lngKey: String
+            if let body = action.body,
+               case .string(let l1) = body["lat"] ?? .null,
+               case .string(let l2) = body["lng"] ?? .null {
+                latKey = l1
+                lngKey = l2
+            } else {
+                latKey = "lat"
+                lngKey = "lng"
+            }
+            form.values[latKey] = String(format: "%.6f", coord.latitude)
+            form.values[lngKey] = String(format: "%.6f", coord.longitude)
+            feedback = "✓ Position captée"
+            feedbackError = false
+        } catch let error as LocationError {
+            feedback = error.userMessage
+            feedbackError = true
+        } catch {
+            feedback = "Erreur localisation: \(error.localizedDescription)"
             feedbackError = true
         }
     }

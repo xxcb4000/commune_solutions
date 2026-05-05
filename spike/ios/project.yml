@@ -59,6 +59,10 @@ targets:
         # Spike: dev HTTP server (python3 -m http.server). Production drops this.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
+        # Phase 17 — primitive d'action `device.location` pour les form
+        # citoyens (signalements voirie, proposer un POI, etc.). Hardcodé
+        # ici en attendant l'aggregation au build commune (phase 18.4).
+        NSLocationWhenInUseUsageDescription: "Pour pré-remplir le lieu d'un signalement ou d'une proposition citoyenne avec votre position actuelle."
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1,2"

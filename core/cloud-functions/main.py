@@ -152,24 +152,38 @@ def submit_signalement_proposal(req: https_fn.Request) -> https_fn.Response:
         "espaces-verts": "Espaces verts",
         "autre": "Autre",
     }
+    # lat/lng peuvent venir vides (citoyen a saisi address sans capter la
+    # position) — on les passe en payload uniquement si parseable Float
+    def _parse_float(v):
+        try:
+            return float(v) if v not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
+    lat = _parse_float(payload.get("lat"))
+    lng = _parse_float(payload.get("lng"))
+
     db = firestore.client()
+    queue_payload = {
+        "title": title,
+        "category": category,
+        "categoryLabel": category_labels.get(category, "Autre"),
+        "address": address,
+        "imageUrl": (payload.get("imageUrl") or "").strip(),
+        "description": (payload.get("description") or "").strip(),
+        "status": "pending",
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "_summary": f"[{category_labels.get(category, 'Autre')}] {title} — {address}",
+    }
+    if lat is not None and lng is not None:
+        queue_payload["lat"] = lat
+        queue_payload["lng"] = lng
     db.collection("_moderation_queue").add({
         "targetCollection": "signalements",
         "moduleId": "signalements",
         "submittedBy": decoded["uid"],
         "submittedByEmail": decoded.get("email", ""),
         "submittedAt": firestore.SERVER_TIMESTAMP,
-        "payload": {
-            "title": title,
-            "category": category,
-            "categoryLabel": category_labels.get(category, "Autre"),
-            "address": address,
-            "imageUrl": (payload.get("imageUrl") or "").strip(),
-            "description": (payload.get("description") or "").strip(),
-            "status": "pending",
-            "createdAt": firestore.SERVER_TIMESTAMP,
-            "_summary": f"[{category_labels.get(category, 'Autre')}] {title} — {address}",
-        },
+        "payload": queue_payload,
     })
     return _ok({"ok": True})
 

@@ -49,6 +49,34 @@
             "required": true
           },
           {
+            "type": "button",
+            "label": "📍 Utiliser ma position",
+            "action": {
+              "type": "device.location",
+              "body": { "lat": "lat", "lng": "lng" }
+            }
+          },
+          {
+            "type": "hstack",
+            "spacing": 14,
+            "children": [
+              {
+                "type": "field",
+                "kind": "text",
+                "id": "lat",
+                "label": "Latitude",
+                "placeholder": "50.6695"
+              },
+              {
+                "type": "field",
+                "kind": "text",
+                "id": "lng",
+                "label": "Longitude",
+                "placeholder": "5.4762"
+              }
+            ]
+          },
+          {
             "type": "field",
             "kind": "text",
             "id": "imageUrl",
@@ -73,6 +101,8 @@
                 "title": "{{ form.title }}",
                 "category": "{{ form.category }}",
                 "address": "{{ form.address }}",
+                "lat": "{{ form.lat }}",
+                "lng": "{{ form.lng }}",
                 "imageUrl": "{{ form.imageUrl }}",
                 "description": "{{ form.description }}"
               },
