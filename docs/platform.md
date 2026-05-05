@@ -1,6 +1,9 @@
 # Commune Solutions — Plateforme civic tech open source
 
-> **Statut** : design en cours (avril 2026). Spike technique iOS + Android validé **GO** le 2026-04-30 (cf `spike/SPIKE_VERDICT.md`) — l'hypothèse "DSL JSON rendue par shell natif indissociable d'une app codée à la main" tient sur les 11 primitives critiques. Pas encore d'implémentation production.
+> **Statut** (mai 2026) : pipeline complet exercé end-to-end sur 2 tenants test. 5 modules officiels (`actualites`, `agenda`, `sondages`, `info`, `carte`) + 2 modules communauté + dashboard admin CRUD complet + modération UGC + marketplace + auto-deploy CI tous live. **3 renderers** : iOS (SwiftUI), Android (Compose), web (preview JS). 14 primitives validées en natif sur device + 13 sur web. Première vraie commune (Awans) pas encore déployée — c'est le test final restant.
+>
+> Spike GO initial : 2026-04-30, cf [`spike/SPIKE_VERDICT.md`](../spike/SPIKE_VERDICT.md).
+>
 > Ce document capture les décisions de conception. Il est vivant et sera découpé en sous-documents quand il grossira.
 
 ## Les deux chantiers
@@ -252,20 +255,20 @@ Le DSL est en **JSON Schema strict** (validation native, tooling, conversion hum
 
 ### Couches de primitives
 
-Une primitive marquée ✅ a été validée en natif sur device (iOS + Android) lors du spike du 2026-04-30.
+Légende : ✅ = validée en natif iOS + Android. 🌐 = aussi rendue dans le renderer web (preview marketplace). Sans marque = au design, pas encore implémentée.
 
 | Couche | Primitives |
 |---|---|
-| Shell | `tabbar` ✅ (racine multi-onglets, back-stack par onglet) |
-| Layout | `scroll` ✅, `vstack` ✅, `hstack` ✅, `section`, `card` ✅, `grid` |
-| Navigation | `segmented` (toggle entre 2-3 sections hétérogènes dans une vue, pattern Liste/Calendrier, Services/Vie politique) |
-| Logique | `if/then/else` ✅, `for` ✅, `switch` |
-| Affichage | `header` ✅ (atomique, cf notes), `text` ✅, `markdown` ✅ (sous-ensemble, cf notes), `image` ✅, `alert`, `badge` ✅, `divider` |
-| Form | `field` polymorphe (`yesno`, `radio`, `checkbox`, `text`, `text.long`, `scale`, `date`, `date.range`, `address`, `street`, `phone`, `email`, `map.picker`, `photo`, `secret`) |
-| Civic-tech | `map` (multi-marker, filtre catégorie, user location), `calendar` ✅ (vue mois, marqueurs ISO depuis un binding `in:` + champ date `dateField`) — implémentations natives MapKit/Google Maps + SwiftUI/Compose dans le shell |
-| Device | `scan.qr`, `share`, `camera.capture` (utilisent les `device.permissions` déclarées) |
-| Action | `button`, `link` + `action` (`navigate` ✅, `cf`, `firestore.write`, `toast`, `alert`, `share`, `pull-to-refresh`, `addToCalendar`) |
-| Data sources | `firestore` (listener temps-réel + offline cache natif), `cf` (cache via `Cache-Control` HTTP serveur), `static` (bundlé) ✅, `module` (cross-module read avec capability) |
+| Shell | `tabbar` ✅🌐 (racine multi-onglets, back-stack par onglet) |
+| Layout | `scroll` ✅🌐, `vstack` ✅🌐, `hstack` ✅🌐, `section`, `card` ✅🌐, `grid` |
+| Navigation | `segmented` ✅🌐 (toggle entre 2-3 sections hétérogènes dans une vue, pattern Liste/Calendrier) |
+| Logique | `if/then/else` ✅🌐, `for` ✅🌐, `switch` |
+| Affichage | `header` ✅🌐 (hero atomique avec image + gradient + eyebrow + title), `text` ✅🌐 (10 styles éditoriaux), `markdown` ✅🌐 (sous-ensemble, cf notes), `image` ✅🌐 (URL ou SF Symbol boxé), `alert`, `badge`, `divider` |
+| Form | `field` polymorphe ✅🌐 — kinds : `yesno` ✅🌐, `radio` ✅🌐, `text` ✅🌐, `text.long` ✅🌐, `scale` ✅🌐, `email` ✅🌐, `secret` ✅🌐. Restent au design : `checkbox`, `date`, `date.range`, `address`, `street`, `phone`, `map.picker`, `photo` |
+| Civic-tech | `map` ✅🌐 (MapKit iOS + maps-compose stub Android + Leaflet web ; pins par catégorie, mode `from:` single-place ou `in:` collection), `calendar` ✅🌐 (vue mois, marqueurs ISO depuis un binding `in:` + champ date `dateField`, expose `selectedEvents` au child) |
+| Device | `scan.qr`, `share`, `camera.capture` — réservés modules officiels via `device.permissions` ; non implémentés en v0 |
+| Action | `button` ✅🌐, `link` + `action` (`navigate` ✅🌐, `cf` ✅🌐 avec onSuccess.toast, `firestore.write`, `toast`, `alert`, `share`, `pull-to-refresh` ✅, `addToCalendar`) |
+| Data sources | `firestore:` ✅ (mock en preview web via `<module>/preview-mock/<col>.json`), `cf:` ✅ (preloaded), `@<name>` ✅🌐 (data bundlée), `module:` (cross-module read avec capability — design seul) |
 
 ### Notes du spike
 
@@ -598,7 +601,11 @@ Si une extension native est demandée par 2+ modules, c'est le signal qu'elle do
 
 ## Modération UGC — pattern standard
 
-Plusieurs modules ont besoin de modérer du contenu utilisateur (POIs proposés, events proposés, signalements voirie, propositions budget participatif…). Plutôt que chacun ré-implémente, le framework offre une abstraction :
+Plusieurs modules ont besoin de modérer du contenu utilisateur (POIs proposés, events proposés, signalements voirie, propositions budget participatif…). Plutôt que chacun ré-implémente, le framework offre une abstraction.
+
+> **Statut implémentation v0** : phase 14.8 livrée. Le pattern décrit ici a été simplifié à l'implémentation — voir [`docs/developers.md` § Capability moderation](developers.md#capability-moderation--modération-ugc) pour le contrat réel actuel et l'exercice live (« Proposer un événement » dans le module `agenda`). Le design original ci-dessous reste valide en tant qu'orientation à terme (champs auto-injectés, RLS, CFs standardisées) ; on l'élargira quand un 2ème puis 3ème module UGC arriveront.
+
+**Design original** :
 
 ```yaml
 ownedCollections:
@@ -613,7 +620,7 @@ Quand `moderation: true` :
 - **Sync auto** `status` ↔ `visible` (évite la dette typique où il fallait les synchroniser à la main)
 - **Contribution auto** à l'extension point `dashboard:moderation.pending` — l'admin voit tout ce qui attend dans un widget unifié
 
-C'est le premier vrai cas où le framework **offre** une abstraction (pas juste contraindre un contrat). Ça fait gagner ~200 lignes de code et de tests par module concerné.
+**Implémentation v0 actuelle** (simplifiée) : queue unifiée `_moderation_queue/<id>` avec `{targetCollection, payload, moduleId, submittedBy, submittedAt}`. Le CF du module officiel valide la soumission citoyenne et écrit dans la queue. Le dashboard admin lit la queue, propose Approve (copie `payload` dans `targetCollection` puis delete queue) ou Reject (delete queue). Les champs auto-injectés + sync auto status/visible sont laissés pour quand un 2ème module les justifiera.
 
 ## Permissions device — aggregation au build
 
