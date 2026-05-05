@@ -71,18 +71,27 @@ final class AssetPreloader: ObservableObject {
     }
 
     private func loadModule(_ ref: DSLModuleRef, baseURL: URL?) async {
-        let manifestPath = ScreenLoader.manifestPath(moduleId: ref.id)
-        guard let manifestData = await fetchOrFallback(manifestPath, baseURL: baseURL) else {
-            return
+        // Try chaque root (modules-official prioritaire, puis modules-community)
+        // jusqu'à trouver le manifest. Le root résolu est ensuite réutilisé
+        // pour fetcher screens + data au bon endroit.
+        var resolvedRoot: String?
+        var manifestData: Data?
+        for root in ScreenLoader.moduleRoots {
+            let path = "\(root)/\(ref.id)/manifest.json"
+            if let data = await fetchOrFallback(path, baseURL: baseURL) {
+                PlatformAssets.shared.put(path, data)
+                resolvedRoot = root
+                manifestData = data
+                break
+            }
         }
-        PlatformAssets.shared.put(manifestPath, manifestData)
-
-        guard let manifest = try? JSONDecoder().decode(Manifest.self, from: manifestData) else {
+        guard let resolvedRoot, let manifestData,
+              let manifest = try? JSONDecoder().decode(Manifest.self, from: manifestData) else {
             return
         }
 
         for (_, relPath) in manifest.screens {
-            let path = ScreenLoader.modulePath("\(ref.id)/\(relPath)")
+            let path = "\(resolvedRoot)/\(ref.id)/\(relPath)"
             guard let data = await fetchOrFallback(path, baseURL: baseURL) else { continue }
             PlatformAssets.shared.put(path, data)
 
@@ -101,7 +110,7 @@ final class AssetPreloader: ObservableObject {
             }
         }
         for (_, relPath) in manifest.data ?? [:] {
-            let path = ScreenLoader.modulePath("\(ref.id)/\(relPath)")
+            let path = "\(resolvedRoot)/\(ref.id)/\(relPath)"
             if let data = await fetchOrFallback(path, baseURL: baseURL) {
                 PlatformAssets.shared.put(path, data)
             }

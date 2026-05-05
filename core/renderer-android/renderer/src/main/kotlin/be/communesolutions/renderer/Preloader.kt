@@ -77,9 +77,22 @@ object AssetPreloader {
     }
 
     private suspend fun preloadModule(context: Context, ref: DSLModuleRef, baseURL: String?) {
-        val manifestPath = ScreenLoader.manifestPath(ref.id)
-        val manifestBytes = fetchOrFallback(context, manifestPath, baseURL) ?: return
-        PlatformAssets.put(manifestPath, manifestBytes)
+        // Try chaque root (modules-official prioritaire, puis modules-community)
+        // jusqu'à trouver le manifest. Le root résolu est ensuite réutilisé
+        // pour fetcher screens + data au bon endroit.
+        var resolvedRoot: String? = null
+        var manifestBytes: ByteArray? = null
+        for (root in ScreenLoader.MODULE_ROOTS) {
+            val path = "$root/${ref.id}/manifest.json"
+            val bytes = fetchOrFallback(context, path, baseURL)
+            if (bytes != null) {
+                PlatformAssets.put(path, bytes)
+                resolvedRoot = root
+                manifestBytes = bytes
+                break
+            }
+        }
+        if (resolvedRoot == null || manifestBytes == null) return
 
         val manifest = try {
             SpikeJson.decodeFromString<Manifest>(manifestBytes.decodeToString())
@@ -89,7 +102,7 @@ object AssetPreloader {
         }
 
         for ((_, relPath) in manifest.screens) {
-            val path = ScreenLoader.modulePath("${ref.id}/$relPath")
+            val path = "$resolvedRoot/${ref.id}/$relPath"
             val bytes = fetchOrFallback(context, path, baseURL) ?: continue
             PlatformAssets.put(path, bytes)
 
@@ -109,7 +122,7 @@ object AssetPreloader {
             }
         }
         for ((_, relPath) in manifest.data ?: emptyMap()) {
-            val path = ScreenLoader.modulePath("${ref.id}/$relPath")
+            val path = "$resolvedRoot/${ref.id}/$relPath"
             fetchOrFallback(context, path, baseURL)?.let { PlatformAssets.put(path, it) }
         }
     }

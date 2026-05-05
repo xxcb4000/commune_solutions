@@ -82,10 +82,16 @@ Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomp
 
 Tout le pipeline contributeur n'existe que sur papier. À matérialiser :
 
-- **⏭ Dossier `modules-community/`** : créer le squelette + un module exemple non-officiel pour exercer le filtre marketplace
-- **⏭ CLI `create-commune-module`** : génère un squelette manifest + screens + data depuis un template
-- **⏭ Emulator local commune fictive** : Firebase emulator + app simulator + DSL hot-reload pour développer sans device
-- **⏭ Capability `cf.external`** : permettre à un module tiers d'héberger ses propres CFs en recevant un ID token de la commune (cf platform.md, validée 2026-04-30)
+- **🚧 13.1 — Dossier `modules-community/` + module exemple** (fait)
+  - ✅ `modules-community/README.md` : différences officiel ↔ communauté, workflow soumission
+  - ✅ Module exemple `associations` (annuaire des asbl, MIT, capabilities=[], data bundlée — exemple le plus simple)
+  - ✅ Loader iOS + Android étendu : 2 roots (`modules-official` prioritaire, fallback `modules-community`). `ModuleRegistry` track le root par module. `screenPath` / `dataPath` retournent des chemins complets
+  - ✅ Spike iOS bundle `modules-community/` (project.yml sources). Android symlink dans assets
+  - ✅ Marketplace : 6 modules listés (5 officiels + 1 communauté), filtre Communauté désormais peuplé
+  - ✅ Bug fix : préfixe data static `module:` corrigé en `@` dans hello-world template + docs/developers.md (les renderers utilisaient `@` mais la doc disait `module:`)
+- **⏭ 13.2 — CLI `create-commune-module`** : génère un squelette manifest + screens + data depuis un template
+- **⏭ 13.3 — Emulator local commune fictive** : Firebase emulator + app simulator + DSL hot-reload pour développer sans device
+- **⏭ 13.4 — Capability `cf.external`** : permettre à un module tiers d'héberger ses propres CFs en recevant un ID token de la commune (cf platform.md, validée 2026-04-30)
 - **🤔 Repo split** : `commune_solutions` (plateforme + officiels) vs `commune_solutions-modules-community` (PRs tiers) — décision à prendre selon le rythme d'arrivée des contribs
 
 ### 14. Dashboard admin — passer en édition

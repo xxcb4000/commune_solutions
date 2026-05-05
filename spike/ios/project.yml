@@ -22,6 +22,9 @@ targets:
       - path: ../../modules-official
         buildPhase: resources
         type: folder
+      - path: ../../modules-community
+        buildPhase: resources
+        type: folder
       - path: ../../tenants
         buildPhase: resources
         type: folder

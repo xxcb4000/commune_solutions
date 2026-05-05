@@ -115,14 +115,14 @@ Dans le bloc `data` d'un écran :
 ```json
 "data": {
   "items": "firestore:events",
-  "config": "module:settings"
+  "config": "@settings"
 }
 ```
 
 | Préfixe | Description |
 |---|---|
 | `firestore:<path>` | Collection ou document Firestore. Lecture, scope = projet de la commune. |
-| `module:<name>` | Fichier JSON bundlé avec le module (déclaré dans `manifest.data`). |
+| `@<name>` | Fichier JSON bundlé avec le module (déclaré dans `manifest.data`). |
 | `cf:<endpoint>` | Appel d'une Cloud Function (officiels uniquement). |
 
 ## Icônes

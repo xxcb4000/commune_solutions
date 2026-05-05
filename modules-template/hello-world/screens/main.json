@@ -5,7 +5,7 @@
     "displayMode": "large"
   },
   "data": {
-    "items": "module:sample"
+    "items": "@sample"
   },
   "view": {
     "type": "scroll",

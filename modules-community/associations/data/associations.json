@@ -1,0 +1,52 @@
+[
+  {
+    "id": "asbl-bibli",
+    "name": "Les Amis de la Bibliothèque",
+    "category": "Culture",
+    "description": "Soutien aux activités de la bibliothèque communale : achats d'ouvrages, animations jeunesse, soirées lectures et rencontres d'auteurs.",
+    "contactEmail": "amis-bibli@example.be",
+    "website": "https://amis-bibli.example.be",
+    "address": "Rue Haute 8, 4000 Démo A",
+    "logoUrl": "https://picsum.photos/seed/asbl-bibli/600/375"
+  },
+  {
+    "id": "asbl-jeunesse",
+    "name": "Maison de la Jeunesse",
+    "category": "Jeunesse",
+    "description": "Espace d'accueil et d'animation pour les 12-26 ans. Activités hebdomadaires, projets citoyens, accompagnement scolaire.",
+    "contactEmail": "info@mj-democommune.be",
+    "website": "https://mj-democommune.be",
+    "address": "Place du Marché 5, 4000 Démo A",
+    "logoUrl": "https://picsum.photos/seed/asbl-mj/600/375"
+  },
+  {
+    "id": "asbl-velo",
+    "name": "Démo à Vélo",
+    "category": "Mobilité",
+    "description": "Promotion du vélo au quotidien et des aménagements cyclables. Bourses aux vélos, ateliers réparation, balades familiales.",
+    "contactEmail": "contact@demo-velo.be",
+    "website": "https://demo-velo.be",
+    "address": "Rue des Sports 12, 4000 Démo A",
+    "logoUrl": "https://picsum.photos/seed/asbl-velo/600/375"
+  },
+  {
+    "id": "asbl-environnement",
+    "name": "Nature en Commune",
+    "category": "Environnement",
+    "description": "Préservation de la biodiversité locale et sensibilisation. Nettoyages de sentiers, plantations citoyennes, observation des oiseaux.",
+    "contactEmail": "info@nature-encommune.be",
+    "website": "https://nature-encommune.be",
+    "address": "Avenue des Tilleuls 3, 4000 Démo A",
+    "logoUrl": "https://picsum.photos/seed/asbl-env/600/375"
+  },
+  {
+    "id": "asbl-seniors",
+    "name": "Cercle des Aînés",
+    "category": "Aînés",
+    "description": "Activités hebdomadaires pour les 60+ : conférences, sorties culturelles, ateliers manuels, repas conviviaux.",
+    "contactEmail": "cercle.aines@example.be",
+    "website": "",
+    "address": "Place communale 1, 4000 Démo A",
+    "logoUrl": "https://picsum.photos/seed/asbl-aines/600/375"
+  }
+]

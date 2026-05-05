@@ -31,7 +31,7 @@ Les chaînes acceptent des templates **Mustache** : `{{ path.to.value }}`. La do
 
 Trois sources possibles dans le bloc `data` d'un écran :
 
-- `module:<name>` — fichier JSON statique du module (déclaré dans `manifest.data`)
+- `@<name>` — fichier JSON statique du module (déclaré dans `manifest.data`)
 - `firestore:<path>` — collection ou document du projet Firebase de la commune (read-only en communauté)
 - `cf:<endpoint>` — appel à une Cloud Function (officiels uniquement en v0)
 

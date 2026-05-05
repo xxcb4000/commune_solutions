@@ -155,6 +155,32 @@
       },
       "screenCount": 2,
       "dataCount": 0
+    },
+    {
+      "id": "associations",
+      "version": "0.1.0",
+      "displayName": "Annuaire des associations",
+      "icon": "person.3.fill",
+      "description": "Annuaire des asbl et associations actives sur la commune. Aucune permission demandée.",
+      "longDescription": "Affiche les associations locales avec leurs coordonnées et description. Le contenu est packagé dans le module (`data/associations.json`). Pour adapter aux associations de votre commune, forkez le module et éditez ce JSON. Pas de backend, pas de Firestore — module read-only purement statique. Sert d'exemple de référence pour les contributeurs communautaires.",
+      "author": "Asbl Wallonia Civic Tech (exemple)",
+      "licence": "MIT",
+      "official": false,
+      "tags": [
+        "communauté",
+        "associations",
+        "exemple"
+      ],
+      "capabilities": [],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json"
+      },
+      "data": {
+        "associations": "data/associations.json"
+      },
+      "screenCount": 2,
+      "dataCount": 1
     }
   ]
 }

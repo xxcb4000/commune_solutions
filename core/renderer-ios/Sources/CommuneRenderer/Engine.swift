@@ -84,37 +84,46 @@ final class PlatformAssets {
 // PlatformAssets cache when possible, falls back to the consuming app's main
 // bundle so the spike continues to work offline.
 //
-// Bundle / cache layout:
+// Bundle / cache layout (deux roots possibles, modules-official prioritaire) :
 //   `tenants/<id>/app.json`
-//   `modules-official/<id>/manifest.json`
-//   `modules-official/<id>/<module-relative-path>` (screens, data)
+//   `modules-official/<id>/manifest.json`     ← officiels (équipe core)
+//   `modules-community/<id>/manifest.json`    ← communauté (PRs externes)
+//   `<root>/<id>/<module-relative-path>` (screens, data)
 //
 // Bundle file lookup uses `bundlePath + URL(fileURLWithPath:)` to avoid
 // percent-encoding when joining path components, and to work with folder
 // references (`type: folder` in xcodegen) which `url(forResource:)` does not
 // index.
 enum ScreenLoader {
-    static let moduleRoot = "modules-official"
+    static let moduleRoots = ["modules-official", "modules-community"]
     static let tenantRoot = "tenants"
 
     static func tenantPath(_ name: String) -> String { "\(tenantRoot)/\(name)/app.json" }
-    static func manifestPath(moduleId: String) -> String { "\(moduleRoot)/\(moduleId)/manifest.json" }
-    static func modulePath(_ bundlePath: String) -> String { "\(moduleRoot)/\(bundlePath)" }
+
+    /// Tente de localiser le manifest d'un module en testant chaque root
+    /// dans l'ordre. Retourne (root, manifest) ou nil si non trouvé.
+    static func findManifest(moduleId: String) -> (root: String, manifest: Manifest)? {
+        for root in moduleRoots {
+            let path = "\(root)/\(moduleId)/manifest.json"
+            if let m: Manifest = decodeFile(path) {
+                return (root, m)
+            }
+        }
+        return nil
+    }
 
     static func loadTenant(_ name: String) -> DSLScreen? {
         decodeFile(tenantPath(name))
     }
 
-    static func loadManifest(moduleId: String) -> Manifest? {
-        decodeFile(manifestPath(moduleId: moduleId))
-    }
-
+    /// `bundlePath` est le chemin complet déjà préfixé par le root
+    /// (résolu via ModuleRegistry).
     static func loadScreen(at bundlePath: String) -> DSLScreen? {
-        decodeFile(modulePath(bundlePath))
+        decodeFile(bundlePath)
     }
 
     static func loadData(at bundlePath: String) -> DSLValue? {
-        decodeFile(modulePath(bundlePath))
+        decodeFile(bundlePath)
     }
 
     private static func decodeFile<T: Decodable>(_ path: String) -> T? {
@@ -158,29 +167,37 @@ final class TenantContext {
 final class ModuleRegistry {
     static let shared = ModuleRegistry()
     private var manifests: [String: Manifest] = [:]
+    private var roots: [String: String] = [:]      // moduleId -> "modules-official" | "modules-community"
 
     private init() {}
 
     func loadModules(_ refs: [DSLModuleRef]) {
         for ref in refs {
-            if let m = ScreenLoader.loadManifest(moduleId: ref.id) {
+            if let (root, m) = ScreenLoader.findManifest(moduleId: ref.id) {
                 manifests[ref.id] = m
+                roots[ref.id] = root
             }
         }
     }
+
+    /// Le root où ce module est packagé (officiel vs communauté). Utilisé
+    /// par le preloader pour fetch les screens/data au bon endroit.
+    func root(of moduleId: String) -> String? { roots[moduleId] }
 
     func screenPath(qualified: String) -> String? {
         let parts = qualified.split(separator: ":", maxSplits: 1).map(String.init)
         guard parts.count == 2,
               let manifest = manifests[parts[0]],
+              let root = roots[parts[0]],
               let relPath = manifest.screens[parts[1]] else { return nil }
-        return "\(parts[0])/\(relPath)"
+        return "\(root)/\(parts[0])/\(relPath)"
     }
 
     func dataPath(moduleId: String, dataName: String) -> String? {
         guard let manifest = manifests[moduleId],
+              let root = roots[moduleId],
               let relPath = manifest.data?[dataName] else { return nil }
-        return "\(moduleId)/\(relPath)"
+        return "\(root)/\(moduleId)/\(relPath)"
     }
 
     func qualify(_ screenRef: String, currentModule: String?) -> String {

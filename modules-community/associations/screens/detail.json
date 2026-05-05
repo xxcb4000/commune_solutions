@@ -1,0 +1,119 @@
+{
+  "screen": "detail",
+  "navigation": {
+    "title": "",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "vstack",
+            "spacing": 6,
+            "children": [
+              {
+                "type": "text",
+                "value": "{{ asso.category }}",
+                "style": "eyebrow",
+                "color": "terra"
+              },
+              {
+                "type": "text",
+                "value": "{{ asso.name }}",
+                "style": "display-small"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "url": "{{ asso.logoUrl }}",
+            "aspectRatio": 1.6,
+            "cornerRadius": 18
+          },
+          {
+            "type": "text",
+            "value": "{{ asso.description }}",
+            "style": "body"
+          },
+          {
+            "type": "vstack",
+            "spacing": 14,
+            "children": [
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "envelope",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Email", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ asso.contactEmail }}", "style": "body" }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "globe",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Site web", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ asso.website }}", "style": "body" }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "mappin.and.ellipse",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Adresse", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ asso.address }}", "style": "body" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

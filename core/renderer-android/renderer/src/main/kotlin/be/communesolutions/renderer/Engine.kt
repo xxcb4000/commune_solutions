@@ -84,34 +84,41 @@ object PlatformAssets {
 // PlatformAssets cache when populated, falls back to the consuming app's
 // `assets/` directory.
 //
-// Asset layout:
+// Asset layout (deux roots possibles, modules-official prioritaire) :
 //   `tenants/<id>/app.json`
-//   `modules-official/<id>/manifest.json`
-//   `modules-official/<id>/<module-relative-path>` (screens, data)
-// Phase 1 hardcodes `modules-official/` as the only module source.
+//   `modules-official/<id>/manifest.json`     ← officiels (équipe core)
+//   `modules-community/<id>/manifest.json`    ← communauté (PRs externes)
+//   `<root>/<id>/<module-relative-path>` (screens, data)
 object ScreenLoader {
-    const val MODULE_ROOT = "modules-official"
+    val MODULE_ROOTS = listOf("modules-official", "modules-community")
     const val TENANT_ROOT = "tenants"
 
     fun tenantPath(name: String) = "$TENANT_ROOT/$name/app.json"
-    fun manifestPath(moduleId: String) = "$MODULE_ROOT/$moduleId/manifest.json"
-    fun modulePath(bundlePath: String) = "$MODULE_ROOT/$bundlePath"
+
+    /// Tente de localiser le manifest d'un module en testant chaque root
+    /// dans l'ordre. Retourne (root, manifest) ou null si non trouvé.
+    fun findManifest(context: Context, moduleId: String): Pair<String, Manifest>? {
+        for (root in MODULE_ROOTS) {
+            val path = "$root/$moduleId/manifest.json"
+            decodeFile<Manifest>(context, path)?.let { return root to it }
+        }
+        return null
+    }
 
     fun loadTenant(context: Context, name: String): DSLScreen? =
         decodeFile(context, tenantPath(name))
 
-    fun loadManifest(context: Context, moduleId: String): Manifest? =
-        decodeFile(context, manifestPath(moduleId))
-
+    /// `bundlePath` est le chemin complet déjà préfixé par le root
+    /// (résolu via ModuleRegistry).
     fun loadScreen(context: Context, bundlePath: String): DSLScreen? =
-        decodeFile(context, modulePath(bundlePath))
+        decodeFile(context, bundlePath)
 
     fun loadData(context: Context, bundlePath: String): JsonElement? {
-        val bytes = readBytes(context, modulePath(bundlePath)) ?: return null
+        val bytes = readBytes(context, bundlePath) ?: return null
         return try {
             SpikeJson.parseToJsonElement(bytes.decodeToString())
         } catch (e: Exception) {
-            Log.e("ScreenLoader", "decode error ${modulePath(bundlePath)}", e)
+            Log.e("ScreenLoader", "decode error $bundlePath", e)
             null
         }
     }
@@ -155,25 +162,35 @@ object TenantContext {
 // (e.g. "actualites:feed") to bundle paths. Object = singleton.
 object ModuleRegistry {
     private val manifests = mutableMapOf<String, Manifest>()
+    private val roots = mutableMapOf<String, String>()  // moduleId -> root
 
     fun loadModules(context: Context, refs: List<DSLModuleRef>) {
         for (ref in refs) {
-            ScreenLoader.loadManifest(context, ref.id)?.let { manifests[ref.id] = it }
+            ScreenLoader.findManifest(context, ref.id)?.let { (root, m) ->
+                manifests[ref.id] = m
+                roots[ref.id] = root
+            }
         }
     }
+
+    /// Le root où ce module est packagé (officiel vs communauté). Utilisé
+    /// par le preloader pour fetch les screens/data au bon endroit.
+    fun rootOf(moduleId: String): String? = roots[moduleId]
 
     fun screenPath(qualified: String): String? {
         val parts = qualified.split(":", limit = 2)
         if (parts.size != 2) return null
         val manifest = manifests[parts[0]] ?: return null
+        val root = roots[parts[0]] ?: return null
         val rel = manifest.screens[parts[1]] ?: return null
-        return "${parts[0]}/$rel"
+        return "$root/${parts[0]}/$rel"
     }
 
     fun dataPath(moduleId: String, dataName: String): String? {
         val manifest = manifests[moduleId] ?: return null
+        val root = roots[moduleId] ?: return null
         val rel = manifest.data?.get(dataName) ?: return null
-        return "$moduleId/$rel"
+        return "$root/$moduleId/$rel"
     }
 
     fun qualify(screenRef: String, currentModule: String?): String {

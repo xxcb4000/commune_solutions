@@ -1,0 +1,74 @@
+{
+  "screen": "list",
+  "navigation": {
+    "title": "Associations",
+    "displayMode": "inline"
+  },
+  "data": {
+    "associations": "@associations"
+  },
+  "view": {
+    "type": "scroll",
+    "refreshable": true,
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "for",
+            "in": "associations",
+            "as": "asso",
+            "child": {
+              "type": "card",
+              "action": {
+                "type": "navigate",
+                "to": "detail",
+                "with": { "asso": "{{ asso }}" }
+              },
+              "child": {
+                "type": "hstack",
+                "spacing": 14,
+                "padding": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "url": "{{ asso.logoUrl }}",
+                    "width": 64,
+                    "height": 64,
+                    "cornerRadius": 12
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 4,
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "{{ asso.category }}",
+                        "style": "eyebrow",
+                        "color": "tertiary"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ asso.name }}",
+                        "style": "serif-title2"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ asso.description }}",
+                        "style": "body",
+                        "color": "secondary"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
