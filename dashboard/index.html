@@ -25,7 +25,7 @@
             </button>
         </main>
         <footer class="footnote">
-            Phase 10 — dashboard admin spike. Read-only.
+            Dashboard admin · Actualités + Événements éditables · Sondages + Infos read-only (CRUD à venir)
         </footer>
     </template>
 
@@ -68,6 +68,21 @@
         </nav>
         <main class="content" id="content"></main>
     </template>
+
+    <dialog id="editor-dialog">
+        <form id="editor-form" method="dialog">
+            <header class="editor-header">
+                <h2 data-slot="title"></h2>
+                <button type="button" class="link" data-slot="close" aria-label="Fermer">×</button>
+            </header>
+            <div class="editor-body" data-slot="fields"></div>
+            <footer class="editor-footer">
+                <button type="button" data-slot="delete" class="danger">Supprimer</button>
+                <span class="editor-status" data-slot="status"></span>
+                <button type="submit" class="primary">Enregistrer</button>
+            </footer>
+        </form>
+    </dialog>
 
     <script type="module" src="app.js"></script>
 </body>

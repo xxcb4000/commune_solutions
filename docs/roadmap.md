@@ -112,10 +112,23 @@ Tout le pipeline contributeur n'existe que sur papier. À matérialiser :
 
 Aujourd'hui le dashboard ne fait que **toggle des modules** + lecture des collections. Pour qu'une commune soit autonome :
 
-- **⏭ CRUD contenu par module** : créer/éditer/publier articles, événements, sondages, lieux carte
-- **⏭ Modération UGC** : si un module a `moderation: true` (commentaires, propositions), file unifiée dans le dashboard
+- **🚧 14.1 + 14.3 — CRUD articles + events** (fait)
+  - ✅ Modal éditeur HTML5 `<dialog>` schema-driven (champs configurables par schema JS)
+  - ✅ Schémas définis pour `articles` (titre, excerpt, imageUrl, date, dateEyebrow, category, isNew, body) et `events` (title, date, dateStart, location, imageUrl, description)
+  - ✅ Liste affiche bouton "Éditer" par item + "+ Nouveau" en haut de section
+  - ✅ Auto-ID Firestore + sync `id` field avec doc.id
+  - ✅ Suppression avec confirmation
+  - ✅ Statuts loading / success / error / permission-denied
+  - ✅ Refresh auto de la liste après save/delete
+  - ✅ Firestore rules : ouverture admin write sur articles, events, polls, places, info (whitelist explicite, le reste reste denied)
+  - ⏭ Test live : nécessite redeploy rules sur spike-1 et spike-2 + login avec un user admin
+- **⏭ 14.2 — Image upload Firebase Storage** : remplacer le champ `imageUrl` text par un picker file → upload → URL automatique
+- **⏭ 14.4 — Polls CRUD** : éditeur avec options dynamiques (add/remove rows)
+- **⏭ 14.5 — Places CRUD** : éditeur avec lat/lng picker (mini-map MapKit-like)
+- **⏭ 14.6 — Info CRUD** : éditeur singleton (1 doc `info/main` par commune)
+- **⏭ 14.7 — Onboarding admin** : flow first-login, brand kit upload (logo, dots, label), preview live
+- **⏭ 14.8 — Modération UGC** : dépend de capabilities UGC qui n'existent pas en v0
 - **🤔 Dashboard DSL-driven** : appliquer le même contrat plateforme au dashboard que côté mobile (modules contribuent à des extension points dashboard) — cf platform.md
-- **⏭ Onboarding admin** : flow first-login, brand kit upload, preview live
 
 ### 15. Hygiène repo + ouverture publique — ✅ fait (2026-05-05)
 

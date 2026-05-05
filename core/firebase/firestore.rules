@@ -10,7 +10,35 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
+
+    // Collections de contenu officielles : lecture authentifiée pour les
+    // citoyens, écriture réservée aux admins via le dashboard.
+    // Les Cloud Functions officielles bypassent les rules (Admin SDK) et
+    // peuvent donc écrire des sous-collections (votes, contacts, etc.)
+    // sans whitelist ici.
+    match /articles/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /events/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /polls/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /places/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /info/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
     // Reste : lecture authentifiée, écriture refusée côté client.
+    // Les CFs officielles écrivent via Admin SDK (bypass rules).
     match /{document=**} {
       allow read: if request.auth != null;
       allow write: if false;
