@@ -4,9 +4,11 @@
 
 > Plateforme civic tech open source à destination des communes wallonnes.
 >
-> **Statut** : design + spike technique en cours (avril 2026). Pas de prod.
+> **Statut** (mai 2026) : pipeline complet validé end-to-end sur 2 tenants de test (Démo A / Démo B). Marketplace, modules communauté, modération UGC, dashboard admin, web preview, auto-deploy CI tous live. Première vraie commune (Awans) pas encore déployée.
 
-**Contribuer** : [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow PR, modules communauté, évolutions core. Code de conduite : [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Sécurité : [`SECURITY.md`](SECURITY.md).
+**Marketplace live** : [`communesolutions.be/marketplace`](https://communesolutions.be/marketplace) — catalogue des modules (5 officiels + 2 communauté). Preview en navigateur : `…/marketplace/preview.html?module=<id>`.
+
+**Contribuer** : [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow PR, modules communauté, évolutions core. Guide technique complet : [`docs/developers.md`](docs/developers.md). Code de conduite : [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Sécurité : [`SECURITY.md`](SECURITY.md).
 
 ## Idée
 
@@ -24,39 +26,68 @@ La plateforme se construit **en greenfield**. Elle est motivée par l'expérienc
 ```
 commune_solutions/
 ├── docs/
-│   └── platform.md              # Design complet de la plateforme
-├── core/                        # Bibliothèques platform (extraites du spike post-GO)
-│   ├── renderer-ios/            # Swift Package — module CommuneRenderer (entrée: CommuneShell)
-│   └── renderer-android/        # Gradle library — :renderer (entrée: CommuneShell)
-├── modules-official/            # Modules officiels (manifest + screens + data)
-│   ├── actualites/              #   - feed + détail articles
-│   ├── agenda/                  #   - liste + détail events + calendar primitive
-│   ├── sondages/                #   - liste + détail polls (radio + scale)
-│   └── info/                    #   - infos pratiques + form contact
-├── dashboard/                   # Shell admin web (read-only Firestore par tenant)
-├── tenants/                     # Configs tenant (assemblage modules + shell)
-│   └── spike/                   #   - tenant de test consommé par le spike
-│       └── app.json             #     tabbar pointant vers actualites:feed + info:main
-└── spike/                       # Spike technique (validé GO 2026-04-30)
-    ├── ios/                     # Consomme core/renderer-ios + bundle modules-official+tenants
-    ├── android/                 # Consomme core/renderer-android via project(":renderer")
-    ├── SPIKE_PLAN.md
-    └── SPIKE_VERDICT.md
+│   ├── platform.md              # Design complet de la plateforme (contrat, capabilities, marketplace, …)
+│   ├── developers.md            # Guide contributeur (manifest schema, primitives DSL, capabilities v0)
+│   ├── roadmap.md               # État exhaustif fait / à faire / décisions ouvertes
+│   └── skills/                  # Procédures opérationnelles (DNS commune, …)
+├── core/
+│   ├── renderer-ios/            # Swift Package — CommuneRenderer (SwiftUI)
+│   ├── renderer-android/        # Gradle library — :renderer (Compose)
+│   ├── renderer-web/            # 3ème renderer JS — sert /marketplace/preview.html
+│   ├── cloud-functions/         # CFs Python (submit_vote, submit_event_proposal, …)
+│   └── firebase/                # firebase.json + firestore.rules + storage.rules + per-project SDK configs (gitignored)
+├── modules-official/            # Modules officiels (manifest + screens + data + preview-mock)
+│   ├── actualites/              #   - feed hero + rows, detail markdown
+│   ├── agenda/                  #   - liste + calendar primitive + propose (UGC modéré)
+│   ├── sondages/                #   - liste + detail (form radio + scale + cf submit_vote)
+│   ├── carte/                   #   - map MapKit/maps-compose, pins par catégorie, detail lieu
+│   └── info/                    #   - hero + facts + services
+├── modules-community/           # Modules communauté (PRs externes acceptées)
+│   ├── associations/            #   - annuaire asbl (data bundlée, MIT)
+│   └── restos-locaux/           #   - annuaire restaurants (data bundlée, MIT)
+├── modules-template/
+│   └── hello-world/             # Squelette cloné par tools/create-commune-module.sh
+├── dashboard/                   # Admin web (Firebase SDK CDN, no build) — CRUD modules + branding + modération
+├── marketplace/public/          # Site statique catalog + détail module + preview hostée
+├── landing/public/              # Page d'accueil communesolutions.be
+├── commune-sites/               # Site public par commune (gitignored, généré par build-commune-site.py)
+│   └── _template/               # Squelette : index.html branded + AASA + assetlinks.json + firebase.json
+├── tenants/                     # Configs tenant (modules activés + tabbar + branding)
+│   ├── spike/                   #   - Démo A
+│   └── spike-2/                 #   - Démo B
+├── tools/                       # Scripts de provisioning, build, deploy, validation
+│   ├── create-commune-module.sh #   - scaffold un nouveau module communautaire
+│   ├── provision-commune.py     #   - apps SDK + configs + tenant + Firestore _config
+│   ├── build-commune-app.sh     #   - build single-commune iOS (.app)
+│   ├── build-commune-site.py    #   - matérialise commune-sites/<id>/
+│   ├── build-marketplace.py     #   - agrège manifests dans marketplace/public/data/
+│   ├── build-site.sh            #   - assemble landing + marketplace + renderer-web + modules dans _site/
+│   ├── dev-emulators.sh         #   - lance Firebase emulators (Auth+Firestore+Storage+Functions+UI)
+│   ├── seed-firestore.py        #   - seed via firebase-admin SDK (ADC, bypasse rules)
+│   ├── set-admin-claim.py       #   - pose le claim admin sur un user
+│   └── validate-manifests.py    #   - validate schema (CI)
+├── spike/                       # Banc de test multi-tenant (validé GO 2026-04-30)
+│   ├── ios/                     #   - CommuneSpike app, picker mode + single-commune mode
+│   ├── android/                 #   - idem en Compose
+│   ├── SPIKE_PLAN.md
+│   └── SPIKE_VERDICT.md
+└── .github/workflows/
+    ├── validate-manifests.yml   # CI sur PR — valide manifest
+    └── deploy-marketplace.yml   # Auto-deploy hosting sur push main si modules-*/ ou marketplace/ change
 ```
-
-Le spike reste comme banc de test consommateur de la library — toute évolution du renderer y est validée avant d'être propagée. Le repo continuera à grossir : `sdk/`, `cli/`, `modules-official/`, `dashboard/`, etc.
 
 ## Roadmap
 
 Vue détaillée + chantiers à venir : [`docs/roadmap.md`](docs/roadmap.md).
 
-**Résumé** :
+**Résumé (mai 2026)** :
 - ✅ **Spike technique** validé GO 2026-04-30 — DSL renderer iOS + Android, multi-tenant, auth Firebase, Firestore par tenant
-- ✅ **Au-delà du spike** : backend Python réel, form fields DSL, modules `sondages` / `info` / `actualites` / `agenda` / `carte`, dashboard admin commune (toggle modules), marketplace web v0, polish editorial
-- ⏭ **Phase 12 — onboarding commune** : pipeline CI build par commune, provisioning Firebase auto, sous-domaine, choix commune pilote
-- ⏭ **Phase 13 — communauté ouverte** : `modules-community/`, capability `cf.external`, CLI `create-commune-module`, emulator local
-- ⏭ **Phase 14 — dashboard édition** : passer du toggle modules au CRUD contenu (articles, events, polls)
+- ✅ **Au-delà du spike** : backend Python réel, form fields DSL, modules officiels (`actualites` / `agenda` / `sondages` / `info` / `carte`), polish editorial validé sur device, marketplace web v0
+- 🚧 **Phase 12 — onboarding commune** : build paramétré single-commune ✅, provisioning post-project ✅, CI GitHub Actions ✅, fastlane TestFlight scaffold ✅, DNS sous-domaine + AASA + assetlinks ✅. Reste : test live sur première vraie commune (Awans)
+- ✅ **Phase 13 — communauté ouverte** : `modules-community/` + 2 modules exemple, CLI `create-commune-module.sh`, Firebase emulators locaux, capability `cf.external` (contrat manifest), pipeline contributeur exercé end-to-end (PR #1 mergée)
+- ✅ **Phase 14 — dashboard édition** : CRUD articles/events/polls/places/info via modal éditeur schema-driven, image upload Storage, branding editor live preview, modération UGC (queue + approve/reject) — exercée live avec « Proposer un événement » dans agenda
 - ✅ **Phase 15 — hygiène repo + ouverture publique** : LICENSE EUPL-1.2, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, audit secrets clean
+- ✅ **Phase 16 — web renderer** : 3ème renderer JS qui interprète le DSL en HTML/CSS, preview hostée à `communesolutions.be/marketplace/preview.html?module=<id>` avec forms interactifs, calendar grid, map Leaflet — permet aux contributeurs d'itérer sans Xcode/Android Studio
 
 ## Setup local
 

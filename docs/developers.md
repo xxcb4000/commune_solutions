@@ -296,4 +296,4 @@ Vérifie : champs obligatoires, semver, licence whitelist, fichiers d'écran pr�
 4. Un mainteneur core review : qualité DSL, capabilities justifiées, contenu approprié
 5. Merge → publication automatique dans la marketplace au prochain deploy
 
-Politique de review (SLA + critères de rejet) : [`docs/contributing.md`](contributing.md) — *à venir*.
+Workflow PR + Code of Conduct + politique de review : [`CONTRIBUTING.md`](../CONTRIBUTING.md) à la racine du repo.

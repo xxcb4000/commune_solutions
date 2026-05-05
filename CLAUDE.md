@@ -2,11 +2,20 @@
 
 Plateforme civic tech open source à destination des communes wallonnes : multi-communes white-label + architecture à modules. Marketplace publique sur `communesolutions.be/marketplace`. Licence EUPL 1.2 sur le core. Repo greenfield, aucune appli existante n'est migrée.
 
-## Phase actuelle (avril 2026)
+## Phase actuelle (mai 2026)
 
-Spike technique **validé GO** (cf `spike/SPIKE_VERDICT.md`) : DSL renderer iOS + Android, modules + tenants + manifests, loader HTTP, multi-tenant + Firebase Auth, Firestore par tenant. 13 primitives natives validées sur device.
+Pipeline complet validé end-to-end sur 2 tenants test (Démo A / Démo B). Tout est live :
+- 5 modules officiels (`actualites` / `agenda` / `sondages` / `info` / `carte`) + 2 modules communauté (`associations` / `restos-locaux`) — exercés en réel sur device + dashboard admin
+- Renderers iOS (SwiftUI) + Android (Compose) + **web** (3ème renderer JS pour preview navigateur)
+- Build paramétré single-commune iOS + Android, provisioning Firebase auto, fastlane TestFlight scaffold, DNS + AASA + assetlinks templates
+- Dashboard admin commune avec CRUD modules + branding + modération UGC + Storage upload, déployé sur les projets spike-1 + spike-2
+- Marketplace `communesolutions.be/marketplace` avec catalogue + détail + preview hostée + auto-deploy GitHub Actions sur push main
+- CI : `validate-manifests.yml` sur PR + `deploy-marketplace.yml` sur main
+- Pipeline contributeur exercé end-to-end (PR #1 mergée pour `restos-locaux`, modération UGC en réel via "Proposer un événement")
 
-Phases qui restent (cf README — section "Au-delà du spike") : backend Python réel (Cloud Functions), form fields DSL, premier vrai module greenfield, dashboard admin commune, marketplace web, onboarding première commune.
+**Reste sur la roadmap (cf `docs/roadmap.md`)** :
+- Provisionnement réel d'une vraie commune (Awans en perspective) — c'est le test final du pipeline end-to-end
+- Décisions ouvertes design : i18n, JSON Schema runtime, mode hors-ligne, quotas, etc.
 
 ## Docs à lire en priorité
 
