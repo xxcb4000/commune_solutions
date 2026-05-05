@@ -40,13 +40,18 @@
 
 Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomposition :
 
-- **⏭ Build CI par commune** : pipeline qui produit 1 binaire iOS + 1 APK/AAB par tenant à partir d'un même core
-  - xcodegen + gradle paramétrés par tenant id
-  - Injection des `GoogleService-Info.plist` / `google-services.json` du projet Firebase commune au build
-  - Bundle id / package name / display name / icône / launch screen par commune
-  - Agrégation `NS*UsageDescription` (iOS) + `<uses-permission>` (Android) depuis les modules activés (cf platform.md `device.permissions`)
-  - Publication App Store Connect + Google Play Console automatisée (fastlane ou similaire)
-- **⏭ Provisioning auto commune** : créer projet Firebase + sous-domaine `<commune>.communesolutions.be` + tenant config initial branding
+- **🚧 12.1 — Build paramétré par commune** (en cours, validé end-to-end iOS + Android)
+  - ✅ Section `build` (`bundleId`, `displayName`) ajoutée à `tenants/<id>/app.json`
+  - ✅ iOS : `tools/build-commune-app.sh <commune-id> [device-id]` génère un `project.commune.yml` patché à partir de `project.yml`, lance xcodegen + xcodebuild, optionnellement install + launch via devicectl. Validé sur iVince avec tenant `spike` (single-commune mode, picker skip)
+  - ✅ Android : `./gradlew :app:assembleDebug -PcommuneId=<id>` lit `tenants/<id>/app.json` via JsonSlurper, applique `applicationId` + `resValue("string", "app_name", …)` + `buildConfigField` `COMMUNE_TENANT_ID` / `COMMUNE_FIREBASE_PROJECTS`. APK validé avec "Démo A" baké en label
+  - ✅ Mode dev (multi-tenant picker) intact : sans flag/env, projects.yml + build.gradle.kts produisent l'app actuelle
+  - ⏭ Injection `GoogleService-Info.plist` / `google-services.json` per-commune (actuellement les 2 sont bundlés via le sources block — à filtrer par `firebase` du tenant)
+  - ⏭ Icône d'app + launch screen variables par commune
+  - ⏭ Agrégation `NS*UsageDescription` + `<uses-permission>` depuis les modules activés (cf platform.md `device.permissions`)
+- **⏭ 12.2 — Provisioning auto commune** : `tools/provision-commune.py <commune-id>` qui crée le projet Firebase + apps SDK + récupère configs + initialise `_config/modules` + branding
+- **⏭ 12.3 — CI GitHub Actions** : workflow qui consomme `build-commune-app.sh`, secrets Firebase configs en base64, produit IPA + AAB
+- **⏭ 12.4 — Distribution stores** : fastlane match (certs iOS partagés Mosa Data Engineering) + upload TestFlight + Play Console
+- **⏭ 12.5 — Sous-domaine `<commune>.communesolutions.be`** : automation DNS + Firebase Hosting custom domain
 - **⏭ Universal Links / App Links à l'échelle** : `apple-app-site-association` mutualisé sur `communesolutions.be` 🤔 (cf décision ouverte platform.md)
 - **⏭ Choix commune pilote** : à arbitrer
 

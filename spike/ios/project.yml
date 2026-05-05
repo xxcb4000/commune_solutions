@@ -34,6 +34,12 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: Commune Spike
+        # Tenant baké au build : SpikeApp lit ces deux clés au démarrage.
+        # Vides = mode multi-tenant dev (picker). Set = mode single-commune.
+        # `tools/build-commune-app.sh` patche ces valeurs en générant un
+        # `project.commune.yml` dérivé avant xcodegen.
+        CommuneTenantID: ""
+        CommuneFirebaseProjects: ""
         UILaunchScreen:
           UIColorName: ""
         UISupportedInterfaceOrientations:

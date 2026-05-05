@@ -21,19 +21,27 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Configure both Firebase projects; tenant configs reference one via
-        // their `firebase` field.
-        be.communesolutions.renderer.CommuneFirebase.configure(
-            this,
-            listOf("spike-1", "spike-2")
-        )
+
+        // Single-commune build : `BuildConfig.COMMUNE_TENANT_ID` est baké
+        // par Gradle quand `-PcommuneId=<id>` est passé (cf
+        // `tools/build-commune-app.sh`). Vide = mode dev multi-tenant
+        // (les deux Firebase configs + picker).
+        val bakedTenant = BuildConfig.COMMUNE_TENANT_ID.takeIf { it.isNotBlank() }
+        val firebaseProjects = BuildConfig.COMMUNE_FIREBASE_PROJECTS
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .ifEmpty { listOf("spike-1", "spike-2") }
+
+        be.communesolutions.renderer.CommuneFirebase.configure(this, firebaseProjects)
         enableEdgeToEdge()
         setContent {
             SpikeTheme {
                 Surface(modifier = Modifier, color = MaterialTheme.colorScheme.background) {
-                    // No `tenant` param — CommuneShell auto-picks from
-                    // SharedPreferences and shows the picker on first launch.
-                    CommuneShell(baseURL = devServerURL)
+                    // bakedTenant != null → single-commune mode (no picker)
+                    // bakedTenant == null → multi-tenant dev (picker actif
+                    //   ou tenant en SharedPreferences)
+                    CommuneShell(tenant = bakedTenant, baseURL = devServerURL)
                 }
             }
         }

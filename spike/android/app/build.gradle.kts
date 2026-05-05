@@ -1,19 +1,51 @@
+import groovy.json.JsonSlurper
+import java.io.File
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
+// Mode single-commune : passer `-PcommuneId=<tenant-id>` à Gradle pour
+// builder une app per-commune (lit `tenants/<id>/app.json` à la racine du
+// repo). Sans le flag = build dev multi-tenant (picker actif).
+val communeId: String? = (findProperty("communeId") as String?)?.takeIf { it.isNotBlank() }
+val tenantConfig: Map<String, String> = communeId?.let {
+    val f = File(rootProject.projectDir, "../../tenants/$it/app.json")
+    require(f.exists()) { "tenants/$it/app.json introuvable: ${f.absolutePath}" }
+    @Suppress("UNCHECKED_CAST")
+    val parsed = JsonSlurper().parse(f) as Map<String, Any?>
+    @Suppress("UNCHECKED_CAST")
+    val build = parsed["build"] as Map<String, Any?>
+    mapOf(
+        "tenant" to (parsed["tenant"] as String),
+        "firebase" to (parsed["firebase"] as String),
+        "applicationId" to (build["bundleId"] as String),
+        "displayName" to (build["displayName"] as String),
+    )
+} ?: emptyMap()
+
+val effectiveAppId = tenantConfig["applicationId"] ?: "be.communesolutions.spike"
+val effectiveTenantBaked = tenantConfig["tenant"] ?: ""
+val effectiveFirebaseProjects = tenantConfig["firebase"] ?: ""
+val effectiveLabel = tenantConfig["displayName"] ?: "Commune Spike"
+
 android {
     namespace = "be.communesolutions.spike"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "be.communesolutions.spike"
+        applicationId = effectiveAppId
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "0.1"
+        // Lus par MainActivity au démarrage. Vide = mode multi-tenant
+        // dev (picker). Set = mode single-commune (no picker).
+        buildConfigField("String", "COMMUNE_TENANT_ID", "\"$effectiveTenantBaked\"")
+        buildConfigField("String", "COMMUNE_FIREBASE_PROJECTS", "\"$effectiveFirebaseProjects\"")
+        resValue("string", "app_name", effectiveLabel)
     }
 
     sourceSets {
@@ -46,6 +78,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
