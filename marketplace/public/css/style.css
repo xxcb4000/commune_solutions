@@ -418,9 +418,15 @@ a:hover { text-decoration: underline; }
   background: var(--surface);
   border-top: 1px solid var(--border);
 }
-.dev-cta-inner { max-width: 980px; margin: 0 auto; text-align: center; }
-.dev-cta h2 { margin: 0 0 8px; font-size: 22px; }
-.dev-cta p { color: var(--text-muted); margin: 0 0 20px; }
+.dev-cta-inner { max-width: 720px; margin: 0 auto; text-align: center; }
+.dev-cta h2 { margin: 0 0 12px; font-size: 22px; }
+.dev-cta p { color: var(--text-muted); margin: 0 0 24px; line-height: 1.6; }
+.dev-cta-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 
 .footer {
   padding: 24px 32px;
