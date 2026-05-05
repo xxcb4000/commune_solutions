@@ -185,6 +185,39 @@ Le contrat plateforme (cf [`docs/platform.md`](platform.md)) décrit un DSL plus
 
 **Stratégie** : pas de phase dédiée bloquante — chaque primitive s'ajoute quand un module concret en a besoin. La PR qui ajoute la primitive doit aussi documenter son rendu dans les 3 renderers (iOS, Android, web) et son schéma manifest. Cf platform.md § Extension points pour le pattern de contribution.
 
+### 18. Architecture cross-cutting (designée dans platform.md, 0-50% livrée)
+
+Au-delà des primitives DSL et des champs manifest simples (phase 17), [`docs/platform.md`](platform.md) décrit des features **transversales** qui touchent renderer + CF + dashboard + build pipeline. Pas livrées en v0, à développer quand un cas concret le justifie.
+
+- **⏭ 18.1 Extension points cross-module** (cf platform.md §410) — modules hôtes déclarent des extension points avec contrat versionné, autres modules contribuent via leur section `extensions`. Stratégies d'agrégation : `priority-merge`, `round-robin`, `concat`, `first-match`. Versioning des contrats. Permet la composition modulaire (ex: actualités feed avec topCards contribués par sondages, dashboard moderation queue agrégée par tous les modules avec UGC). **Bloquant** pour les UI riches multi-modules. Roadmap dépend du 1er cas concret de composition.
+
+- **⏭ 18.2 Modération UGC — pattern complet** (cf platform.md §604) — champs auto-injectés (`status`/`visible`/`proposed_by`/`proposed_by_email`/`proposed_at`/`moderated_by`/`moderated_at`/`moderation_reason`), RLS standards (citoyens créent en pending, anonymes lisent visible: true), sync auto `status` ↔ `visible`, CFs standardisées `<module>.list_pending` / `.approve(id)` / `.reject(id, reason)`. **V0 actuel** : queue simple `_moderation_queue/<id>` + approve/reject manuel dashboard (suffisant pour 1 module). Étendre quand 2-3 modules UGC le justifient.
+
+- **⏭ 18.3 Capability runtime check** — le renderer + les CFs vérifient à runtime que le module a bien la capability requise pour l'opération demandée. Aujourd'hui : capabilities déclarées dans manifest et reconnues par le validator, mais pas appliquées au runtime (un module peut techniquement appeler une CF qu'il n'a pas déclarée). Implémenter middleware CF (decorator Python qui check `request.module_id` + capability whitelist) et runtime guard dans les renderers (refuser action si capability absente).
+
+- **⏭ 18.4 Permissions device aggregation au build** (cf platform.md §627) — chaque module déclare ses `device.permissions` (location, camera, notifications, contacts, calendar, bluetooth, motion). Le pipeline CI build commune **agrège** ces permissions et génère :
+  - iOS Info.plist : `NSLocationWhenInUseUsageDescription`, `NSCameraUsageDescription`, etc. avec la justification du module
+  - Android Manifest : `<uses-permission>` correspondants
+  Une commune sans le module n'a PAS la permission dans son binaire (« pas dans le binaire » = pas de mauvaise expérience App Store review). Bloquant pour modules avec camera (signalements UGC photo), location (carte centrée user), notifications.
+
+- **⏭ 18.5 Deep-links integration complète** (cf platform.md §502) — au-delà des templates AASA + assetlinks générés par `build-commune-site.py` :
+  - Validation collision : CI refuse une PR si deux modules claim la même route `/article/{id}` (déjà spec'd, à implémenter dans `validate-manifests.py`)
+  - Aggregation au build : pour chaque commune, l'AASA déployé liste TOUTES les routes de TOUS les modules activés
+  - FCM routing : payload `{ category, ...params }` → table de mapping → écran cible mobile (legacy alias pour compat avec apps existantes)
+
+- **⏭ 18.6 Cache strategy** (cf platform.md §649) — au-delà du Firestore SDK offline cache natif et de l'AsyncImage cache utilisés par défaut :
+  - Cache-Control headers explicites sur les responses CFs (immutable pour les actualités finalisées, max-age court pour les agendas, no-cache pour les sondages live)
+  - Stale-while-revalidate côté client quand le mobile appelle une CF sans réseau (afficher la valeur cachée ET déclencher un refresh en arrière-plan)
+  - Cache éviction par tenant (changement branding → invalider la home)
+
+- **⏭ 18.7 Dashboard extension points** (cf platform.md §661) — appliquer le même contrat « modules contribuent » au dashboard qu'au mobile. Aujourd'hui le dashboard a des onglets hardcodés (Modules, Branding, Modération, Articles, Events, Polls, Places, Infos). Demain : chaque module officiel déclare ses contributions dashboard via `extensions: dashboard:moderation.pending`, `extensions: dashboard:settings`, etc. Le dashboard devient lui-même DSL-driven, code-free pour ajouter un module.
+
+- **⏭ 18.8 Flow commune end-to-end automatisé** (cf platform.md §723) — au-delà des outils unitaires actuels (`provision-commune.py`, `build-commune-app.sh`, `build-commune-site.py`, fastlane lanes), un flow CI/CD complet :
+  - Commune signup via formulaire web sur `communesolutions.be`
+  - Trigger pipeline qui crée projet Firebase + active services + génère configs SDK + provisionne tenant + génère site commune-sites/ + déploie + ajoute DNS Infomaniak via API + soumet AppStore Connect + Play Console + envoie credentials admin par mail
+  - Time-to-live commune : viser < 30 min après signup
+  - Bloquant à plus de 5 communes en prod (sinon support manuel ne tient pas)
+
 ### 15. Hygiène repo + ouverture publique — ✅ fait (2026-05-05)
 
 - ✅ **Audit secrets historique git** : clean — Firebase configs (GoogleService-Info, google-services, firebase-config-spike-*) jamais committées, aucune clé API, aucun token, aucun secret hardcodé détecté
