@@ -26,7 +26,16 @@
 # Sans `-PcommuneId`, le build Android est aussi en mode dev multi-tenant.
 set -euo pipefail
 
-COMMUNE_ID="${1:?Usage: $0 <commune-id> [device-id]}"
+# Flag --no-build : génère project.commune.yml + xcodegen mais skip
+# xcodebuild. Utilisé par fastlane qui prend le relais avec gym (archive +
+# signing distribution). Le script reste idempotent.
+NO_BUILD=0
+if [[ "${1:-}" == "--no-build" ]]; then
+    NO_BUILD=1
+    shift
+fi
+
+COMMUNE_ID="${1:?Usage: $0 [--no-build] <commune-id> [device-id]}"
 DEVICE_ID="${2:-}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -69,6 +78,12 @@ PY
 cd "$ROOT/spike/ios"
 echo "→ xcodegen generate (project.commune.yml)"
 xcodegen generate --spec project.commune.yml --quiet
+
+if [[ $NO_BUILD -eq 1 ]]; then
+    echo "→ skip xcodebuild (--no-build)"
+    echo "✓ project généré pour commune=$COMMUNE_ID"
+    exit 0
+fi
 
 echo "→ xcodebuild build"
 if [[ -n "$DEVICE_ID" ]]; then

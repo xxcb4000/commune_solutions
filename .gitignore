@@ -37,5 +37,14 @@ google-services.json
 dashboard/firebase-config-spike-*.json
 .env
 .env.local
+.env.fastlane
 *.keystore
 *.jks
+*.p8
+
+# Fastlane runtime artefacts
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+spike/ios/build/fastlane/

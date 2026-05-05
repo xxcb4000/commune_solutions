@@ -1,0 +1,117 @@
+# Fastfile — distribution stores pour les apps de commune.
+#
+# Lanes principales :
+#   - testflight commune_id:<id>  → build + upload TestFlight
+#   - archive    commune_id:<id>  → build .ipa local (debug TestFlight sans upload)
+#
+# Auth : App Store Connect API key (.p8) via env vars (cf
+# `fastlane/README.md`). Pas d'Apple ID interactif → pas de 2FA, OK CI.
+#
+# Bundle ID + display name : lus dynamiquement depuis
+# `tenants/<commune_id>/app.json` (section `build`).
+#
+# Signature : `xcodebuild -allowProvisioningUpdates` + API key gère
+# automatiquement la création des profils dev + distribution App Store
+# pour chaque bundle ID. Pas de match git repo nécessaire pour le MVP.
+
+require 'json'
+
+REPO_ROOT = File.expand_path('..', __dir__)
+
+# Charge tenants/<id>/app.json et retourne build.bundleId + build.displayName
+def load_tenant(commune_id)
+  path = File.join(REPO_ROOT, 'tenants', commune_id, 'app.json')
+  raise "tenants/#{commune_id}/app.json introuvable" unless File.exist?(path)
+  cfg = JSON.parse(File.read(path))
+  {
+    bundle_id: cfg.dig('build', 'bundleId') || raise("tenant #{commune_id}: build.bundleId manquant"),
+    display_name: cfg.dig('build', 'displayName') || raise("tenant #{commune_id}: build.displayName manquant"),
+  }
+end
+
+# Charge la clé App Store Connect API depuis env vars. Compat CI (clé
+# en base64 dans une env var) et local (chemin vers .p8 sur disque).
+def load_api_key
+  if ENV['APP_STORE_CONNECT_API_KEY_CONTENT_B64'].to_s.length.positive?
+    app_store_connect_api_key(
+      key_id: ENV.fetch('APP_STORE_CONNECT_API_KEY_ID'),
+      issuer_id: ENV.fetch('APP_STORE_CONNECT_API_KEY_ISSUER_ID'),
+      key_content: Base64.decode64(ENV.fetch('APP_STORE_CONNECT_API_KEY_CONTENT_B64')),
+      duration: 1200,
+      in_house: false,
+    )
+  else
+    app_store_connect_api_key(
+      key_id: ENV.fetch('APP_STORE_CONNECT_API_KEY_ID'),
+      issuer_id: ENV.fetch('APP_STORE_CONNECT_API_KEY_ISSUER_ID'),
+      key_filepath: ENV.fetch('APP_STORE_CONNECT_API_KEY_PATH'),
+      duration: 1200,
+      in_house: false,
+    )
+  end
+end
+
+default_platform(:ios)
+
+platform :ios do
+  before_all do |lane, options|
+    # Régénère project.commune.yml + .xcodeproj pour la commune cible.
+    # `--no-build` skip xcodebuild (gym prend le relais).
+    commune_id = options[:commune_id] || ENV['COMMUNE_ID']
+    raise "commune_id requis (option lane ou env COMMUNE_ID)" if commune_id.to_s.empty?
+    sh("cd #{REPO_ROOT} && bash tools/build-commune-app.sh --no-build #{commune_id}")
+  end
+
+  desc "Build une archive .ipa locale pour la commune (sans upload)"
+  lane :archive do |options|
+    commune_id = options[:commune_id] || ENV.fetch('COMMUNE_ID')
+    tenant = load_tenant(commune_id)
+
+    api_key = load_api_key
+
+    build_app(
+      project: File.join(REPO_ROOT, 'spike', 'ios', 'CommuneSpike.xcodeproj'),
+      scheme: 'CommuneSpike',
+      configuration: 'Release',
+      output_directory: File.join(REPO_ROOT, 'spike', 'ios', 'build', 'fastlane'),
+      output_name: "CommuneSpike-#{commune_id}.ipa",
+      export_method: 'app-store',
+      export_options: {
+        provisioningProfiles: {
+          tenant[:bundle_id] => "match AppStore #{tenant[:bundle_id]}",
+        },
+      },
+      xcargs: "-allowProvisioningUpdates DEVELOPMENT_TEAM=TJ2759P685 PRODUCT_BUNDLE_IDENTIFIER=#{tenant[:bundle_id]}",
+      api_key: api_key,
+      clean: true,
+    )
+  end
+
+  desc "Build + upload vers TestFlight pour la commune"
+  lane :testflight do |options|
+    commune_id = options[:commune_id] || ENV.fetch('COMMUNE_ID')
+    tenant = load_tenant(commune_id)
+
+    api_key = load_api_key
+
+    build_app(
+      project: File.join(REPO_ROOT, 'spike', 'ios', 'CommuneSpike.xcodeproj'),
+      scheme: 'CommuneSpike',
+      configuration: 'Release',
+      output_directory: File.join(REPO_ROOT, 'spike', 'ios', 'build', 'fastlane'),
+      output_name: "CommuneSpike-#{commune_id}.ipa",
+      export_method: 'app-store',
+      xcargs: "-allowProvisioningUpdates DEVELOPMENT_TEAM=TJ2759P685 PRODUCT_BUNDLE_IDENTIFIER=#{tenant[:bundle_id]}",
+      api_key: api_key,
+      clean: true,
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: tenant[:bundle_id],
+      ipa: File.join(REPO_ROOT, 'spike', 'ios', 'build', 'fastlane', "CommuneSpike-#{commune_id}.ipa"),
+      skip_waiting_for_build_processing: true,
+      changelog: "Build automatique #{commune_id} #{Time.now.utc.iso8601}",
+    )
+  end
+end

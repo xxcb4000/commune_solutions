@@ -1,0 +1,7 @@
+# App Store Connect / Apple Developer team de Mosa Data Engineering.
+# Le bundle ID change par commune et est résolu dynamiquement dans le
+# Fastfile via tenants/<id>/app.json.
+team_id "TJ2759P685"  # Mosa Data Engineering
+
+# Pas d'apple_id ici — l'authentification passe par App Store Connect API
+# key (.p8) configurée via env vars (cf fastlane/README.md).

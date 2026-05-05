@@ -64,7 +64,16 @@ Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomp
   - ⏭ Test live (workflow run réel) : pas encore — nécessite création d'un environment GitHub avec les secrets
   - ⏭ Trigger automatique sur tag pattern (style `commune-<id>-v*`) : à activer plus tard
   - ⏭ Signature distribution (IPA prêt pour TestFlight) = phase 12.4
-- **⏭ 12.4 — Distribution stores** : fastlane match (certs iOS partagés Mosa Data Engineering) + upload TestFlight + Play Console
+- **🚧 12.4 — Distribution stores iOS (TestFlight)** : scaffolding fastlane écrit
+  - ✅ `Gemfile` + `fastlane/{Appfile,Fastfile,README.md}` + `.env.fastlane.example`
+  - ✅ Lane `archive commune_id:<id>` : build .ipa signée App Store, sans upload
+  - ✅ Lane `testflight commune_id:<id>` : build + upload TestFlight
+  - ✅ Auth via App Store Connect API key (clé Mosa Data Engineering existante : `AuthKey_JD5MN9XL6W.p8`, key ID + issuer ID documentés dans le README)
+  - ✅ Bundle ID + display name lus dynamiquement depuis `tenants/<id>/app.json`
+  - ✅ `tools/build-commune-app.sh --no-build` pour permettre à fastlane (gym) de prendre le relais
+  - ⏭ Test live (lane testflight sur tenant `spike`) : pas encore — nécessite création du record App Store Connect pour `be.communesolutions.spike`
+  - ⏭ Workflow CI `release-commune-app.yml` : à écrire après validation du lane local
+- **⏭ 12.4b — Distribution Google Play** : `fastlane supply` + service account JSON pour Play Console
 - **⏭ 12.5 — Sous-domaine `<commune>.communesolutions.be`** : automation DNS + Firebase Hosting custom domain
 - **⏭ Universal Links / App Links à l'échelle** : `apple-app-site-association` mutualisé sur `communesolutions.be` 🤔 (cf décision ouverte platform.md)
 - **⏭ Choix commune pilote** : à arbitrer
