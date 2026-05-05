@@ -1,0 +1,119 @@
+{
+  "screen": "detail",
+  "navigation": {
+    "title": "",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "vstack",
+            "spacing": 6,
+            "children": [
+              {
+                "type": "text",
+                "value": "{{ resto.cuisine }} · {{ resto.priceRange }}",
+                "style": "eyebrow",
+                "color": "terra"
+              },
+              {
+                "type": "text",
+                "value": "{{ resto.name }}",
+                "style": "display-small"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "url": "{{ resto.logoUrl }}",
+            "aspectRatio": 1.5,
+            "cornerRadius": 18
+          },
+          {
+            "type": "text",
+            "value": "{{ resto.description }}",
+            "style": "body"
+          },
+          {
+            "type": "vstack",
+            "spacing": 14,
+            "children": [
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "mappin.and.ellipse",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Adresse", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ resto.address }}", "style": "body" }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "clock",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Horaires", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ resto.hours }}", "style": "body" }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "systemName": "phone",
+                    "bg": "civic-soft",
+                    "color": "civic",
+                    "height": 18
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 2,
+                    "children": [
+                      { "type": "text", "value": "Téléphone", "style": "caps", "color": "tertiary" },
+                      { "type": "text", "value": "{{ resto.phone }}", "style": "body" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

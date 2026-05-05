@@ -1,0 +1,74 @@
+{
+  "screen": "list",
+  "navigation": {
+    "title": "Restaurants",
+    "displayMode": "inline"
+  },
+  "data": {
+    "restaurants": "@restaurants"
+  },
+  "view": {
+    "type": "scroll",
+    "refreshable": true,
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "for",
+            "in": "restaurants",
+            "as": "resto",
+            "child": {
+              "type": "card",
+              "action": {
+                "type": "navigate",
+                "to": "detail",
+                "with": { "resto": "{{ resto }}" }
+              },
+              "child": {
+                "type": "hstack",
+                "spacing": 14,
+                "padding": 14,
+                "align": "top",
+                "children": [
+                  {
+                    "type": "image",
+                    "url": "{{ resto.logoUrl }}",
+                    "width": 88,
+                    "height": 88,
+                    "cornerRadius": 14
+                  },
+                  {
+                    "type": "vstack",
+                    "spacing": 4,
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "{{ resto.cuisine }} · {{ resto.priceRange }}",
+                        "style": "eyebrow",
+                        "color": "tertiary"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ resto.name }}",
+                        "style": "serif-title2"
+                      },
+                      {
+                        "type": "text",
+                        "value": "{{ resto.address }}",
+                        "style": "body",
+                        "color": "secondary"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
