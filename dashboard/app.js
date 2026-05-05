@@ -894,7 +894,9 @@ async function uploadImage(file, folder) {
     // Random suffix pour éviter les collisions et faciliter le cache busting
     const ext = (file.name.match(/\.[^.]+$/)?.[0] || ".bin").toLowerCase();
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-    const path = `${folder}/${filename}`;
+    // Préfixe `uploads/` pour matcher les Storage rules
+    // (`match /uploads/{folder}/{filename}` dans core/firebase/storage.rules).
+    const path = `uploads/${folder}/${filename}`;
     const ref = mod.ref(storage, path);
     await mod.uploadBytes(ref, file, { contentType: file.type });
     return await mod.getDownloadURL(ref);
