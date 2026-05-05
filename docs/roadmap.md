@@ -99,7 +99,13 @@ Tout le pipeline contributeur n'existe que sur papier. À matérialiser :
   - ✅ Workflow documenté dans `docs/developers.md`
   - ⏭ Flag `--emulator-host` dans `build-commune-app.sh` (iOS) pour exposer la même UX qu'Android
   - ⏭ DSL hot-reload : pull-to-refresh existant suffit en MVP. Live-reload via WebSocket = future si la friction est réelle
-- **⏭ 13.4 — Capability `cf.external`** : permettre à un module tiers d'héberger ses propres CFs en recevant un ID token de la commune (cf platform.md, validée 2026-04-30)
+- **🚧 13.4 — Capability `cf.external`** (contrat manifest seul, routing renderer différé)
+  - ✅ Validator `tools/validate-manifests.py` reconnaît `cf.external` dans `ALLOWED_CAP_TYPES`
+  - ✅ Champ top-level `cfExternal: { baseURL }` validé en https
+  - ✅ Cohérence cross-checked : capability cf.external **doit** matcher cfExternal.baseURL et inversement (target == baseURL)
+  - ✅ Documenté dans `docs/developers.md` (section dédiée + ⚠️ statut "contrat OK, routing à venir")
+  - ⏭ Routing renderer (iOS + Android) : action DSL `cf:<endpoint>` route vers `cfExternal.baseURL/<endpoint>` au lieu de `tenant.functionsBaseURL` — implémenté quand un premier module en a besoin
+  - ⏭ Marketplace : afficher la capability `cf.external` avec l'URL en clair dans le détail module (Android-style permission preview) — UI à enrichir
 - **🤔 Repo split** : `commune_solutions` (plateforme + officiels) vs `commune_solutions-modules-community` (PRs tiers) — décision à prendre selon le rythme d'arrivée des contribs
 
 ### 14. Dashboard admin — passer en édition

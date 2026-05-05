@@ -21,7 +21,9 @@ REQUIRED_FIELDS = ["id", "version", "displayName", "icon", "description",
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(-[\w.]+)?$")
 ALLOWED_LICENCES = {"EUPL-1.2", "MIT", "Apache-2.0", "BSD-3-Clause"}
 ALLOWED_CAP_TYPES = {"firestore.read", "firestore.write", "cf.read", "cf.write",
+                     "cf.external",
                      "device.location", "device.camera", "device.notifications"}
+HTTPS_RE = re.compile(r"^https://[\w.-]+(:\d+)?(/[\w./%-]*)?$")
 
 
 def validate(manifest_path: Path) -> list[str]:
@@ -51,15 +53,42 @@ def validate(manifest_path: Path) -> list[str]:
     if desc and len(desc) > 200:
         errors.append(f"{rel}: description trop longue ({len(desc)} > 200 chars) — réservez le détail à longDescription")
 
+    cap_types = []
     for cap in data.get("capabilities", []):
         if not isinstance(cap, dict):
             errors.append(f"{rel}: capabilities doit être une liste d'objets")
             continue
         ctype = cap.get("type")
+        cap_types.append(ctype)
         if ctype not in ALLOWED_CAP_TYPES:
             errors.append(f"{rel}: capability type « {ctype} » non reconnu")
         if not cap.get("description"):
             errors.append(f"{rel}: capability « {ctype} » sans description (visible utilisateur)")
+        if ctype == "cf.external":
+            target = cap.get("target", "")
+            if not HTTPS_RE.match(target):
+                errors.append(f"{rel}: capability cf.external « target » doit être une URL https valide (reçu: « {target} »)")
+
+    # Cohérence cf.external : la capability doit matcher cfExternal.baseURL
+    # déclaré au top-level, et inversement.
+    cf_external = data.get("cfExternal")
+    has_cf_ext_cap = "cf.external" in cap_types
+    if has_cf_ext_cap and not isinstance(cf_external, dict):
+        errors.append(f"{rel}: capability cf.external présente mais cfExternal.baseURL absent au top-level")
+    if isinstance(cf_external, dict):
+        if not has_cf_ext_cap:
+            errors.append(f"{rel}: cfExternal.baseURL déclaré mais aucune capability cf.external dans capabilities[]")
+        base_url = cf_external.get("baseURL", "")
+        if not HTTPS_RE.match(base_url):
+            errors.append(f"{rel}: cfExternal.baseURL doit être une URL https valide (reçu: « {base_url} »)")
+        # Le target de la capability doit être identique à cfExternal.baseURL
+        ext_caps = [c for c in data.get("capabilities", []) if isinstance(c, dict) and c.get("type") == "cf.external"]
+        for c in ext_caps:
+            if c.get("target") != base_url:
+                errors.append(
+                    f"{rel}: capability cf.external « target » ({c.get('target')}) "
+                    f"≠ cfExternal.baseURL ({base_url})"
+                )
 
     for name, rel_path in (data.get("screens") or {}).items():
         screen_file = manifest_path.parent / rel_path

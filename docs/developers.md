@@ -58,14 +58,15 @@ La CI valide le manifest. La review humaine porte sur la cohérence DSL, les cap
 
 ## Capabilities (modules communauté)
 
-En v0, un module communautaire peut **uniquement déclarer des capabilités à lecture seule** :
+En v0, un module communautaire peut déclarer :
 
 | Type | Cible | Usage |
 |---|---|---|
 | `firestore.read` | Nom de collection ou de document | Lit dans le projet Firebase de la commune. RLS activées : pas d'accès aux collections d'autres modules sans accord. |
 | `module.read` | `<autre-module>:<collection>` | Lecture cross-module si l'hôte a déclaré une `extensionPoint` correspondante. |
+| `cf.external` | URL `https://...` complète | Le module appelle ses propres Cloud Functions hébergées par l'auteur (météo, transports, scrapers, etc.). L'ID token Firebase de l'utilisateur est passé en `Authorization: Bearer <token>` ; l'auteur valide côté serveur. Voir section dédiée ci-dessous. |
 
-Les capabilities **d'écriture** (`firestore.write`, `cf.write`, `device.*`) sont réservées aux modules officiels en v0. Roadmap : ouverture aux modules communautaires avec audit + capability `cf.external` (cf [`platform.md`](platform.md) section "Décisions ouvertes").
+Les capabilities **d'écriture sur le projet Firebase de la commune** (`firestore.write`, `cf.write`, `device.*`) sont réservées aux modules officiels en v0.
 
 Format :
 
@@ -80,6 +81,30 @@ Format :
 ```
 
 Le champ `description` est **visible par l'admin commune** quand il active votre module — soyez clair sur ce que vous lisez et pourquoi.
+
+### Capability `cf.external` — Cloud Functions externes
+
+Pour les modules qui ont besoin d'une logique serveur sans toucher au Firestore de la commune (lecture API tierce, scraping, agrégation), déclarer :
+
+```json
+"cfExternal": {
+  "baseURL": "https://votre-mod.example.org"
+},
+"capabilities": [
+  {
+    "type": "cf.external",
+    "target": "https://votre-mod.example.org",
+    "description": "Lit la météo locale via une API hébergée par l'auteur du module"
+  }
+]
+```
+
+- Le `target` de la capability **doit être identique** au `cfExternal.baseURL` (validé par la CI)
+- Le module appelle ses endpoints via la primitive DSL `action: { type: "cf", endpoint: "<route>" }` — le renderer route vers `<baseURL>/<route>` au lieu des CFs officielles de la commune
+- Le serveur reçoit `Authorization: Bearer <id-token>` et doit valider via Firebase Admin SDK pour identifier la commune + l'utilisateur
+- L'admin de la commune voit l'URL en clair lors de l'activation et accepte ou refuse (Android-style permission)
+
+⚠️ **Statut** : le contrat manifest et la validation CI sont en place dès aujourd'hui (vous pouvez déclarer la capability et passer la CI). Le **routing renderer** sera implémenté quand un premier module en aura besoin — d'ici là, déclarer la capability ne donne pas encore le pouvoir d'appeler une URL externe à runtime. Cf [`docs/roadmap.md`](roadmap.md) §13.4.
 
 ## DSL UI — primitives
 
