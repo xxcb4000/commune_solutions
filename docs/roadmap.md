@@ -148,6 +148,43 @@ Aujourd'hui le dashboard ne fait que **toggle des modules** + lecture des collec
   - ⏭ Premier module officiel qui produit de l'UGC — exercera le pattern en réel et pourra surfacer les ajustements (rate limit, audit log rejets, notifications citoyens, etc.)
 - **🤔 Dashboard DSL-driven** : appliquer le même contrat plateforme au dashboard que côté mobile (modules contribuent à des extension points dashboard) — cf platform.md
 
+### 17. Compléter le DSL (primitives + manifest features)
+
+Le contrat plateforme (cf [`docs/platform.md`](platform.md)) décrit un DSL plus large que ce qui est shippé en v0. À mesure que des modules (officiels ou communautaires) en auront besoin, on complétera. **Ordre suggéré** :
+
+**Primitives utiles probables (priorité haute)** :
+- ⏭ `field.date` / `field.date.range` — la plupart des formulaires civic en ont besoin (proposition event date, période de consultation, …)
+- ⏭ `field.photo` — UGC avec image (signalements, suggestions de lieux)
+- ⏭ `field.checkbox` — choix multiples (vs radio choix unique)
+- ⏭ `device.share` (action) — partager un article/event via l'OS
+- ⏭ `device.addToCalendar` — exporter event vers calendrier OS
+- ⏭ `toast` (action) — feedback transactionnel court (déjà câblé dans CF onSuccess.toast côté form, manque comme action standalone)
+- ⏭ `divider` — séparateur visuel léger
+
+**Primitives utiles mais plus de scope (priorité moyenne)** :
+- ⏭ `device.scan.qr` — scan QR (parking, codes monument, billetterie)
+- ⏭ `device.camera.capture` — photo libre (couplée field.photo ou pure)
+- ⏭ `field.map.picker` — placer un pin sur la map (UGC signalement avec lieu)
+- ⏭ `field.address` / `field.street` / `field.phone` — typed fields avec validation native
+- ⏭ `grid` — layout grille (vs flexbox vstack/hstack)
+- ⏭ `alert` — modal alert critique
+- ⏭ `badge` — accessoire visuel (count, status)
+
+**Primitives priorité basse / cas exotiques** :
+- ⏭ `section` — wrapper sémantique dans un vstack (peu d'utilité)
+- ⏭ `switch` (multi-case) — segmented suffit en pratique
+- ⏭ `module:` (data source cross-module) — design ouvert, attend un cas réel
+
+**Manifest features designées mais pas livrées** (cf [`docs/platform.md`](platform.md) § scope warning) :
+- ⏭ `secrets` (Google Secret Manager) — clés API tierces (météo, OpenAI, Facebook), sortie sécurisée du dashboard
+- ⏭ `scheduledJobs` (Cloud Scheduler) — sync auto contenus depuis APIs externes
+- ⏭ `deepLinks` — registry Universal Links / FCM routing par module (avec validation collision en CI)
+- ⏭ `publicEndpoints` — routes HTTP exposées aux tiers (iCal export agenda, JSON feed actualités)
+- ⏭ `config.ui` form-driven — formulaire de config par module dans le dashboard, vs UI codée à la main
+- ⏭ `ownedCollections` + `moderation: true` complet — pattern actuellement simplifié à `_moderation_queue`, étendre avec champs auto-injectés (status/visible/proposed_by/moderated_by/...) quand 2-3 modules le justifieront
+
+**Stratégie** : pas de phase dédiée bloquante — chaque primitive s'ajoute quand un module concret en a besoin. La PR qui ajoute la primitive doit aussi documenter son rendu dans les 3 renderers (iOS, Android, web) et son schéma manifest. Cf platform.md § Extension points pour le pattern de contribution.
+
 ### 15. Hygiène repo + ouverture publique — ✅ fait (2026-05-05)
 
 - ✅ **Audit secrets historique git** : clean — Firebase configs (GoogleService-Info, google-services, firebase-config-spike-*) jamais committées, aucune clé API, aucun token, aucun secret hardcodé détecté
