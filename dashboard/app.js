@@ -146,28 +146,35 @@ async function renderModules(container, user) {
         return;
     }
 
-    const officials = catalog.filter((m) => m.official === true);
-    if (officials.length === 0) {
-        container.innerHTML = `<p class="empty">Aucun module officiel disponible.</p>`;
+    if (catalog.length === 0) {
+        container.innerHTML = `<p class="empty">Aucun module disponible dans le catalogue.</p>`;
         return;
     }
 
+    // Tri : officiels en haut, communauté en bas, alpha dans chaque groupe
+    const sortedCatalog = [...catalog].sort((a, b) => {
+        if (!!a.official !== !!b.official) return a.official ? -1 : 1;
+        return (a.displayName || "").localeCompare(b.displayName || "");
+    });
+
     const activeIds = new Set((runtime.modules ?? []).map((m) => m.id));
+
+    const moduleRowHTML = (m) => `
+        <label class="module-row">
+            <input type="checkbox" data-module-id="${esc(m.id)}" ${activeIds.has(m.id) ? "checked" : ""}>
+            <div class="module-row-text">
+                <strong>${esc(m.displayName)}${m.official ? "" : ` <span class="module-badge community">Communauté</span>`}</strong>
+                <span>${esc(m.description ?? "")}</span>
+                <span class="module-row-meta">v${esc(m.version)} · ${esc((m.capabilities ?? []).length)} capability(ies) · par ${esc(m.author ?? "?")} · ${esc(m.licence ?? "?")}</span>
+            </div>
+        </label>
+    `;
 
     container.innerHTML = `
         <div class="modules-pane">
-            <p class="modules-intro">Activez/désactivez les modules officiels pour cette commune. Les changements prennent effet au prochain démarrage de l'app citoyenne.</p>
+            <p class="modules-intro">Activez/désactivez les modules disponibles pour cette commune. Officiels en haut, communautaires en bas. Les changements prennent effet au prochain démarrage de l'app citoyenne.</p>
             <div class="modules-list">
-                ${officials.map((m) => `
-                    <label class="module-row">
-                        <input type="checkbox" data-module-id="${esc(m.id)}" ${activeIds.has(m.id) ? "checked" : ""}>
-                        <div class="module-row-text">
-                            <strong>${esc(m.displayName)}</strong>
-                            <span>${esc(m.description ?? "")}</span>
-                            <span class="module-row-meta">v${esc(m.version)} · ${esc((m.capabilities ?? []).length)} capability(ies)</span>
-                        </div>
-                    </label>
-                `).join("")}
+                ${sortedCatalog.map(moduleRowHTML).join("")}
             </div>
             <div class="modules-actions">
                 <button id="modules-save" class="primary">Enregistrer</button>
@@ -183,7 +190,7 @@ async function renderModules(container, user) {
         );
         const newModules = checked.map((id) => ({
             id,
-            version: officials.find((m) => m.id === id)?.version ?? "0.1.0",
+            version: catalog.find((m) => m.id === id)?.version ?? "0.1.0",
         }));
         const newTabs = (runtime.view?.tabs ?? []).filter((t) => {
             const mod = String(t.screen ?? "").split(":")[0];
@@ -193,7 +200,7 @@ async function renderModules(container, user) {
         const tabModuleIds = new Set(newTabs.map((t) => String(t.screen ?? "").split(":")[0]));
         for (const id of checked) {
             if (!tabModuleIds.has(id)) {
-                const m = officials.find((x) => x.id === id);
+                const m = catalog.find((x) => x.id === id);
                 if (!m) continue;
                 const firstScreen = Object.keys(m.screens ?? {})[0] ?? "main";
                 newTabs.push({
