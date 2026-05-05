@@ -126,7 +126,13 @@ Aujourd'hui le dashboard ne fait que **toggle des modules** + lecture des collec
 - **✅ 14.4 — Polls CRUD** : éditeur avec options dynamiques (input id + label, bouton + Ajouter, bouton × supprimer ligne)
 - **✅ 14.5 — Places CRUD** : éditeur avec lat/lng (`type: number`), category select limité aux 5 valeurs MapBlock (services/ecole/sport/culture/nature)
 - **✅ 14.6 — Info CRUD** : pattern singleton (`schema.singleton: true`, doc id fixe `info/main`, pas de + Nouveau, pas de Supprimer)
-- **⏭ 14.7 — Onboarding admin** : flow first-login, brand kit upload (logo, dots, label), preview live
+- **🚧 14.7 — Branding editor** (onboarding admin partiel)
+  - ✅ Onglet « Branding » dans le dashboard, édite `_config/modules.view.brand` (label, textColor, dots[6])
+  - ✅ Live preview de la signature visuelle (label serif + 6 ronds colorés)
+  - ✅ Color pickers natifs HTML5 pour les dots
+  - ✅ Save préserve modules + tabs (merge ciblé sur view.brand)
+  - ⏭ Logo upload (pas de slot logo dans le brand schema actuellement — à étendre quand le mobile rendra un logo)
+  - ⏭ First-time wizard "vous n'avez pas encore configuré votre commune" — à faire quand on onboarde la première vraie commune (Awans), pour valider la friction réelle
 - **⏭ 14.8 — Modération UGC** : dépend de capabilities UGC qui n'existent pas en v0
 - **🤔 Dashboard DSL-driven** : appliquer le même contrat plateforme au dashboard que côté mobile (modules contribuent à des extension points dashboard) — cf platform.md
 

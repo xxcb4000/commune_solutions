@@ -116,6 +116,8 @@ async function renderDashboard(user) {
         content.innerHTML = `<p class="empty">Chargement…</p>`;
         if (name === "modules") {
             await renderModules(content, user);
+        } else if (name === "branding") {
+            await renderBranding(content, user);
         } else {
             await renderSection(name, content);
         }
@@ -333,6 +335,103 @@ const SCHEMAS = {
         ],
     },
 };
+
+// MARK: - Branding editor (14.7 — onboarding admin partiel)
+
+async function renderBranding(container, user) {
+    let runtime = { view: { brand: {} } };
+    try {
+        const snap = await getDoc(doc(db, "_config", "modules"));
+        if (snap.exists()) runtime = { ...runtime, ...snap.data() };
+    } catch (e) {
+        container.innerHTML = `<p class="empty">Erreur chargement : ${esc(e.message)}</p>`;
+        return;
+    }
+
+    const brand = runtime.view?.brand ?? {};
+    const dots = Array.isArray(brand.dots) && brand.dots.length === 6
+        ? brand.dots
+        : ["#1976d2", "#26a69a", "#ffa000", "#ec407a", "#7e57c2", "#26c6da"];
+
+    container.innerHTML = `
+        <div class="branding-pane">
+            <p class="modules-intro">Personnalisez l'identité visuelle de l'app citoyenne. Le label apparaît en haut de chaque écran ; les 6 ronds colorés sont la signature visuelle de la commune (sous le label).</p>
+            <div class="branding-form">
+                <label class="field">
+                    <span>Label affiché en haut de l'app *</span>
+                    <input type="text" name="label" value="${esc(brand.label ?? "")}" placeholder="Ex: AWANS" required>
+                </label>
+                <label class="field">
+                    <span>Couleur du texte (hex)</span>
+                    <input type="text" name="textColor" value="${esc(brand.textColor ?? "#0f172a")}" placeholder="#0f172a">
+                </label>
+                <div class="field">
+                    <span>Ronds colorés (signature)</span>
+                    <div class="dots-row">
+                        ${dots.map((d, i) => `<input type="color" data-dot-index="${i}" value="${esc(d)}">`).join("")}
+                    </div>
+                </div>
+                <div class="branding-preview">
+                    <span class="branding-preview-label" data-preview-label>${esc(brand.label ?? "DÉMO")}</span>
+                    <div class="branding-preview-dots">
+                        ${dots.map((d, i) => `<span class="branding-preview-dot" data-preview-dot="${i}" style="background:${esc(d)}"></span>`).join("")}
+                    </div>
+                </div>
+            </div>
+            <div class="modules-actions">
+                <button id="branding-save" class="primary">Enregistrer</button>
+                <p class="modules-status" data-slot="status"></p>
+            </div>
+        </div>
+    `;
+
+    // Live preview en tapant
+    const labelInput = container.querySelector("input[name='label']");
+    const previewLabel = container.querySelector("[data-preview-label]");
+    labelInput.addEventListener("input", () => {
+        previewLabel.textContent = labelInput.value || "DÉMO";
+    });
+    container.querySelectorAll("input[data-dot-index]").forEach((dotInput) => {
+        dotInput.addEventListener("input", () => {
+            const i = parseInt(dotInput.dataset.dotIndex, 10);
+            const previewDot = container.querySelector(`[data-preview-dot="${i}"]`);
+            if (previewDot) previewDot.style.background = dotInput.value;
+        });
+    });
+
+    const status = container.querySelector("[data-slot='status']");
+    container.querySelector("#branding-save").addEventListener("click", async () => {
+        const newDots = Array.from(container.querySelectorAll("input[data-dot-index]"))
+            .sort((a, b) => parseInt(a.dataset.dotIndex, 10) - parseInt(b.dataset.dotIndex, 10))
+            .map((i) => i.value);
+        const newBrand = {
+            label: labelInput.value.trim(),
+            textColor: container.querySelector("input[name='textColor']").value.trim() || "#0f172a",
+            dots: newDots,
+        };
+        status.textContent = "Enregistrement…";
+        status.className = "modules-status";
+        try {
+            // Préserve modules + tabs ; ne touche QUE view.brand
+            const preservedView = { ...(runtime.view ?? {}) };
+            preservedView.brand = newBrand;
+            preservedView.type = preservedView.type ?? "tabbar";
+            await setDoc(doc(db, "_config", "modules"), {
+                ...runtime,
+                view: preservedView,
+                updatedAt: serverTimestamp(),
+                updatedBy: user.uid,
+            }, { merge: true });
+            status.textContent = "✓ Branding enregistré. L'app citoyenne reflètera la nouvelle identité au prochain démarrage.";
+            status.className = "modules-status success";
+        } catch (e) {
+            status.textContent = e?.code === "permission-denied"
+                ? "Permission refusée — claim admin manquant."
+                : `Erreur : ${e.message}`;
+            status.className = "modules-status error";
+        }
+    });
+}
 
 async function renderSection(name, container) {
     try {
