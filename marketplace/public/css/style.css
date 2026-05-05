@@ -368,6 +368,41 @@ a:hover { text-decoration: underline; }
   font-size: 13px;
   color: var(--text-muted);
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  text-decoration: none;
+  display: block;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.screen-pill:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  background: var(--primary-light);
+}
+
+.module-preview-cta {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  background: var(--primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+  align-self: flex-start;
+}
+.module-preview-cta:hover { opacity: 0.9; }
+
+.module-section-hint {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.module-section-hint code {
+  background: var(--surface);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
 }
 
 /* Tags + facts grid ──────────────────────────────────── */

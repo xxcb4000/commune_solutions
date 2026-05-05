@@ -36,6 +36,8 @@ function render(m) {
   const screens = Object.keys(m.screens || {});
   const dataKeys = Object.keys(m.data || {});
 
+  const previewHref = `/marketplace/preview.html?module=${encodeURIComponent(m.id)}`;
+
   root.innerHTML = `
     <div class="module-head">
       <div class="module-icon">${iconSvg(m.icon, { size: 32 })}</div>
@@ -47,6 +49,9 @@ function render(m) {
           <span>par ${escape(m.author || "—")}</span>
         </p>
       </div>
+      <a class="module-preview-cta" href="${previewHref}" target="_blank" rel="noopener">
+        Aperçu →
+      </a>
     </div>
 
     <section class="module-section">
@@ -61,8 +66,9 @@ function render(m) {
 
     <section class="module-section">
       <h2>Écrans (${screens.length})</h2>
+      <p class="module-section-hint">Chaque écran ouvre un aperçu en navigateur via le 3ème renderer (HTML/CSS). Données mockées pour les sources <code>firestore:</code>.</p>
       <div class="screens-list">
-        ${screens.map((s) => `<div class="screen-pill">${escape(s)}</div>`).join("")}
+        ${screens.map((s) => `<a class="screen-pill" href="${previewHref}&screen=${encodeURIComponent(s)}" target="_blank" rel="noopener">${escape(s)} →</a>`).join("")}
       </div>
     </section>
 
