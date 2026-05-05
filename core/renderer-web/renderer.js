@@ -91,12 +91,11 @@ const PRIMITIVES = {
     for: renderFor,
     if: renderIf,
     header: renderHeader,
-    // 16.2 (stub gracieux pour l'instant)
     segmented: renderSegmented,
     tabbar: renderTabBar,
     calendar: renderCalendar,
     map: renderMap,
-    field: renderUnsupported("Champ formulaire — preview natif uniquement"),
+    field: renderField,
     button: renderButton,
 };
 
@@ -401,15 +400,192 @@ function renderButton(node, scope, ctx) {
     btn.className = "ds-button";
     btn.textContent = resolve(node.label ?? "OK", scope);
     btn.addEventListener("click", () => {
-        if (node.action?.type === "navigate" && node.action.to) {
-            ctx?.onNavigate?.(node.action.to, resolveActionWith(node.action, scope));
-        } else {
-            alert(`Action « ${node.action?.type ?? "?"} » non simulée en preview web.`);
+        const action = node.action ?? {};
+        if (action.type === "navigate" && action.to) {
+            ctx?.onNavigate?.(action.to, resolveActionWith(action, scope));
+            return;
         }
+        if (action.type === "cf") {
+            // Preview mode : on collecte le payload résolu via les bindings
+            // (form values + scope), on l'affiche en toast avec un message
+            // explicite que le CF n'est pas appelé en preview. Le rendu in-app
+            // POSTe vers tenant.functionsBaseURL/<endpoint>.
+            const formScope = scope.adding("form", ctx?.formState?.values ?? {});
+            const payload = {};
+            for (const [k, v] of Object.entries(action.body ?? {})) {
+                if (typeof v === "string") payload[k] = resolveValue(v, formScope);
+                else payload[k] = v;
+            }
+            const successMsg = action.onSuccess?.toast
+                ?? `(preview) « ${action.endpoint} » serait appelée avec ce payload.`;
+            ctx?.showToast?.(successMsg, "success");
+            console.info(`[preview cf:${action.endpoint}]`, payload);
+            // Reset form state pour mimer le comportement post-submit iOS
+            if (ctx?.formState) ctx.formState.values = {};
+            return;
+        }
+        ctx?.showToast?.(`Action « ${action.type ?? "?" } » non simulée en preview web.`, "warn");
     });
     return btn;
 }
 
+// MARK: - Field (text, email, secret, text.long, yesno, radio, scale)
+
+function renderField(node, scope, ctx) {
+    const kind = node.kind ?? "text";
+    const id = node.id ?? "";
+    const label = resolve(node.label ?? "", scope);
+    const placeholder = resolve(node.placeholder ?? "", scope);
+    const required = node.required === true;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = `ds-field ds-field-${kind}`;
+
+    if (label && kind !== "yesno") {
+        const lab = document.createElement("label");
+        lab.className = "ds-field-label";
+        lab.textContent = label + (required ? " *" : "");
+        wrapper.appendChild(lab);
+    }
+
+    const formState = ctx?.formState;
+    const get = () => formState?.values?.[id] ?? "";
+    const set = (v) => {
+        if (!formState) return;
+        formState.values[id] = v;
+    };
+
+    switch (kind) {
+        case "email": {
+            const i = document.createElement("input");
+            i.type = "email";
+            i.placeholder = placeholder;
+            i.required = required;
+            i.value = get();
+            i.addEventListener("input", () => set(i.value));
+            wrapper.appendChild(i);
+            break;
+        }
+        case "secret": {
+            const i = document.createElement("input");
+            i.type = "password";
+            i.placeholder = placeholder;
+            i.required = required;
+            i.value = get();
+            i.addEventListener("input", () => set(i.value));
+            wrapper.appendChild(i);
+            break;
+        }
+        case "text.long": {
+            const t = document.createElement("textarea");
+            t.placeholder = placeholder;
+            t.rows = node.minLines ?? 4;
+            t.required = required;
+            t.value = get();
+            t.addEventListener("input", () => set(t.value));
+            wrapper.appendChild(t);
+            break;
+        }
+        case "yesno": {
+            // Toggle iOS-style. Stocke "true" / "false" comme strings (mirror
+            // FormState iOS qui passe en string aux CFs).
+            const cur = (get() === "true");
+            const row = document.createElement("label");
+            row.className = "ds-field-yesno";
+            const sw = document.createElement("input");
+            sw.type = "checkbox";
+            sw.checked = cur;
+            sw.addEventListener("change", () => set(sw.checked ? "true" : "false"));
+            const span = document.createElement("span");
+            span.textContent = label;
+            row.appendChild(sw);
+            row.appendChild(span);
+            wrapper.appendChild(row);
+            break;
+        }
+        case "radio": {
+            // Options : `in: <binding>` (preferred) ou `options: [...]`
+            let options = [];
+            if (node.in) {
+                const v = scope.lookup(node.in);
+                if (Array.isArray(v)) options = v;
+            } else if (Array.isArray(node.options)) {
+                options = node.options;
+            }
+            const cur = get();
+            const list = document.createElement("div");
+            list.className = "ds-field-radio";
+            for (const opt of options) {
+                if (!opt || !opt.id) continue;
+                const row = document.createElement("label");
+                row.className = "ds-radio-row";
+                if (cur === opt.id) row.classList.add("selected");
+                const r = document.createElement("input");
+                r.type = "radio";
+                r.name = `radio-${id}`;
+                r.value = opt.id;
+                r.checked = cur === opt.id;
+                r.addEventListener("change", () => {
+                    set(opt.id);
+                    list.querySelectorAll(".ds-radio-row").forEach((el) =>
+                        el.classList.toggle("selected", el === row));
+                });
+                const sp = document.createElement("span");
+                sp.textContent = opt.label ?? opt.id;
+                row.appendChild(r);
+                row.appendChild(sp);
+                list.appendChild(row);
+            }
+            wrapper.appendChild(list);
+            break;
+        }
+        case "scale": {
+            // Picker horizontal min..max. iOS rend une rangée de pills
+            // numérotées ; on imite avec un range slider + valeur affichée.
+            const min = Number.isFinite(node.min) ? node.min : 1;
+            const max = Number.isFinite(node.max) ? node.max : 10;
+            const cur = parseInt(get(), 10);
+            const value = Number.isFinite(cur) ? cur : Math.floor((min + max) / 2);
+            if (!get()) set(String(value));
+            const row = document.createElement("div");
+            row.className = "ds-field-scale";
+            const pills = document.createElement("div");
+            pills.className = "ds-scale-pills";
+            for (let n = min; n <= max; n++) {
+                const pill = document.createElement("button");
+                pill.type = "button";
+                pill.className = "ds-scale-pill";
+                pill.textContent = String(n);
+                if (parseInt(get(), 10) === n) pill.classList.add("selected");
+                pill.addEventListener("click", () => {
+                    set(String(n));
+                    pills.querySelectorAll(".ds-scale-pill").forEach((p, i) =>
+                        p.classList.toggle("selected", (i + min) === n));
+                });
+                pills.appendChild(pill);
+            }
+            row.appendChild(pills);
+            wrapper.appendChild(row);
+            break;
+        }
+        case "text":
+        default: {
+            const i = document.createElement("input");
+            i.type = "text";
+            i.placeholder = placeholder;
+            i.required = required;
+            i.value = get();
+            i.addEventListener("input", () => set(i.value));
+            wrapper.appendChild(i);
+            break;
+        }
+    }
+
+    return wrapper;
+}
+
+// (helper conservé pour les futures primitives non implémentées)
+// eslint-disable-next-line no-unused-vars
 function renderUnsupported(label) {
     return () => {
         const el = document.createElement("div");
