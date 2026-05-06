@@ -158,6 +158,11 @@ enum ScreenLoader {
 final class TenantContext {
     static let shared = TenantContext()
     var functionsBaseURL: URL?
+    // Métadonnées tenant exposées comme `{{ tenant.* }}` dans le scope DSL.
+    // Permet aux modules d'utiliser des valeurs commune-level (lat/lng,
+    // displayName, etc.) sans nouveau type de data source. Renseigné par
+    // l'AuthGate au démarrage, lu par ScreenView.makeScope.
+    var bindings: [String: DSLValue] = [:]
     private init() {}
 }
 

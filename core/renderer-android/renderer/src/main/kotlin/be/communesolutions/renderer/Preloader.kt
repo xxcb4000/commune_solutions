@@ -41,6 +41,12 @@ object AssetPreloader {
             return PreloadResult.Failed("tenant $tenant JSON invalide")
         }
         TenantContext.functionsBaseURL = bootstrap.functionsBaseURL
+        // Expose tenant metadata (lat/lng/id) au scope DSL via TenantContext.bindings.
+        TenantContext.bindings = buildMap {
+            put("id", JsonPrimitive(tenant))
+            bootstrap.lat?.let { put("lat", JsonPrimitive(it)) }
+            bootstrap.lng?.let { put("lng", JsonPrimitive(it)) }
+        }
 
         // Try Firestore override of runtime config (modules + view).
         val firebaseName = bootstrap.firebase

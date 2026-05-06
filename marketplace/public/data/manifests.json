@@ -33,11 +33,11 @@
     },
     {
       "id": "agenda",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "displayName": "Agenda",
       "icon": "calendar",
       "description": "Calendrier des événements communaux : conseils, fêtes, rencontres citoyennes.",
-      "longDescription": "Vue calendrier mensuelle + liste chronologique. Chaque événement a une page détail avec date, lieu, description et lien d'inscription si applicable. Source : Firestore (`events`).",
+      "longDescription": "Vue calendrier mensuelle + liste chronologique. Chaque événement a une page détail avec date, lieu, description et lien d'inscription si applicable. Les citoyens peuvent proposer des événements via un formulaire ; les propositions passent par la file de modération admin avant publication. Source : Firestore (`events`).",
       "author": "Commune Solutions Core",
       "licence": "EUPL-1.2",
       "official": true,
@@ -50,13 +50,25 @@
           "type": "firestore.read",
           "target": "events",
           "description": "Lecture des événements publiés par la commune"
+        },
+        {
+          "type": "moderation",
+          "target": "events",
+          "description": "Les propositions citoyennes d'événements passent en file de modération admin avant publication"
+        }
+      ],
+      "moderation": [
+        {
+          "collection": "events",
+          "label": "Propositions d'événements citoyennes"
         }
       ],
       "screens": {
         "list": "screens/list.json",
-        "detail": "screens/detail.json"
+        "detail": "screens/detail.json",
+        "propose": "screens/propose.json"
       },
-      "screenCount": 2,
+      "screenCount": 3,
       "dataCount": 0
     },
     {
@@ -91,6 +103,47 @@
       "dataCount": 1
     },
     {
+      "id": "idees",
+      "version": "0.1.0",
+      "displayName": "Boîte à idées",
+      "icon": "lightbulb.fill",
+      "description": "Permet aux citoyens de proposer des idées pour améliorer la commune. Validation admin avant publication.",
+      "longDescription": "Module participatif citoyen-vers-administration. Le citoyen propose une idée (titre, catégorie, description) ; le service participation de la commune valide depuis le dashboard avant publication. Une fois publiées, les idées apparaissent dans un fil consultable par tous les citoyens — ce qui évite les doublons et donne de la visibilité aux propositions. Au cœur du module : la file de modération unifiée (`_moderation_queue`) qui traite les soumissions avant publication, comme pour les signalements et les événements citoyens.",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "communication",
+        "participation",
+        "ugc"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "ideas",
+          "description": "Lecture des idées approuvées et publiées par la commune"
+        },
+        {
+          "type": "moderation",
+          "target": "ideas",
+          "description": "Les idées citoyennes passent en file de modération admin avant publication"
+        }
+      ],
+      "moderation": [
+        {
+          "collection": "ideas",
+          "label": "Idées citoyennes en attente"
+        }
+      ],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json",
+        "propose": "screens/propose.json"
+      },
+      "screenCount": 3,
+      "dataCount": 0
+    },
+    {
       "id": "info",
       "version": "0.1.0",
       "displayName": "Infos pratiques",
@@ -121,6 +174,76 @@
         "contact": "screens/contact.json"
       },
       "screenCount": 2,
+      "dataCount": 0
+    },
+    {
+      "id": "meteo",
+      "version": "0.1.0",
+      "displayName": "Météo locale",
+      "icon": "cloud.sun.fill",
+      "description": "Affiche la météo du jour pour la commune. Tirée d'OpenWeatherMap (clé API à fournir par l'admin).",
+      "longDescription": "Premier module exerçant le pattern `secrets` (phase 17). L'admin commune obtient gratuitement une clé OpenWeatherMap puis la renseigne dans l'onglet Secrets du dashboard ; le citoyen voit la météo du jour à coordonnées de sa commune. Pull-driven : ce module a motivé le passage en production du contrat secrets + helper Cloud Function `_get_secret`. À évoluer (data source auto-fetch, prévisions multi-jours, icônes graphiques) quand un cas le justifiera.",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "info",
+        "tiers"
+      ],
+      "capabilities": [],
+      "secrets": [
+        {
+          "id": "openweather_api_key",
+          "label": "OpenWeather API key",
+          "description": "Clé API gratuite (1 000 requêtes/jour). Inscription à l'adresse ci-dessous, onglet « API keys » de votre compte.",
+          "url": "https://openweathermap.org/api"
+        }
+      ],
+      "screens": {
+        "main": "screens/main.json"
+      },
+      "screenCount": 1,
+      "dataCount": 0
+    },
+    {
+      "id": "signalements",
+      "version": "0.1.0",
+      "displayName": "Signalements",
+      "icon": "exclamationmark.triangle.fill",
+      "description": "Permet aux citoyens de signaler les problèmes du domaine public (voirie, éclairage, propreté). Validation admin avant publication.",
+      "longDescription": "Module de signalement citoyen-vers-administration. Le citoyen documente un problème (titre, catégorie, description, photo, lieu) ; le service technique de la commune valide depuis le dashboard. Une fois publié, le signalement apparaît dans la carte publique des signalements en cours, ce qui évite les doublons et donne aux citoyens un retour visible. Au cœur du module : la file de modération unifiée (`_moderation_queue`) qui traite les soumissions avant publication.",
+      "author": "Commune Solutions Core",
+      "licence": "EUPL-1.2",
+      "official": true,
+      "tags": [
+        "communication",
+        "voirie",
+        "ugc"
+      ],
+      "capabilities": [
+        {
+          "type": "firestore.read",
+          "target": "signalements",
+          "description": "Lecture des signalements approuvés et publiés par la commune"
+        },
+        {
+          "type": "moderation",
+          "target": "signalements",
+          "description": "Les signalements citoyens passent en file de modération admin avant publication"
+        }
+      ],
+      "moderation": [
+        {
+          "collection": "signalements",
+          "label": "Signalements citoyens en attente"
+        }
+      ],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json",
+        "propose": "screens/propose.json"
+      },
+      "screenCount": 3,
       "dataCount": 0
     },
     {
@@ -178,6 +301,32 @@
       },
       "data": {
         "associations": "data/associations.json"
+      },
+      "screenCount": 2,
+      "dataCount": 1
+    },
+    {
+      "id": "restos-locaux",
+      "version": "0.1.0",
+      "displayName": "Restaurants locaux",
+      "icon": "fork.knife",
+      "description": "Sélection des restaurants et bistrots de la commune. Curé par la communauté Slow Food locale.",
+      "longDescription": "Annuaire des restaurants, bistrots, fritkots et cafés de la commune. Chaque adresse a un nom, une cuisine, une fourchette de prix, des horaires et une note communauté. Données bundlées dans le module ; pour adapter à votre commune, forkez et éditez `data/restaurants.json`.",
+      "author": "Slow Food Wallonie (asbl)",
+      "licence": "MIT",
+      "official": false,
+      "tags": [
+        "communauté",
+        "gastronomie",
+        "commerce-local"
+      ],
+      "capabilities": [],
+      "screens": {
+        "list": "screens/list.json",
+        "detail": "screens/detail.json"
+      },
+      "data": {
+        "restaurants": "data/restaurants.json"
       },
       "screenCount": 2,
       "dataCount": 1

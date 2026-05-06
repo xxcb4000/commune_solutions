@@ -112,6 +112,11 @@ data class DSLScreen(
     val data: Map<String, String>? = null,
     val view: DSLNode,
     val modules: List<DSLModuleRef>? = null,
+    // Coordonnées de la commune. Optionnelles. Exposées au scope DSL comme
+    // `{{ tenant.lat }}` / `{{ tenant.lng }}` pour les modules qui en ont
+    // besoin (météo, transports…).
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 @Serializable

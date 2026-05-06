@@ -116,6 +116,27 @@ def validate(manifest_path: Path) -> list[str]:
         if not screen_file.exists():
             errors.append(f"{rel}: screen « {name} » → fichier manquant ({rel_path})")
 
+    # Champ secrets[] (phase 17). Optionnel. Chaque entrée déclare une clé
+    # API tierce que l'admin commune devra renseigner dans le dashboard.
+    # L'id sert de clé Firestore _secrets/<id> et de paramètre au helper
+    # CF `_get_secret(id)`.
+    secrets = data.get("secrets")
+    if secrets is not None:
+        if not isinstance(secrets, list):
+            errors.append(f"{rel}: secrets[] doit être une liste")
+        else:
+            for entry in secrets:
+                if not isinstance(entry, dict):
+                    errors.append(f"{rel}: secrets[] doit contenir des objets {{id, label, ...}}")
+                    continue
+                sid = entry.get("id", "")
+                if not sid or not re.match(r"^[a-z][a-z0-9_]*$", sid):
+                    errors.append(f"{rel}: secret id invalide « {sid} » (lowercase + underscores)")
+                if not entry.get("label"):
+                    errors.append(f"{rel}: secret « {sid } » sans label (visible admin)")
+                if entry.get("url") and not HTTPS_RE.match(entry["url"]):
+                    errors.append(f"{rel}: secret « {sid} » url invalide « {entry.get('url')} » (doit être https)")
+
     return errors
 
 

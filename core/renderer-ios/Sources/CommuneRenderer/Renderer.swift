@@ -138,7 +138,13 @@ private struct AuthGate: View {
         _auth = StateObject(wrappedValue: AuthObserver(app: firebaseApp))
         // Stash for downstream views (env propagation through TabView/Nav was lossy).
         TenantContext.shared.functionsBaseURL = tenantConfig.functionsBaseURL.flatMap { URL(string: $0) }
-        print("[CommuneRenderer] tenant=\(tenantId) functionsBaseURL=\(TenantContext.shared.functionsBaseURL?.absoluteString ?? "nil")")
+        // Expose tenant metadata to DSL scope as `{{ tenant.* }}`.
+        var tenantBindings: [String: DSLValue] = [:]
+        tenantBindings["id"] = .string(tenantId)
+        if let lat = tenantConfig.lat { tenantBindings["lat"] = .double(lat) }
+        if let lng = tenantConfig.lng { tenantBindings["lng"] = .double(lng) }
+        TenantContext.shared.bindings = tenantBindings
+        print("[CommuneRenderer] tenant=\(tenantId) functionsBaseURL=\(TenantContext.shared.functionsBaseURL?.absoluteString ?? "nil") lat=\(tenantConfig.lat ?? 0) lng=\(tenantConfig.lng ?? 0)")
     }
 
     var body: some View {
@@ -289,6 +295,12 @@ struct ScreenView: View {
     private func makeScope(for dsl: DSLScreen, currentModule: String?) -> DSLScope {
         var scope = DSLScope(bindings: initialBindings)
         scope = scope.adding("form", form.dslValue())
+        // tenant.* (lat/lng/id) — disponible dans tous les écrans pour les
+        // modules qui en ont besoin (météo, transports…). Source : tenant
+        // app.json poussé dans TenantContext par AuthGate au démarrage.
+        if !TenantContext.shared.bindings.isEmpty {
+            scope = scope.adding("tenant", .object(TenantContext.shared.bindings))
+        }
         for (key, source) in dsl.data ?? [:] {
             guard let mod = currentModule else { continue }
             if source.hasPrefix("@") {
@@ -1048,18 +1060,35 @@ private struct TabBarBlock: View {
     let node: DSLNode
     let scope: DSLScope
 
+    // iOS bottom tab bar lit confortablement 5 items. Au-delà, on garde les 4
+    // premiers tels quels et on regroupe le reste dans un onglet « Plus »
+    // synthétisé (icône ellipsis), dont l'écran racine est une liste de cards
+    // navigables vers chaque tab débordée. Choix vs SwiftUI auto-overflow :
+    // contrôle de l'ordre (les 4 premiers déclarés restent primaires) +
+    // rendu cohérent avec la marque.
+    private static let maxVisibleTabs = 5
+
     var body: some View {
-        TabView {
-            ForEach(Array((node.tabs ?? []).enumerated()), id: \.offset) { _, tab in
+        let allTabs = node.tabs ?? []
+        if allTabs.count <= Self.maxVisibleTabs {
+            TabView {
+                ForEach(Array(allTabs.enumerated()), id: \.offset) { _, tab in
+                    tabContent(for: tab)
+                }
+            }
+        } else {
+            let visible = Array(allTabs.prefix(Self.maxVisibleTabs - 1))
+            let overflow = Array(allTabs.dropFirst(Self.maxVisibleTabs - 1))
+            TabView {
+                ForEach(Array(visible.enumerated()), id: \.offset) { _, tab in
+                    tabContent(for: tab)
+                }
                 NavigationStack {
                     VStack(spacing: 0) {
                         if let brand = node.brand {
                             BrandHeader(brand: brand)
                         }
-                        ScreenView(
-                            qualifiedScreen: tab.screen,
-                            initialBindings: resolveBindings(tab.bindings ?? [:])
-                        )
+                        OverflowTabContent(tabs: overflow, scope: scope)
                     }
                     .toolbar(node.brand != nil ? .hidden : .visible, for: .navigationBar)
                     .navigationDestination(for: Route.self) { route in
@@ -1067,10 +1096,32 @@ private struct TabBarBlock: View {
                     }
                 }
                 .tabItem {
-                    Label(Template.resolve(tab.title, scope: scope),
-                          systemImage: tab.icon)
+                    Label("Plus", systemImage: "ellipsis.circle")
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func tabContent(for tab: DSLTab) -> some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                if let brand = node.brand {
+                    BrandHeader(brand: brand)
+                }
+                ScreenView(
+                    qualifiedScreen: tab.screen,
+                    initialBindings: resolveBindings(tab.bindings ?? [:])
+                )
+            }
+            .toolbar(node.brand != nil ? .hidden : .visible, for: .navigationBar)
+            .navigationDestination(for: Route.self) { route in
+                ScreenView(qualifiedScreen: route.qualifiedScreen, initialBindings: route.bindings)
+            }
+        }
+        .tabItem {
+            Label(Template.resolve(tab.title, scope: scope),
+                  systemImage: tab.icon)
         }
     }
 
@@ -1084,6 +1135,51 @@ private struct TabBarBlock: View {
             }
         }
         return resolved
+    }
+}
+
+// Écran racine de l'onglet « Plus » : une liste de cards, une par tab débordée.
+// Tap → push de la screen ciblée via Route, comme une navigation classique.
+private struct OverflowTabContent: View {
+    let tabs: [DSLTab]
+    let scope: DSLScope
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                ForEach(Array(tabs.enumerated()), id: \.offset) { _, tab in
+                    NavigationLink(value: Route(qualifiedScreen: tab.screen, bindings: tab.bindings ?? [:])) {
+                        HStack(spacing: 14) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(Color.accentColor)
+                                .frame(width: 36, height: 36)
+                                .background(Color.accentColor.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            Text(Template.resolve(tab.title, scope: scope))
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(Color.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Color.secondary)
+                        }
+                        .padding(14)
+                        .background(Color(uiColor: .systemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(18)
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle("Plus")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

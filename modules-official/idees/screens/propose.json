@@ -1,0 +1,74 @@
+{
+  "screen": "propose",
+  "navigation": {
+    "title": "Proposer une idée",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 14,
+        "padding": 22,
+        "children": [
+          {
+            "type": "text",
+            "value": "Partagez une idée pour améliorer la commune. Le service participation validera votre proposition avant publication dans la boîte à idées publique.",
+            "style": "body",
+            "color": "secondary"
+          },
+          {
+            "type": "field",
+            "kind": "text",
+            "id": "title",
+            "label": "Titre court (1 ligne)",
+            "placeholder": "Ex. Une zone 30 dans le quartier de l'école",
+            "required": true
+          },
+          {
+            "type": "field",
+            "kind": "radio",
+            "id": "category",
+            "label": "Thème",
+            "options": [
+              { "id": "mobilite", "label": "Mobilité (vélo, piétons, transports)" },
+              { "id": "environnement", "label": "Environnement & nature" },
+              { "id": "culture-sport", "label": "Culture & sport" },
+              { "id": "jeunesse", "label": "Jeunesse & écoles" },
+              { "id": "seniors", "label": "Seniors & aidants" },
+              { "id": "vivre-ensemble", "label": "Vivre-ensemble & festivités" },
+              { "id": "urbanisme", "label": "Urbanisme & espace public" },
+              { "id": "autre", "label": "Autre" }
+            ]
+          },
+          {
+            "type": "field",
+            "kind": "text.long",
+            "id": "description",
+            "label": "Votre idée en détail",
+            "placeholder": "Expliquez le contexte, le besoin, ce que cela apporterait à la commune…",
+            "minLines": 5,
+            "required": true
+          },
+          {
+            "type": "button",
+            "label": "Proposer mon idée",
+            "action": {
+              "type": "cf",
+              "endpoint": "submit_idea_proposal",
+              "body": {
+                "title": "{{ form.title }}",
+                "category": "{{ form.category }}",
+                "description": "{{ form.description }}"
+              },
+              "onSuccess": {
+                "toast": "Merci ! Votre idée est en attente de validation par le service participation."
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

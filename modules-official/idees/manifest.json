@@ -1,0 +1,24 @@
+{
+  "id": "idees",
+  "version": "0.1.0",
+  "displayName": "Boîte à idées",
+  "icon": "lightbulb.fill",
+  "description": "Permet aux citoyens de proposer des idées pour améliorer la commune. Validation admin avant publication.",
+  "longDescription": "Module participatif citoyen-vers-administration. Le citoyen propose une idée (titre, catégorie, description) ; le service participation de la commune valide depuis le dashboard avant publication. Une fois publiées, les idées apparaissent dans un fil consultable par tous les citoyens — ce qui évite les doublons et donne de la visibilité aux propositions. Au cœur du module : la file de modération unifiée (`_moderation_queue`) qui traite les soumissions avant publication, comme pour les signalements et les événements citoyens.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["communication", "participation", "ugc"],
+  "capabilities": [
+    { "type": "firestore.read", "target": "ideas", "description": "Lecture des idées approuvées et publiées par la commune" },
+    { "type": "moderation", "target": "ideas", "description": "Les idées citoyennes passent en file de modération admin avant publication" }
+  ],
+  "moderation": [
+    { "collection": "ideas", "label": "Idées citoyennes en attente" }
+  ],
+  "screens": {
+    "list": "screens/list.json",
+    "detail": "screens/detail.json",
+    "propose": "screens/propose.json"
+  }
+}

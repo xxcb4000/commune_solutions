@@ -149,27 +149,73 @@ Pattern :
 Pipeline :
 
 1. **Soumission citoyen** : un écran du module a un formulaire (`field.*` primitives) + bouton avec `action: { type: "cf", endpoint: "submit_suggestion" }`
-2. **Cloud Function du module** (officials uniquement en v0 — communauté pas autorisée à écrire) : valide le payload, écrit dans `_moderation_queue/<auto-id>` :
+2. **Cloud Function du module** (officials uniquement en v0 — communauté pas autorisée à écrire) : valide les champs requis, puis appelle le helper Python `_queue_proposal(decoded, target_collection, module_id, payload_fields, summary)` (cf `core/cloud-functions/main.py`). Le helper écrit dans `_moderation_queue/<auto-id>` l'enveloppe standard :
    ```json
    {
      "targetCollection": "suggestions",
      "moduleId": "<module-id>",
      "submittedBy": "<uid>",
-     "submittedAt": <timestamp>,
-     "payload": { "text": "...", "category": "...", "_summary": "..." }
+     "submittedByEmail": "<email>",
+     "submittedAt": "<server timestamp>",
+     "payload": {
+       ...vos champs métier,
+       "status": "pending",
+       "visible": false,
+       "createdAt": "<server timestamp>",
+       "_summary": "..."
+     }
    }
    ```
-   Le champ `_summary` est optionnel — affiché tel quel dans la file admin si présent, sinon les premiers champs du payload.
+   Le helper auto-injecte `status: "pending"`, `visible: false`, `createdAt`, `_summary` dans `payload`. Vos `payload_fields` ne contiennent que les champs métier (titre, description, etc.). Le `summary` (chaîne séparée) est affiché tel quel dans la file admin.
 3. **Modération dashboard** : l'admin voit la file unifiée (tous modules confondus) dans l'onglet « Modération ». Pour chaque item :
-   - **Approuver** : le payload est copié dans `<targetCollection>` (avec `approvedAt`, `approvedBy`, `originalSubmittedBy`), l'entrée queue est supprimée
+   - **Approuver** : le payload est copié dans `<targetCollection>` avec `status: "approved"` + `visible: true` + `approvedAt` + `approvedBy` + `originalSubmittedBy`, l'entrée queue est supprimée. Vous pouvez filtrer côté lecture sur `where("visible", "==", true)` ou `where("status", "==", "approved")`.
    - **Rejeter** : entrée queue supprimée. Pas d'audit log v0 (rajoutable plus tard si besoin)
-4. **Lecture mobile** : la collection `<targetCollection>/` ne contient que les items approuvés (publication automatique). Lecture standard via `firestore:<collection>`.
+4. **Lecture mobile** : la collection `<targetCollection>/` contient les items approuvés. Lecture standard via `firestore:<collection>`.
 
 Sécurité :
 - `_moderation_queue/` : admin read + delete uniquement, write réservée aux CFs (Admin SDK bypasse)
 - `<targetCollection>/` : auth read citoyens + admin write standard (à whitelister dans `firestore.rules` du projet quand le module est activé pour la première fois)
 
-⚠️ **Statut v0** : le contrat manifest, les Firestore rules, et l'UI dashboard sont en place. Aucun module officiel ne produit d'UGC actuellement — la file reste vide tant qu'un premier module n'a pas implémenté le côté soumission.
+**Statut v0** : trois modules officiels exercent ce pattern aujourd'hui — `agenda` (proposer un événement), `signalements`, `idees`. Tous passent par le helper `_queue_proposal`.
+
+### Champ `secrets` — clés API tierces
+
+Si votre module a besoin d'une clé API tierce (météo, transports, géocoding, traduction…), vous **ne devez pas** la hardcoder. Déclarez-la dans le manifest et l'admin commune la renseignera dans le dashboard.
+
+```json
+"secrets": [
+  {
+    "id": "openweather_api_key",
+    "label": "OpenWeather API key",
+    "description": "Clé pour l'API OpenWeatherMap (gratuit jusqu'à 1k req/jour)",
+    "url": "https://openweathermap.org/api"
+  }
+]
+```
+
+- `id` : lowercase + underscores. Sert de clé Firestore `_secrets/<id>` et de paramètre au helper Python `_get_secret(id)`.
+- `label` : visible admin dans l'onglet « Secrets » du dashboard
+- `description` : explique ce qu'est cette clé, où l'obtenir
+- `url` (optionnel) : lien vers la doc / l'inscription pour obtenir la clé
+
+**Pipeline** :
+
+1. **Manifest déclare** `secrets[]`
+2. **Dashboard admin** : onglet « Secrets » liste automatiquement tous les secrets déclarés par les modules activés. Champ masqué + bouton Enregistrer → écrit `_secrets/<id>` dans Firestore.
+3. **CF du module** lit la valeur via le helper Python :
+   ```python
+   from main import _get_secret  # helper fourni dans core/cloud-functions/main.py
+   key = _get_secret("openweather_api_key")
+   if not key:
+       return _error(503, "Clé API non configurée par l'admin")
+   ```
+
+**Sécurité** :
+- `_secrets/{doc}` : admin RW only via Firestore rules. Les CFs lisent via Admin SDK (bypass).
+- Le client mobile n'a **aucun** accès — la clé n'apparaît jamais dans les binaires apps.
+- Stockage actuel = Firestore en clair. **OK pour secrets faiblement sensibles** (clés API services publics gratuits). Pour secrets plus sensibles (FCM server key, paiement, etc.), une migration vers Google Secret Manager est prévue quand un cas le motivera. Documentez le niveau de sensibilité dans `description`.
+
+**Statut v0** (phase 17 livrée, mai 2026) : contrat manifest + validateur CI + UI dashboard + helper CF + Firestore rules. Pas encore de module officiel qui consomme — la phase 17 a été livrée pull-driven juste avant le module Météo locale qui exercera le helper.
 
 ### Capability `cf.external` — Cloud Functions externes
 

@@ -20,6 +20,17 @@ service cloud.firestore {
       allow create, update: if false;
     }
 
+    // _secrets/* : secrets configurés par l'admin commune (clés API tierces
+    // déclarées dans le `secrets` du manifest des modules activés). Admin
+    // lit + écrit via le dashboard. Les CFs lisent via Admin SDK (bypass).
+    // Le client mobile n'a aucun accès — important pour ne pas exposer les
+    // clés API en clair dans les binaires apps. Stockage Firestore = OK pour
+    // secrets faiblement sensibles (clés API services publics) ; secrets plus
+    // sensibles (FCM, paiement) migreront vers Google Secret Manager.
+    match /_secrets/{doc} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+
     // Collections de contenu officielles : lecture authentifiée pour les
     // citoyens, écriture réservée aux admins via le dashboard.
     // Les Cloud Functions officielles bypassent les rules (Admin SDK) et
@@ -46,6 +57,10 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
     match /signalements/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /ideas/{doc} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.token.admin == true;
     }

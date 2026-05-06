@@ -1,0 +1,106 @@
+{
+  "screen": "list",
+  "navigation": {
+    "title": "Boîte à idées",
+    "displayMode": "inline"
+  },
+  "data": {
+    "ideas": "firestore:ideas"
+  },
+  "view": {
+    "type": "scroll",
+    "refreshable": true,
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 0,
+        "padding": 14,
+        "children": [
+          {
+            "type": "card",
+            "action": {
+              "type": "navigate",
+              "to": "propose"
+            },
+            "child": {
+              "type": "hstack",
+              "spacing": 12,
+              "padding": 14,
+              "align": "center",
+              "children": [
+                {
+                  "type": "image",
+                  "systemName": "lightbulb.fill",
+                  "color": "civic",
+                  "height": 22
+                },
+                {
+                  "type": "vstack",
+                  "spacing": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Proposer une idée",
+                      "style": "serif-title2"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mobilité · environnement · culture · vivre-ensemble · urbanisme",
+                      "style": "body",
+                      "color": "secondary"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "type": "vstack",
+        "spacing": 14,
+        "padding": 18,
+        "children": [
+          {
+            "type": "for",
+            "in": "ideas",
+            "as": "idea",
+            "child": {
+              "type": "card",
+              "action": {
+                "type": "navigate",
+                "to": "detail",
+                "with": { "idea": "{{ idea }}" }
+              },
+              "child": {
+                "type": "vstack",
+                "spacing": 8,
+                "padding": 16,
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "{{ idea.categoryLabel }}",
+                    "style": "eyebrow",
+                    "color": "civic"
+                  },
+                  {
+                    "type": "text",
+                    "value": "{{ idea.title }}",
+                    "style": "serif-title2"
+                  },
+                  {
+                    "type": "text",
+                    "value": "{{ idea.description }}",
+                    "style": "body",
+                    "color": "secondary",
+                    "maxLines": 3
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

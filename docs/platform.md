@@ -480,24 +480,37 @@ Au lifecycle du module :
 
 ## Secrets commune — `secrets`
 
-Différent de `config` : les secrets sont stockés dans **Google Secret Manager** côté projet commune, jamais en Firestore, jamais relus dans le dashboard après création (input mode `password` write-only).
+Différent de `config` : les secrets sont des clés API tierces (météo, transports, géocoding, traduction…) renseignées par l'admin de la commune et lues à runtime par les CFs des modules.
+
+> **Statut implémentation v0** : phase 17 livrée (mai 2026). Voir [`docs/developers.md` § Champ secrets](developers.md#champ-secrets--clés-api-tierces) pour le contrat réel actuel. Le design ci-dessous reste l'orientation à terme (Secret Manager, intégration `config.ui`, dégradation gracieuse via `required: false`).
+
+**Implémentation v0 actuelle** :
+
+```json
+"secrets": [
+  {
+    "id": "openweather_api_key",
+    "label": "OpenWeather API key",
+    "description": "Clé API pour l'API OpenWeatherMap",
+    "url": "https://openweathermap.org/api"
+  }
+]
+```
+
+- Stockage **Firestore** `_secrets/<id>` avec rules admin RW only (citoyens 0 accès, CFs lisent via Admin SDK)
+- Dashboard onglet « Secrets » agrège les secrets des modules activés et propose un formulaire masqué
+- Helper Python `_get_secret(id)` côté CF (cf `core/cloud-functions/main.py`)
+- Le client mobile n'a aucun accès — la clé n'apparaît jamais dans les binaires
+
+**Design original (orientation à terme)** : stockage **Google Secret Manager** côté projet commune, jamais en Firestore, jamais relus dans le dashboard après création. Migration prévue quand un secret plus sensible (FCM server key, paiement) le motivera. Les CFs recevraient les valeurs via env (binding standard Cloud Functions). `required: false` permettrait la dégradation gracieuse.
 
 ```yaml
+# Design original (non implémenté en v0)
 secrets:
   - id: OPENAI_API_KEY
     description: "Clé OpenAI pour dedup intelligent"
     required: false                  # dégradation gracieuse si absent
-  - id: FACEBOOK_GRAPH_TOKEN
-    required: false
 ```
-
-À l'installation/config :
-- Admin commune voit les secrets demandés dans le formulaire `config.ui`
-- Saisie en mode masqué, écrit directement dans Secret Manager
-- Les CFs du module reçoivent les valeurs via env (binding standard Cloud Functions)
-- Rotation : admin peut régénérer/réécrire à tout moment
-
-`required: false` permet aux modules d'avoir des fonctionnalités optionnelles : Actualités sans OpenAI utilise un dedup heuristique.
 
 ## Deep-links — `deepLinks`
 
@@ -605,7 +618,7 @@ Si une extension native est demandée par 2+ modules, c'est le signal qu'elle do
 
 Plusieurs modules ont besoin de modérer du contenu utilisateur (POIs proposés, events proposés, signalements voirie, propositions budget participatif…). Plutôt que chacun ré-implémente, le framework offre une abstraction.
 
-> **Statut implémentation v0** : phase 14.8 livrée. Le pattern décrit ici a été simplifié à l'implémentation — voir [`docs/developers.md` § Capability moderation](developers.md#capability-moderation--modération-ugc) pour le contrat réel actuel et l'exercice live (« Proposer un événement » dans le module `agenda`). Le design original ci-dessous reste valide en tant qu'orientation à terme (champs auto-injectés, RLS, CFs standardisées) ; on l'élargira quand un 2ème puis 3ème module UGC arriveront.
+> **Statut implémentation v0** : phase 18.2 livrée (mai 2026, motivée par 3 modules UGC actifs : `agenda` proposer-événement, `signalements`, `idees`). Le pattern décrit dans le design original ci-dessous a été partiellement implémenté : champs lifecycle auto-injectés sur `payload` côté CF + dashboard, queue unifiée, helper Python factorisé. Les `<module>.list_pending()` et le sync auto status↔visible restent au design original — pas encore livrés faute de cas qui les justifie.
 
 **Design original** :
 
@@ -622,7 +635,24 @@ Quand `moderation: true` :
 - **Sync auto** `status` ↔ `visible` (évite la dette typique où il fallait les synchroniser à la main)
 - **Contribution auto** à l'extension point `dashboard:moderation.pending` — l'admin voit tout ce qui attend dans un widget unifié
 
-**Implémentation v0 actuelle** (simplifiée) : queue unifiée `_moderation_queue/<id>` avec `{targetCollection, payload, moduleId, submittedBy, submittedAt}`. Le CF du module officiel valide la soumission citoyenne et écrit dans la queue. Le dashboard admin lit la queue, propose Approve (copie `payload` dans `targetCollection` puis delete queue) ou Reject (delete queue). Les champs auto-injectés + sync auto status/visible sont laissés pour quand un 2ème module les justifiera.
+**Implémentation v0 actuelle** (phase 18.2 — version pull-driven du design ci-dessus) :
+
+- **Queue unifiée** `_moderation_queue/<id>` avec enveloppe standard :
+  ```json
+  {
+    "targetCollection": "ideas",
+    "moduleId": "idees",
+    "submittedBy": "<uid>",
+    "submittedByEmail": "<email>",
+    "submittedAt": "<server timestamp>",
+    "payload": { ...champs métier..., "status": "pending", "visible": false, "createdAt": "<server timestamp>", "_summary": "..." }
+  }
+  ```
+- **Helper CF Python** `_queue_proposal(decoded, target_collection, module_id, payload_fields, summary)` (cf `core/cloud-functions/main.py`) : tout module UGC officiel l'utilise plutôt que d'écrire son propre `db.collection("_moderation_queue").add(...)`. Garantit shape cohérent + auto-injection de `status: "pending"` / `visible: false` / `createdAt` dans le payload.
+- **Dashboard sur approve** : `addDoc(targetCollection, {...payload, status: "approved", visible: true, approvedAt, approvedBy, originalSubmittedBy})` puis `deleteDoc(_moderation_queue/<id>)`. Les renderers ou queries futures peuvent filtrer sur `visible == true`.
+- **Reject** : juste `deleteDoc(_moderation_queue/<id>)` (audit log = phase ultérieure si un cas le motive).
+
+Trois modules UGC officiels suivent ce pattern aujourd'hui : `submit_event_proposal` (agenda), `submit_signalement_proposal` (signalements), `submit_idea_proposal` (idees).
 
 ## Permissions device — aggregation au build
 

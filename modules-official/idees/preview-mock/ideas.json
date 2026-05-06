@@ -1,0 +1,52 @@
+[
+  {
+    "id": "idea-001",
+    "title": "Une zone 30 dans le quartier de l'école communale",
+    "category": "mobilite",
+    "categoryLabel": "Mobilité",
+    "description": "Aux heures d'entrée et de sortie d'école, beaucoup de voitures roulent encore à 50 km/h dans la rue de l'École. Une zone 30 généralisée sur tout le périmètre de l'école (y compris les rues adjacentes) sécuriserait nettement les parents et enfants à pied ou à vélo. Plusieurs communes voisines l'ont déjà fait avec un effet immédiat.",
+    "status": "approved",
+    "createdAt": "2026-04-30",
+    "approvedAt": "2026-05-01"
+  },
+  {
+    "id": "idea-002",
+    "title": "Un compost collectif au parc des Trois Tilleuls",
+    "category": "environnement",
+    "categoryLabel": "Environnement",
+    "description": "Beaucoup de familles d'appartement n'ont pas la place de composter. Installer 2-3 bacs de compostage collectifs au parc, gérés par un référent bénévole, permettrait de réduire les déchets organiques et créer du lien entre voisins. Modèle déjà testé dans plusieurs communes wallonnes.",
+    "status": "approved",
+    "createdAt": "2026-04-26",
+    "approvedAt": "2026-04-27"
+  },
+  {
+    "id": "idea-003",
+    "title": "Un bibliobus mensuel pour les hameaux excentrés",
+    "category": "culture-sport",
+    "categoryLabel": "Culture & sport",
+    "description": "Les habitants des hameaux à 4-5 km du centre n'ont pas d'accès facile à la bibliothèque communale. Un bibliobus mensuel (1 jour/mois, 2-3 arrêts) toucherait aussi les seniors qui ne conduisent plus et les enfants qui n'ont pas de bus scolaire le mercredi.",
+    "status": "approved",
+    "createdAt": "2026-04-22",
+    "approvedAt": "2026-04-23"
+  },
+  {
+    "id": "idea-004",
+    "title": "Une plaine de jeux inclusive accessible PMR",
+    "category": "jeunesse",
+    "categoryLabel": "Jeunesse & écoles",
+    "description": "La plaine de jeux actuelle est sur sol meuble — inaccessible en fauteuil roulant. Profiter du prochain renouvellement pour passer à un revêtement amortissant lisse et installer 1-2 jeux adaptés (balançoire-nacelle, panneau sensoriel) ferait toute la différence pour plusieurs familles concernées.",
+    "status": "approved",
+    "createdAt": "2026-04-19",
+    "approvedAt": "2026-04-20"
+  },
+  {
+    "id": "idea-005",
+    "title": "Un repair-café trimestriel à la maison de village",
+    "category": "vivre-ensemble",
+    "categoryLabel": "Vivre-ensemble",
+    "description": "Un samedi matin par trimestre, ouvrir la maison de village à un repair-café : des bénévoles aident à réparer petit électroménager, vélos, vêtements. Réduit les déchets, crée du lien intergénérationnel, économies pour les habitants. Le réseau Repair Together fournit le cadre clé en main.",
+    "status": "approved",
+    "createdAt": "2026-04-15",
+    "approvedAt": "2026-04-16"
+  }
+]

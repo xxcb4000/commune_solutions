@@ -38,6 +38,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
 import androidx.compose.foundation.clickable
 import java.net.HttpURLConnection
 import java.net.URL
@@ -260,13 +261,22 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
                                 feedback = "URL backend non configurée"; feedbackError = true; loading = false
                                 return@launch
                             }
-                            val ok = withContext(Dispatchers.IO) {
+                            val result = withContext(Dispatchers.IO) {
                                 postJson(url, JsonObject(resolved), authToken)
                             }
-                            if (ok) {
-                                feedback = "Envoyé."
-                                feedbackError = false
-                                form.values.clear()
+                            // Si la CF retourne {"text": "..."}, on l'affiche tel
+                            // quel (read-only / fetch). Sinon legacy : "Envoyé." +
+                            // reset (cas form de soumission UGC).
+                            if (result.ok) {
+                                val text = result.text?.takeIf { it.isNotEmpty() }
+                                if (text != null) {
+                                    feedback = text
+                                    feedbackError = false
+                                } else {
+                                    feedback = "Envoyé."
+                                    feedbackError = false
+                                    form.values.clear()
+                                }
                             } else {
                                 feedback = "Erreur serveur"
                                 feedbackError = true
@@ -302,7 +312,9 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
     }
 }
 
-private fun postJson(url: String, body: JsonObject, authToken: String? = null): Boolean {
+data class CfResult(val ok: Boolean, val text: String?)
+
+private fun postJson(url: String, body: JsonObject, authToken: String? = null): CfResult {
     return try {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 5000
@@ -318,12 +330,20 @@ private fun postJson(url: String, body: JsonObject, authToken: String? = null): 
         try {
             val payload = SpikeJson.encodeToString(JsonObject.serializer(), body)
             conn.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-            conn.responseCode in 200..299
+            val ok = conn.responseCode in 200..299
+            val text: String? = if (ok) {
+                runCatching {
+                    val raw = conn.inputStream.bufferedReader().use { it.readText() }
+                    val obj = SpikeJson.parseToJsonElement(raw).jsonObject
+                    (obj["text"] as? JsonPrimitive)?.contentOrNull
+                }.getOrNull()
+            } else null
+            CfResult(ok = ok, text = text)
         } finally {
             conn.disconnect()
         }
     } catch (e: Exception) {
         Log.e("ButtonBlock", "POST failed", e)
-        false
+        CfResult(ok = false, text = null)
     }
 }

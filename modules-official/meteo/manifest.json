@@ -1,0 +1,24 @@
+{
+  "id": "meteo",
+  "version": "0.1.0",
+  "displayName": "Météo locale",
+  "icon": "cloud.sun.fill",
+  "description": "Affiche la météo du jour pour la commune. Tirée d'OpenWeatherMap (clé API à fournir par l'admin).",
+  "longDescription": "Premier module exerçant le pattern `secrets` (phase 17). L'admin commune obtient gratuitement une clé OpenWeatherMap puis la renseigne dans l'onglet Secrets du dashboard ; le citoyen voit la météo du jour à coordonnées de sa commune. Pull-driven : ce module a motivé le passage en production du contrat secrets + helper Cloud Function `_get_secret`. À évoluer (data source auto-fetch, prévisions multi-jours, icônes graphiques) quand un cas le justifiera.",
+  "author": "Commune Solutions Core",
+  "licence": "EUPL-1.2",
+  "official": true,
+  "tags": ["info", "tiers"],
+  "capabilities": [],
+  "secrets": [
+    {
+      "id": "openweather_api_key",
+      "label": "OpenWeather API key",
+      "description": "Clé API gratuite (1 000 requêtes/jour). Inscription à l'adresse ci-dessous, onglet « API keys » de votre compte.",
+      "url": "https://openweathermap.org/api"
+    }
+  ],
+  "screens": {
+    "main": "screens/main.json"
+  }
+}

@@ -377,11 +377,19 @@ function renderSegmented(node, scope, ctx) {
 
 function renderTabBar(node, scope, ctx) {
     // En preview web, la tabbar = un tableau d'écrans cliquables qui recharge
-    // la page sur le screen choisi. Sert au navigation entre les screens
-    // déclarés dans le manifest du module.
+    // la page sur le screen choisi. Au-delà de 5 tabs, on suit la même logique
+    // que iOS/Android : 4 tabs visibles + bouton « Plus » qui ouvre un panel
+    // listant les overflow.
+    const MAX_VISIBLE = 5;
+    const allTabs = node.tabs ?? [];
+    const hasOverflow = allTabs.length > MAX_VISIBLE;
+    const visibleTabs = hasOverflow ? allTabs.slice(0, MAX_VISIBLE - 1) : allTabs;
+    const overflowTabs = hasOverflow ? allTabs.slice(MAX_VISIBLE - 1) : [];
+
     const wrapper = document.createElement("nav");
     wrapper.className = "ds-tabbar";
-    for (const tab of node.tabs ?? []) {
+
+    for (const tab of visibleTabs) {
         const a = document.createElement("a");
         a.className = "ds-tab";
         a.textContent = tab.title;
@@ -392,6 +400,34 @@ function renderTabBar(node, scope, ctx) {
         });
         wrapper.appendChild(a);
     }
+
+    if (hasOverflow) {
+        const more = document.createElement("a");
+        more.className = "ds-tab ds-tab-more";
+        more.textContent = "Plus";
+        more.href = "#";
+        const panel = document.createElement("div");
+        panel.className = "ds-tabbar-overflow";
+        panel.hidden = true;
+        for (const tab of overflowTabs) {
+            const a = document.createElement("a");
+            a.className = "ds-tab-overflow-item";
+            a.textContent = tab.title;
+            a.href = "#";
+            a.addEventListener("click", (e) => {
+                e.preventDefault();
+                ctx?.onNavigate?.(tab.screen, {});
+            });
+            panel.appendChild(a);
+        }
+        more.addEventListener("click", (e) => {
+            e.preventDefault();
+            panel.hidden = !panel.hidden;
+        });
+        wrapper.appendChild(more);
+        wrapper.appendChild(panel);
+    }
+
     return wrapper;
 }
 

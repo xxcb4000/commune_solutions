@@ -118,6 +118,8 @@ async function renderDashboard(user) {
             await renderModules(content, user);
         } else if (name === "branding") {
             await renderBranding(content, user);
+        } else if (name === "secrets") {
+            await renderSecrets(content, user);
         } else if (name === "moderation") {
             await renderModeration(content, user);
         } else {
@@ -345,22 +347,167 @@ const SCHEMAS = {
     },
 };
 
+// MARK: - Secrets (phase 17)
+//
+// Les modules qui ont besoin d'une clé API tierce (météo, transports,
+// géocoding…) déclarent leurs secrets dans le manifest :
+//   "secrets": [
+//     { "id": "openweather_api_key", "label": "OpenWeather API key",
+//       "description": "Clé API pour l'API OpenWeatherMap",
+//       "url": "https://openweathermap.org/api" }
+//   ]
+// L'admin commune renseigne la valeur dans cet onglet ; elle est stockée
+// dans Firestore `_secrets/<id>` (admin RW only, citoyens 0 accès). Les
+// CFs des modules la lisent via le helper `_get_secret(id)` (Admin SDK
+// bypass). Stockage Firestore = OK pour secrets faiblement sensibles
+// (API keys publiques) ; secrets plus sensibles (FCM, paiement) migreront
+// vers Google Secret Manager quand un cas le motivera.
+
+async function renderSecrets(container, user) {
+    // Liste les secrets déclarés par les modules activés (lus depuis le
+    // catalogue marketplace, qui agrège tous les manifests).
+    let catalog = [];
+    let runtime = { modules: [] };
+    try {
+        const [catalogRes, runtimeSnap] = await Promise.all([
+            fetch(MARKETPLACE_CATALOG_URL, { cache: "no-cache" }),
+            getDoc(doc(db, "_config", "modules")),
+        ]);
+        if (catalogRes.ok) catalog = (await catalogRes.json()).modules || [];
+        if (runtimeSnap.exists()) runtime = { ...runtime, ...runtimeSnap.data() };
+    } catch (e) {
+        container.innerHTML = `<p class="empty">Erreur chargement : ${esc(e.message)}</p>`;
+        return;
+    }
+
+    const activeIds = new Set((runtime.modules ?? []).map((m) => m.id));
+    // Aplatit : pour chaque module activé, récupère ses secrets déclarés.
+    const declared = [];
+    for (const mod of catalog) {
+        if (!activeIds.has(mod.id)) continue;
+        for (const secret of mod.secrets ?? []) {
+            declared.push({ ...secret, moduleId: mod.id, moduleName: mod.displayName });
+        }
+    }
+
+    if (declared.length === 0) {
+        container.innerHTML = `
+            <div class="modules-pane">
+                <p class="modules-intro">
+                    Les modules activés ne déclarent aucun secret à configurer.
+                    Quand un module aura besoin d'une clé API tierce (météo,
+                    transports…), il apparaîtra ici.
+                </p>
+            </div>
+        `;
+        return;
+    }
+
+    // Récupère l'état actuel de chaque secret (set ou pas).
+    const states = {};
+    await Promise.all(declared.map(async (s) => {
+        try {
+            const snap = await getDoc(doc(db, "_secrets", s.id));
+            states[s.id] = snap.exists() ? { set: true, hasValue: !!snap.data().value } : { set: false };
+        } catch (e) {
+            states[s.id] = { set: false, error: e.message };
+        }
+    }));
+
+    container.innerHTML = `
+        <div class="modules-pane">
+            <p class="modules-intro">
+                Configurez les clés API tierces dont les modules activés ont
+                besoin. Les valeurs sont stockées dans Firestore (admin only)
+                et lues côté Cloud Functions via Admin SDK. Le client mobile
+                n'y a aucun accès.
+            </p>
+            <div class="secrets-list">
+                ${declared.map((s) => secretRowHTML(s, states[s.id])).join("")}
+            </div>
+        </div>
+    `;
+
+    container.querySelectorAll("[data-secret-save]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const id = btn.dataset.secretSave;
+            const row = container.querySelector(`[data-secret-row="${id}"]`);
+            const input = row.querySelector("input[type='password']");
+            const status = row.querySelector("[data-slot='status']");
+            const value = input.value.trim();
+            if (!value) {
+                status.textContent = "Valeur vide — saisis une clé.";
+                status.className = "modules-status error";
+                return;
+            }
+            status.textContent = "Enregistrement…";
+            status.className = "modules-status";
+            try {
+                await setDoc(doc(db, "_secrets", id), {
+                    value,
+                    updatedAt: serverTimestamp(),
+                    updatedBy: user.uid,
+                });
+                status.textContent = "✓ Enregistré.";
+                status.className = "modules-status success";
+                input.value = "";
+                input.placeholder = "•••••••• (modifier pour remplacer)";
+                row.querySelector("[data-slot='state']").textContent = "Configuré";
+            } catch (e) {
+                const msg = e?.code === "permission-denied"
+                    ? "Permission refusée — claim admin manquant."
+                    : `Erreur : ${e.message}`;
+                status.textContent = msg;
+                status.className = "modules-status error";
+            }
+        });
+    });
+}
+
+function secretRowHTML(secret, state) {
+    const stateLabel = state?.set ? "Configuré" : "Non configuré";
+    const stateClass = state?.set ? "success" : "warning";
+    const placeholder = state?.set ? "•••••••• (modifier pour remplacer)" : "Coller la clé ici";
+    const linkHTML = secret.url
+        ? `<a href="${esc(secret.url)}" target="_blank" rel="noopener">Documentation</a>`
+        : "";
+    return `
+        <div class="secret-row" data-secret-row="${esc(secret.id)}">
+            <div class="secret-meta">
+                <strong>${esc(secret.label)}</strong>
+                <span class="module-badge">${esc(secret.moduleName)}</span>
+                <span class="secret-state ${stateClass}" data-slot="state">${stateLabel}</span>
+            </div>
+            <p class="secret-description">${esc(secret.description ?? "")} ${linkHTML}</p>
+            <div class="secret-actions">
+                <input type="password" placeholder="${esc(placeholder)}" autocomplete="off" />
+                <button type="button" class="primary" data-secret-save="${esc(secret.id)}">Enregistrer</button>
+            </div>
+            <p class="modules-status" data-slot="status"></p>
+        </div>
+    `;
+}
+
 // MARK: - Modération UGC (14.8)
 //
-// Pattern :
+// Pattern phase 18.2 :
 //   - Les CFs des modules officiels écrivent les soumissions citoyennes
 //     dans `_moderation_queue/<auto-id>` (Admin SDK bypasse les rules)
-//     avec le shape : { targetCollection, payload, moduleId,
-//     submittedBy, submittedAt }
+//     avec le shape : { targetCollection, moduleId, submittedBy,
+//     submittedByEmail, submittedAt, payload }. Le helper Python
+//     `_queue_proposal` auto-injecte `status: "pending"`, `visible: false`,
+//     `createdAt` dans `payload` pour que tout document modéré ait une
+//     forme cycle-de-vie cohérente.
 //   - Le dashboard lit la queue, propose Approuver / Rejeter par item
-//   - Approuver : `addDoc(targetCollection, payload + approvedAt + approvedBy)`
-//                 puis `deleteDoc(_moderation_queue/<id>)`
+//   - Approuver : `addDoc(targetCollection, payload + status: "approved" +
+//     visible: true + approvedAt + approvedBy + originalSubmittedBy)`
+//     puis `deleteDoc(_moderation_queue/<id>)`. Les renderers ou queries
+//     futures peuvent filtrer sur `visible == true` sans ambiguïté.
 //   - Rejeter : juste `deleteDoc(_moderation_queue/<id>)` (audit log =
-//                 phase ultérieure si besoin)
+//     phase ultérieure si besoin).
 //
-// Aucun module officiel ne produit d'UGC en v0 — la queue restera vide
-// tant qu'un module n'aura pas implémenté le côté soumission. Le contrat
-// + l'UI sont prêts pour quand ce cas arrivera.
+// Modules UGC actifs en v0 : agenda (proposer un événement), signalements,
+// idees. Les 3 passent par le helper `_queue_proposal` côté CF.
 
 async function renderModeration(container, user) {
     let pending = [];
@@ -461,6 +608,8 @@ async function handleModerationAction(action, item, user, container) {
         if (action === "approve") {
             await addDoc(collection(db, item.targetCollection), {
                 ...item.payload,
+                status: "approved",
+                visible: true,
                 approvedAt: serverTimestamp(),
                 approvedBy: user.uid,
                 originalSubmittedBy: item.submittedBy ?? null,

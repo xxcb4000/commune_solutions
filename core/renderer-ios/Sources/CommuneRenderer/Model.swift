@@ -199,6 +199,11 @@ final class DSLScreen: Decodable {
     let data: [String: String]?
     let view: DSLNode
     let modules: [DSLModuleRef]?
+    // Coordonnées géographiques de la commune. Optionnelles. Exposées en
+    // scope DSL comme `{{ tenant.lat }}` / `{{ tenant.lng }}` pour les
+    // modules qui en ont besoin (météo, transports, géocoding…).
+    let lat: Double?
+    let lng: Double?
 }
 
 struct DSLModuleRef: Decodable {

@@ -2,6 +2,8 @@
   "tenant": "spike",
   "firebase": "spike-1",
   "functionsBaseURL": "https://europe-west1-commune-spike-1.cloudfunctions.net",
+  "lat": 50.6326,
+  "lng": 5.5797,
   "build": {
     "bundleId": "be.communesolutions.spike",
     "displayName": "Démo A"
@@ -11,6 +13,8 @@
     { "id": "agenda", "version": "0.2.0" },
     { "id": "carte", "version": "0.1.0" },
     { "id": "signalements", "version": "0.1.0" },
+    { "id": "idees", "version": "0.1.0" },
+    { "id": "meteo", "version": "0.1.0" },
     { "id": "sondages", "version": "0.1.0" },
     { "id": "info", "version": "0.1.0" }
   ],
@@ -26,6 +30,8 @@
       { "title": "Agenda", "icon": "calendar", "screen": "agenda:list" },
       { "title": "Carte", "icon": "map", "screen": "carte:list" },
       { "title": "Signalements", "icon": "exclamationmark.triangle.fill", "screen": "signalements:list" },
+      { "title": "Idées", "icon": "lightbulb.fill", "screen": "idees:list" },
+      { "title": "Météo", "icon": "cloud.sun.fill", "screen": "meteo:main" },
       { "title": "Sondages", "icon": "chart.bar.fill", "screen": "sondages:list" }
     ]
   }

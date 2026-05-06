@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarToday
@@ -37,14 +38,17 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -297,15 +301,24 @@ val LocalLogout = compositionLocalOf<() -> Unit> { {} }
 // Firestore collections referenced by `firestore:<path>` data sources.
 val LocalCurrentFirebaseApp = compositionLocalOf<com.google.firebase.FirebaseApp?> { null }
 
+// Bottom navigation Android lit confortablement 5 items. Au-delà, on garde
+// les 4 premiers + un onglet « Plus » synthétisé qui regroupe les autres dans
+// une liste de cards navigables. Voir TabBarBlock côté iOS pour le pendant.
+private const val MAX_VISIBLE_TABS = 5
+
 @Composable
 fun TabBarRoot(node: DSLNode) {
     var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = node.tabs ?: emptyList()
+    val allTabs = node.tabs ?: emptyList()
+    val hasOverflow = allTabs.size > MAX_VISIBLE_TABS
+    val visibleTabs = if (hasOverflow) allTabs.take(MAX_VISIBLE_TABS - 1) else allTabs
+    val overflowTabs = if (hasOverflow) allTabs.drop(MAX_VISIBLE_TABS - 1) else emptyList()
+    val barItems = visibleTabs.size + (if (hasOverflow) 1 else 0)
 
     Scaffold(
         bottomBar = {
             NavigationBar {
-                tabs.forEachIndexed { index, tab ->
+                visibleTabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
                         selected = selectedIndex == index,
                         onClick = { selectedIndex = index },
@@ -318,18 +331,136 @@ fun TabBarRoot(node: DSLNode) {
                         label = { Text(tab.title) }
                     )
                 }
+                if (hasOverflow) {
+                    val moreIndex = visibleTabs.size
+                    NavigationBarItem(
+                        selected = selectedIndex == moreIndex,
+                        onClick = { selectedIndex = moreIndex },
+                        icon = {
+                            Icon(
+                                imageVector = iconForName("ellipsis.circle"),
+                                contentDescription = null
+                            )
+                        },
+                        label = { Text("Plus") }
+                    )
+                }
             }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
-            tabs.getOrNull(selectedIndex)?.let { tab ->
-                // Re-key the nav stack per tab so each maintains a fresh history
-                // when switched. (Spike-acceptable: back-stack resets on tab switch.)
-                androidx.compose.runtime.key(selectedIndex) {
-                    SingleNavStack(
-                        startQualifiedScreen = tab.screen,
-                        startBindings = tab.bindings ?: emptyMap(),
-                        brand = node.brand
+            // Re-key the nav stack per tab so each maintains a fresh history
+            // when switched. (Spike-acceptable: back-stack resets on tab switch.)
+            androidx.compose.runtime.key(selectedIndex) {
+                if (hasOverflow && selectedIndex == visibleTabs.size) {
+                    OverflowNavStack(overflowTabs = overflowTabs, brand = node.brand)
+                } else {
+                    visibleTabs.getOrNull(selectedIndex)?.let { tab ->
+                        SingleNavStack(
+                            startQualifiedScreen = tab.screen,
+                            startBindings = tab.bindings ?: emptyMap(),
+                            brand = node.brand
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverflowNavStack(overflowTabs: List<DSLTab>, brand: DSLBrand?) {
+    val nav = rememberNavController()
+    val currentEntry by nav.currentBackStackEntryAsState()
+    val isAtRoot = currentEntry == null || nav.previousBackStackEntry == null
+
+    NavHost(
+        navController = nav,
+        startDestination = OverflowRootRoute
+    ) {
+        composable<OverflowRootRoute> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (isAtRoot && brand != null) {
+                    BrandHeader(brand)
+                }
+                OverflowList(tabs = overflowTabs, nav = nav)
+            }
+        }
+        composable<ScreenRoute> { entry ->
+            val route: ScreenRoute = entry.toRoute()
+            Column(modifier = Modifier.fillMaxSize()) {
+                ScreenView(
+                    qualifiedScreen = route.qualifiedScreen,
+                    initialBindings = decodeBindings(route.bindingsJson),
+                    nav = nav
+                )
+            }
+        }
+    }
+}
+
+@kotlinx.serialization.Serializable
+private object OverflowRootRoute
+
+@Composable
+private fun OverflowList(tabs: List<DSLTab>, nav: NavController) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        tabs.forEach { tab ->
+            androidx.compose.material3.Surface(
+                onClick = {
+                    nav.navigate(
+                        ScreenRoute(
+                            qualifiedScreen = tab.screen,
+                            bindingsJson = encodeBindings(tab.bindings ?: emptyMap())
+                        )
+                    )
+                },
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    androidx.compose.material3.MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                            ),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = iconForName(tab.icon),
+                            contentDescription = null,
+                            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Text(
+                        text = tab.title,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = iconForName("chevron.right"),
+                        contentDescription = null,
+                        tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -518,6 +649,9 @@ fun ScreenView(
     val scope = run {
         var s = DSLScope(initialBindings)
         s = s.adding("form", form.toJsonElement())
+        if (TenantContext.bindings.isNotEmpty()) {
+            s = s.adding("tenant", JsonObject(TenantContext.bindings))
+        }
         for ((key, source) in resolved.data ?: emptyMap()) {
             if (currentModule == null) continue
             when {
@@ -1417,5 +1551,9 @@ private fun iconForName(name: String): ImageVector = when (name) {
     "arrow.up.right" -> Icons.AutoMirrored.Filled.OpenInNew
     "checkmark.circle" -> Icons.Filled.CheckCircle
     "chevron.right" -> Icons.AutoMirrored.Filled.KeyboardArrowRight
+    "ellipsis.circle", "ellipsis" -> Icons.Filled.MoreHoriz
+    "lightbulb.fill", "lightbulb" -> Icons.Filled.Lightbulb
+    "exclamationmark.triangle.fill", "exclamationmark.triangle" -> Icons.Filled.Warning
+    "plus.circle.fill", "plus.circle" -> Icons.Filled.AddCircle
     else -> Icons.Filled.Apps
 }

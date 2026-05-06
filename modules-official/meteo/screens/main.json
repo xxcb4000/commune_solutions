@@ -1,0 +1,77 @@
+{
+  "screen": "main",
+  "navigation": {
+    "title": "Météo locale",
+    "displayMode": "inline"
+  },
+  "view": {
+    "type": "scroll",
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 18,
+        "padding": 22,
+        "children": [
+          {
+            "type": "card",
+            "child": {
+              "type": "vstack",
+              "spacing": 12,
+              "padding": 18,
+              "children": [
+                {
+                  "type": "hstack",
+                  "spacing": 14,
+                  "align": "center",
+                  "children": [
+                    {
+                      "type": "image",
+                      "systemName": "cloud.sun.fill",
+                      "color": "civic",
+                      "height": 32
+                    },
+                    {
+                      "type": "vstack",
+                      "spacing": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Météo du jour",
+                          "style": "serif-title2"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Source : OpenWeatherMap",
+                          "style": "body",
+                          "color": "secondary"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "value": "Tape « Charger la météo » pour voir les conditions actuelles à votre commune.",
+                  "style": "body",
+                  "color": "secondary"
+                }
+              ]
+            }
+          },
+          {
+            "type": "button",
+            "label": "Charger la météo",
+            "action": {
+              "type": "cf",
+              "endpoint": "fetch_weather",
+              "body": {
+                "lat": "{{ tenant.lat }}",
+                "lng": "{{ tenant.lng }}"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

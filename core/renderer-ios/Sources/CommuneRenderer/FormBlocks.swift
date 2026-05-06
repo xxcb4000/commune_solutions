@@ -279,11 +279,20 @@ struct ButtonBlock: View {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (respData, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
-                feedback = "Envoyé."
-                feedbackError = false
-                form.values.removeAll()
+                // Si la CF retourne `{"text": "..."}`, on affiche le texte tel quel
+                // (cas Météo / lookups : la CF est un read-only ou un fetch). Sinon
+                // legacy : "Envoyé." + reset form (cas form de soumission UGC).
+                if let json = try? JSONSerialization.jsonObject(with: respData) as? [String: Any],
+                   let text = json["text"] as? String, !text.isEmpty {
+                    feedback = text
+                    feedbackError = false
+                } else {
+                    feedback = "Envoyé."
+                    feedbackError = false
+                    form.values.removeAll()
+                }
             } else if let http = response as? HTTPURLResponse {
                 feedback = "Erreur serveur (\(http.statusCode))"
                 feedbackError = true

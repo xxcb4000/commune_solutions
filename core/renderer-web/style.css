@@ -289,6 +289,7 @@ a { color: inherit; text-decoration: none; }
     border-radius: 999px;
     align-items: center;
     justify-content: space-around;
+    flex-wrap: wrap;
 }
 .ds-tab {
     padding: 8px 14px;
@@ -297,6 +298,23 @@ a { color: inherit; text-decoration: none; }
     font-weight: 500;
 }
 .ds-tab:hover { background: rgba(0,0,0,0.04); }
+.ds-tab-more { font-style: italic; opacity: 0.85; }
+.ds-tabbar-overflow {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+}
+.ds-tab-overflow-item {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+}
+.ds-tab-overflow-item:hover { background: rgba(0,0,0,0.04); }
 
 .ds-segmented .ds-note,
 .ds-unsupported,

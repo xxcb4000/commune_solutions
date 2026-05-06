@@ -156,6 +156,11 @@ object ScreenLoader {
 // Set when the active tenant config loads; read by ButtonBlock.
 object TenantContext {
     var functionsBaseURL: String? = null
+    // Métadonnées tenant exposées comme `{{ tenant.* }}` dans le scope DSL.
+    // Permet aux modules d'utiliser des valeurs commune-level (lat/lng,
+    // displayName) sans nouveau type de data source. Source : tenant
+    // app.json poussé ici au démarrage.
+    var bindings: Map<String, JsonElement> = emptyMap()
 }
 
 // Holds module manifests loaded at startup and resolves qualified screen IDs
