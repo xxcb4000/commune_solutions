@@ -22,7 +22,14 @@ import {
     serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-const MARKETPLACE_CATALOG_URL = "https://communesolutions.be/marketplace/data/manifests.json";
+// Catalogue marketplace : en localhost, on lit la copie locale écrite par
+// `tools/build-marketplace.py` dans dashboard/manifests.json (évite d'avoir
+// à push pour tester un nouveau module en local). En prod (admin commune
+// servi depuis Firebase hosting), on lit le catalogue déployé.
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const MARKETPLACE_CATALOG_URL = IS_LOCAL
+    ? "manifests.json"
+    : "https://communesolutions.be/marketplace/data/manifests.json";
 
 const TENANT_LABELS = {
     "spike-1": "Démo A",

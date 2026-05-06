@@ -3,8 +3,12 @@
 Lit `modules-official/<id>/manifest.json` (officiels) et un futur
 `modules-community/<id>/manifest.json` (communauté, vide en v0). Pour
 chaque module, compte aussi le nombre d'écrans/data déclarés. Écrit
-le résultat dans `marketplace/public/data/manifests.json` consommé
-par le frontend statique.
+le résultat dans :
+  - `marketplace/public/data/manifests.json` — déployé via GH Actions sur
+    `communesolutions.be/marketplace/data/manifests.json` (catalogue prod)
+  - `dashboard/manifests.json` — copie locale lue par le dashboard quand
+    servi en localhost (évite d'avoir à push pour tester un nouveau module
+    dans l'admin commune local)
 """
 from __future__ import annotations
 import json
@@ -16,6 +20,7 @@ SOURCES = [
     (ROOT / "modules-community", False),
 ]
 OUTPUT = ROOT / "marketplace" / "public" / "data" / "manifests.json"
+DASHBOARD_LOCAL = ROOT / "dashboard" / "manifests.json"
 
 
 def collect():
@@ -34,9 +39,12 @@ def collect():
 
 def main():
     modules = collect()
+    payload = json.dumps({"modules": modules}, ensure_ascii=False, indent=2)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps({"modules": modules}, ensure_ascii=False, indent=2))
+    OUTPUT.write_text(payload)
+    DASHBOARD_LOCAL.write_text(payload)
     print(f"marketplace: {len(modules)} module(s) → {OUTPUT.relative_to(ROOT)}")
+    print(f"           +    {DASHBOARD_LOCAL.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

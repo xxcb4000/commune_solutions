@@ -37,6 +37,11 @@ commune-sites/*/
 _site/
 .firebase/
 
+# Catalogue marketplace local pour le dashboard servi en localhost,
+# regénéré par tools/build-marketplace.py (la copie déployée vit dans
+# marketplace/public/data/manifests.json, committée et publiée par CI).
+dashboard/manifests.json
+
 # Secrets — Firebase configs are project-specific, set up locally per repo
 GoogleService-Info.plist
 google-services.json

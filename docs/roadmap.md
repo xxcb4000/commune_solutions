@@ -33,6 +33,10 @@
 | 11.3 | Tenant config Firestore + dashboard activation | Modules + tabbar dans `_config/modules`, public read + admin write, dashboard onglet Modules toggle |
 | 11.4 | Polish editorial | Direction civic-editorial sur les 5 modules officiels — primitives `header` (hero), `map` (MapKit/maps-compose stub), styles serif, primitives layout enrichies |
 | 11.5 | Module carte | Premier module avec primitive native non-triviale (MKMapView iOS, stub Android), pins par catégorie, detail single-place |
+| 19a | Module signalements voirie + `device.location` | Premier module-killer phase 19 — pattern modération + primitive native iOS CLLocationManager async/await + Info.plist `NSLocationWhenInUseUsageDescription`. Pull-driven. |
+| 19b | Module idees + tabbar overflow + phase 18.2 | 2e module UGC, motive le helper modération `_queue_proposal` (auto-inject status/visible/createdAt) côté CF + dashboard injecte status/visible sur approve. Tabbar overflow > 5 tabs en parité 3 renderers. |
+| 17 | Phase 17 secrets | Manifest `secrets[]` + Firestore `_secrets/` admin RW only + helper Python `_get_secret(id)` + onglet Secrets dashboard + validateur CI. Stockage Firestore (clés API faiblement sensibles). |
+| 19c | Module meteo + `tenant.*` scope + cf text response | Premier consommateur secrets (clé OpenWeatherMap). Motive `tenant.lat`/`tenant.lng` exposés au scope DSL + retour CF `{"text":"..."}` affiché tel quel par le bouton. |
 
 ## 2. Phases prioritaires à faire
 
@@ -175,13 +179,19 @@ Le contrat plateforme (cf [`docs/platform.md`](platform.md)) décrit un DSL plus
 - ⏭ `switch` (multi-case) — segmented suffit en pratique
 - ⏭ `module:` (data source cross-module) — design ouvert, attend un cas réel
 
-**Manifest features designées mais pas livrées** (cf [`docs/platform.md`](platform.md) § scope warning) :
-- ⏭ `secrets` (Google Secret Manager) — clés API tierces (météo, OpenAI, Facebook), sortie sécurisée du dashboard
+**Manifest features designées + état v0** (cf [`docs/platform.md`](platform.md) § scope warning) :
+- ✅ `secrets` (mai 2026) — manifest `secrets[]` + Firestore `_secrets/<id>` admin RW only + helper Python `_get_secret(id)` + onglet Secrets dashboard. Stockage Firestore (clés API faiblement sensibles). Premier consommateur : module `meteo` (clé OpenWeather). Migration vers Google Secret Manager prévue quand un secret plus sensible le motivera.
 - ⏭ `scheduledJobs` (Cloud Scheduler) — sync auto contenus depuis APIs externes
 - ⏭ `deepLinks` — registry Universal Links / FCM routing par module (avec validation collision en CI)
 - ⏭ `publicEndpoints` — routes HTTP exposées aux tiers (iCal export agenda, JSON feed actualités)
 - ⏭ `config.ui` form-driven — formulaire de config par module dans le dashboard, vs UI codée à la main
-- ⏭ `ownedCollections` + `moderation: true` complet — pattern actuellement simplifié à `_moderation_queue`, étendre avec champs auto-injectés (status/visible/proposed_by/moderated_by/...) quand 2-3 modules le justifieront
+- ⏭ `ownedCollections` + `moderation: true` complet — pattern v0 actuel : `_moderation_queue` + helper `_queue_proposal` côté CF (auto-inject status/visible/createdAt) + dashboard inject status/visible sur approve. Cas designé non livré : RLS auto-générées, CFs `<module>.list_pending`/`.approve`/`.reject` standardisées, sync auto status↔visible. Voir 18.2.
+
+**Primitives + features livrées en cours de session pull-driven (mai 2026)** :
+- ✅ `device.location` (action) — primitive native iOS pour pré-remplir lat/lng dans un form. Premier consommateur : signalements voirie.
+- ✅ `tenant.lat` / `tenant.lng` (scope DSL) — métadonnées commune (depuis `tenants/<id>/app.json`) exposées au scope DSL. Évite aux modules de re-saisir des coords. Premier consommateur : météo.
+- ✅ Tabbar overflow auto > 5 tabs — au-delà de 5 onglets, les 4 premiers + un onglet « Plus » synthétisé. Implémenté en parité iOS / Android / web.
+- ✅ CF text response — si une CF retourne `{"text": "..."}`, le bouton DSL affiche le texte tel quel comme feedback. Premier consommateur : météo.
 
 **Stratégie** : pas de phase dédiée bloquante — chaque primitive s'ajoute quand un module concret en a besoin. La PR qui ajoute la primitive doit aussi documenter son rendu dans les 3 renderers (iOS, Android, web) et son schéma manifest. Cf platform.md § Extension points pour le pattern de contribution.
 
@@ -191,7 +201,7 @@ Au-delà des primitives DSL et des champs manifest simples (phase 17), [`docs/pl
 
 - **⏭ 18.1 Extension points cross-module** (cf platform.md §410) — modules hôtes déclarent des extension points avec contrat versionné, autres modules contribuent via leur section `extensions`. Stratégies d'agrégation : `priority-merge`, `round-robin`, `concat`, `first-match`. Versioning des contrats. Permet la composition modulaire (ex: actualités feed avec topCards contribués par sondages, dashboard moderation queue agrégée par tous les modules avec UGC). **Bloquant** pour les UI riches multi-modules. Roadmap dépend du 1er cas concret de composition.
 
-- **⏭ 18.2 Modération UGC — pattern complet** (cf platform.md §604) — champs auto-injectés (`status`/`visible`/`proposed_by`/`proposed_by_email`/`proposed_at`/`moderated_by`/`moderated_at`/`moderation_reason`), RLS standards (citoyens créent en pending, anonymes lisent visible: true), sync auto `status` ↔ `visible`, CFs standardisées `<module>.list_pending` / `.approve(id)` / `.reject(id, reason)`. **V0 actuel** : queue simple `_moderation_queue/<id>` + approve/reject manuel dashboard (suffisant pour 1 module). Étendre quand 2-3 modules UGC le justifient.
+- **🟡 18.2 Modération UGC — pattern complet (partiellement livré, mai 2026)** (cf platform.md §604) — Livré : helper `_queue_proposal(decoded, target_collection, module_id, payload_fields, summary)` côté CF Python qui auto-injecte `status: "pending"`, `visible: false`, `createdAt` dans le payload + dashboard sur approve injecte `status: "approved"`, `visible: true`, `approvedAt`, `approvedBy`, `originalSubmittedBy`. Trois modules UGC officiels passent par ce helper : `agenda` (proposer event), `signalements`, `idees`. Restent du design original : RLS auto-générées (citoyens créent en pending, anonymes lisent visible: true), sync auto `status` ↔ `visible`, CFs standardisées `<module>.list_pending` / `.approve(id)` / `.reject(id, reason)`. À étendre quand un cas concret le justifiera.
 
 - **⏭ 18.3 Capability runtime check** — le renderer + les CFs vérifient à runtime que le module a bien la capability requise pour l'opération demandée. Aujourd'hui : capabilities déclarées dans manifest et reconnues par le validator, mais pas appliquées au runtime (un module peut techniquement appeler une CF qu'il n'a pas déclarée). Implémenter middleware CF (decorator Python qui check `request.module_id` + capability whitelist) et runtime guard dans les renderers (refuser action si capability absente).
 
@@ -224,15 +234,20 @@ Plutôt que builder phase 17/18 en vacuum, on imagine des **modules concrets** q
 
 #### Top 5 modules à fort levier
 
-| Module | Features de phase 17/18 exercées | Cas civic |
-|---|---|---|
-| **Signalements voirie** | `field.photo`, `field.map.picker`, `device.camera`, `device.location`, `moderation full pattern`, `permissions device aggregation`, `deep-links`, `notifications push` (8 features) | Citoyen photographie un nid-de-poule, place un pin, l'admin voit dans la queue, valide → publication + push retour citoyen |
-| **Boîte à idées** | `moderation full`, `extension points dashboard widget`, `capability runtime check`, `deep-links` (4 features) | « Que voudriez-vous voir au parc ? » — citoyens postent texte, admin trie, top idées remontent en sondage |
-| **Météo locale** | `secrets` (clé OpenWeather), `scheduledJobs`, `cf.external`, `dashboard extension point` (tile), `publicEndpoints` (4 features) | Sync 4×/jour → tile dashboard + widget mobile + endpoint pour communes voisines |
-| **Notifications push** | `permissions device`, `deep-links` (target screen), `config.ui` (préférences citoyen), `capability runtime` (4 features) | Commune envoie « alerte travaux » → tap notif → ouvre app sur l'article. Citoyen choisit ses topics |
-| **Agenda fédéré** | `extension points cross-module` (autres modules contribuent events), `publicEndpoints` (iCal), `scheduledJobs` (sync calendriers tiers), `device.addToCalendar` (4 features) | Agenda cumule events commune + événements modules tiers (Marchés, Sport club, Culture asbl). Export iCal pour aggrégateurs |
+| Module | Features de phase 17/18 exercées | Cas civic | Statut |
+|---|---|---|---|
+| **Signalements voirie** | `device.location`, `moderation full pattern (helper)`, plus tard `field.photo`, `field.map.picker`, `device.camera`, `permissions device aggregation`, `deep-links`, `notifications push` | Citoyen documente un nid-de-poule, l'admin voit dans la queue, valide → publication carte | ✅ v0.1 (mai 2026) — exercé `device.location` + helper modération |
+| **Boîte à idées** | `moderation full pattern (helper)`, plus tard `extension points dashboard widget`, `deep-links` | « Que voudriez-vous voir au parc ? » — citoyens postent texte, admin trie, top idées remontent en sondage | ✅ v0.1 (mai 2026) — 2e module UGC qui a motivé le helper modération phase 18.2 |
+| **Météo locale** | `secrets` (clé OpenWeather), `tenant.lat/lng` scope, plus tard `scheduledJobs`, `dashboard extension point` (tile), `publicEndpoints` | Citoyen tape un bouton → météo OpenWeatherMap aux coordonnées commune | ✅ v0.1 (mai 2026) — premier consommateur de la phase 17 secrets, motive `tenant.lat/lng` + cf text response |
+| **Notifications push** | `permissions device`, `deep-links` (target screen), `config.ui` (préférences citoyen), `capability runtime` | Commune envoie « alerte travaux » → tap notif → ouvre app sur l'article. Citoyen choisit ses topics | ⏭ Pas commencé. Gros projet (>1 jour). |
+| **Agenda fédéré** | `extension points cross-module`, `publicEndpoints` (iCal), `scheduledJobs`, `device.addToCalendar` | Agenda cumule events commune + événements modules tiers (Marchés, Sport club…). Export iCal | ⏭ Bloqué par 18.1 extension points cross-module |
 
-**Reco priorité** : **Signalements voirie** comme premier « module-killer ». Il exerce 8 features de phase 17/18 d'un coup et c'est le cas civic-tech le plus emblématique. Une fois shippé, ~80% de la valeur de phase 17/18 est exercée et validée. Les autres modules de la table (idées, météo, agenda fédéré) bénéficient des features et sont plus rapides à ajouter.
+**Modules livrés** (3 sur 5) — chacun a tiré une ou plusieurs features de phase 17/18 livrées pull-driven :
+- Signalements voirie → `device.location` + helper modération
+- Boîte à idées → helper modération phase 18.2 (motivée par le 2e cas UGC)
+- Météo locale → `secrets` (phase 17) + `tenant.lat/lng` scope DSL + cf text response
+
+**Restent** : Notifications push (ouvre les phases 18.4 permissions device aggregation, 18.5 deep-links integration), Agenda fédéré (bloqué par 18.1 extension points).
 
 #### Autres modules civic à coder un jour (motivés par cas commune)
 

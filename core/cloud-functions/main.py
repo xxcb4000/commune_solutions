@@ -294,20 +294,49 @@ def fetch_weather(req: https_fn.Request) -> https_fn.Response:
         return _error(500, f"Erreur fetch_weather: {e}")
     name = data.get("name", "votre commune")
     weather = (data.get("weather") or [{}])[0]
-    description = weather.get("description", "—")
+    description = weather.get("description", "—").capitalize()
+    main_kind = (weather.get("main") or "").lower()
     main = data.get("main") or {}
+    wind = data.get("wind") or {}
     temp = main.get("temp")
     feels = main.get("feels_like")
     temp_min = main.get("temp_min")
     temp_max = main.get("temp_max")
-    parts = [f"{name} : {description}."]
+    humidity = main.get("humidity")
+    wind_speed = wind.get("speed")  # m/s
+    # Mapping condition principale → emoji. Couvre le commun sans dépendre
+    # du code numérique exact (OpenWeather a ~50 codes ; on regroupe par
+    # famille). Fallback ciel partiellement nuageux pour l'inconnu.
+    icon = {
+        "clear": "☀️",
+        "clouds": "☁️",
+        "rain": "🌧️",
+        "drizzle": "🌦️",
+        "snow": "❄️",
+        "thunderstorm": "⛈️",
+        "mist": "🌫️",
+        "fog": "🌫️",
+        "haze": "🌫️",
+    }.get(main_kind, "🌤️")
+    lines = []
+    line1 = f"{icon} {name}"
     if temp is not None:
-        parts.append(f"{round(temp)}°C")
-        if feels is not None and abs(feels - temp) >= 1:
-            parts.append(f"(ressenti {round(feels)}°C)")
-    if temp_min is not None and temp_max is not None:
-        parts.append(f"min {round(temp_min)}° / max {round(temp_max)}°.")
-    return _ok({"text": " ".join(parts)})
+        line1 += f" · {round(temp)}°C"
+    lines.append(line1)
+    line2_bits = [description]
+    if feels is not None and temp is not None and abs(feels - temp) >= 1:
+        line2_bits.append(f"ressenti {round(feels)}°C")
+    if temp_min is not None and temp_max is not None and round(temp_min) != round(temp_max):
+        line2_bits.append(f"min {round(temp_min)}° / max {round(temp_max)}°")
+    lines.append(" · ".join(line2_bits))
+    line3_bits = []
+    if wind_speed is not None:
+        line3_bits.append(f"Vent {round(wind_speed * 3.6)} km/h")
+    if humidity is not None:
+        line3_bits.append(f"Humidité {humidity}%")
+    if line3_bits:
+        lines.append(" · ".join(line3_bits))
+    return _ok({"text": "\n".join(lines)})
 
 
 # Helper secrets phase 17 : lit `_secrets/<id>.value` via Admin SDK. Les modules

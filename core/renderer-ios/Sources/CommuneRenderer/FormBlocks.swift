@@ -172,10 +172,24 @@ struct ButtonBlock: View {
             .disabled(loading)
 
             if let feedback {
+                // Si le feedback est un résultat structuré multi-ligne (cas
+                // CF text response : météo, transports…), on le rend en
+                // body avec un peu de respiration. Sinon caption (cas form
+                // de soumission UGC : « Envoyé. » / messages d'erreur courts).
+                let isStructured = feedback.contains("\n") || feedback.count > 80
                 Text(feedback)
-                    .font(.caption)
-                    .foregroundStyle(feedbackError ? .red : .secondary)
+                    .font(isStructured ? .body : .caption)
+                    .foregroundStyle(feedbackError ? .red : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(isStructured ? 14 : 0)
+                    .background(
+                        Group {
+                            if isStructured && !feedbackError {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(uiColor: .secondarySystemBackground))
+                            }
+                        }
+                    )
             }
         }
         .frame(maxWidth: .infinity)

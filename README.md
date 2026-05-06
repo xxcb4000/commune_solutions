@@ -139,8 +139,11 @@ tools/build-commune-app.sh mondev <udid>
 # Android : ./gradlew :app:assembleDebug -PcommuneId=mondev (depuis spike/android/)
 
 # Dashboard admin web (point d'entrée pour gérer les modules + contenu) :
+python3 tools/build-marketplace.py    # regénère le catalogue local manifests.json
 cd dashboard && python3 -m http.server 8770
 # → http://localhost:8770
+# (en localhost, le dashboard lit dashboard/manifests.json au lieu du catalogue
+#  prod ; relancer build-marketplace.py après chaque ajout de module)
 ```
 
 ### C. Dev sans projet Firebase via les emulators

@@ -302,12 +302,31 @@ fun ButtonBlock(node: DSLNode, scope: DSLScope) {
                 Text(node.label ?: "OK")
             }
         }
-        feedback?.let {
-            Text(
-                text = it,
-                color = if (feedbackError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall
-            )
+        feedback?.let { fb ->
+            // Si le feedback est un résultat structuré multi-ligne (cas CF
+            // text response : météo…), on le rend en bodyMedium dans une
+            // surface. Sinon bodySmall plat (toast UGC court).
+            val isStructured = fb.contains("\n") || fb.length > 80
+            if (isStructured && !feedbackError) {
+                androidx.compose.material3.Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = fb,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            } else {
+                Text(
+                    text = fb,
+                    color = if (feedbackError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = if (isStructured) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
