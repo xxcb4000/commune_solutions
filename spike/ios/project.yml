@@ -63,10 +63,17 @@ targets:
         # citoyens (signalements voirie, proposer un POI, etc.). Hardcodé
         # ici en attendant l'aggregation au build commune (phase 18.4).
         NSLocationWhenInUseUsageDescription: "Pour pré-remplir le lieu d'un signalement ou d'une proposition citoyenne avec votre position actuelle."
+        # Notifications push (broadcast v0). UIBackgroundModes
+        # remote-notification permet de réveiller l'app pour un silent push
+        # (utile pour rafraîchir un contenu en arrière-plan plus tard).
+        # L'entitlement aps-environment est dans CommuneSpike.entitlements.
+        UIBackgroundModes:
+          - remote-notification
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1,2"
         PRODUCT_BUNDLE_IDENTIFIER: be.communesolutions.spike
+        CODE_SIGN_ENTITLEMENTS: CommuneSpike.entitlements
 schemes:
   CommuneSpike:
     build:

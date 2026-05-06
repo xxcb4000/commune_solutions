@@ -41,6 +41,7 @@ dependencies {
     api(platform(libs.firebase.bom))
     api(libs.firebase.auth)
     api(libs.firebase.firestore)
+    api(libs.firebase.messaging)
 
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)

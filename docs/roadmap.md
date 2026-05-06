@@ -225,6 +225,7 @@ Au-delà des primitives DSL et des champs manifest simples (phase 17), [`docs/pl
 - **⏭ 18.8 Flow commune end-to-end automatisé** (cf platform.md §723) — au-delà des outils unitaires actuels (`provision-commune.py`, `build-commune-app.sh`, `build-commune-site.py`, fastlane lanes), un flow CI/CD complet :
   - Commune signup via formulaire web sur `communesolutions.be`
   - Trigger pipeline qui crée projet Firebase + active services + génère configs SDK + provisionne tenant + génère site commune-sites/ + déploie + ajoute DNS Infomaniak via API + soumet AppStore Connect + Play Console + envoie credentials admin par mail
+  - **Push notifications setup** (motivé par phase 19 module notifications, mai 2026) — actuellement manuel par commune : (a) créer l'explicit App ID dans Apple Developer (`be.communesolutions.<slug>` + capability Push Notifications), (b) upload APNs `.p8` sur Firebase Console du projet commune (Project Settings → Cloud Messaging). À automatiser via App Store Connect API (`POST /v1/bundleIds`, `POST /v1/bundleIdCapabilities`) + Firebase Management API (REST endpoint pour APNs auth key upload). La clé `JD5MN9XL6W` a déjà le scope nécessaire.
   - Time-to-live commune : viser < 30 min après signup
   - Bloquant à plus de 5 communes en prod (sinon support manuel ne tient pas)
 

@@ -10,6 +10,7 @@ Endpoints :
   - submit_signalement_proposal : citoyen signale un problème → file modération
   - submit_idea_proposal        : citoyen propose une idée → file modération
   - fetch_weather               : météo OpenWeatherMap, lit la clé via _get_secret
+  - send_notification           : admin fan-out push aux citoyens (FCM Admin SDK)
 
 Tous requièrent un FirebaseAuth ID token en `Authorization: Bearer <token>`.
 
@@ -25,10 +26,23 @@ Pattern modération (phase 18.2). Tout module UGC suit la même forme :
 """
 from firebase_admin import initialize_app, auth as fb_auth, firestore
 from firebase_functions import https_fn, options
+import google.auth
+import google.auth.transport.requests as google_auth_requests
+import requests
 import json
+import os
 import urllib.parse
 import urllib.request
 import urllib.error
+
+# Sur Cloud Functions Gen 2 (Python), GOOGLE_CLOUD_PROJECT n'est PAS set par
+# le runtime — seul GCLOUD_PROJECT l'est. firebase-admin lit GOOGLE_CLOUD_PROJECT
+# en priorité ; sans lui le projectId n'est pas inféré et FCM v1 retourne
+# UNAUTHENTICATED. On force la valeur depuis GCLOUD_PROJECT (Gen 1 + Gen 2)
+# avant l'init.
+_gcloud_proj = os.environ.get("GCLOUD_PROJECT")
+if _gcloud_proj and not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+    os.environ["GOOGLE_CLOUD_PROJECT"] = _gcloud_proj
 
 initialize_app()
 
@@ -337,6 +351,93 @@ def fetch_weather(req: https_fn.Request) -> https_fn.Response:
     if line3_bits:
         lines.append(" · ".join(line3_bits))
     return _ok({"text": "\n".join(lines)})
+
+
+@https_fn.on_request(
+    region="europe-west1",
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["POST", "OPTIONS"],
+    ),
+)
+def send_notification(req: https_fn.Request) -> https_fn.Response:
+    """Admin fan-out push aux citoyens. Lit tous les FCM tokens du tenant
+    dans `_push_tokens/`, batch-send via FCM Admin SDK, prune les tokens
+    invalides (NotRegistered → device désinstallé) au passage. Auth requiert
+    custom claim `admin: true`."""
+    if req.method != "POST":
+        return _error(405, "Method not allowed")
+    decoded = _verify_auth_full(req)
+    if not decoded:
+        return _error(401, "Unauthorized")
+    if not decoded.get("admin"):
+        return _error(403, "Admin claim requis pour envoyer un push")
+    payload = req.get_json(silent=True) or {}
+    title = (payload.get("title") or "").strip()
+    body = (payload.get("body") or "").strip()
+    if not title:
+        return _error(400, "title requis")
+    if not body:
+        return _error(400, "body requis")
+
+    db = firestore.client()
+    docs = list(db.collection("_push_tokens").stream())
+    if not docs:
+        return _ok({"text": "Aucun citoyen abonné aux notifications. Token = 0 envoi.", "sent": 0, "failed": 0})
+
+    tokens = [d.id for d in docs]
+    sent_total = 0
+    failed_total = 0
+    invalid_token_doc_ids: list[str] = []
+    failure_reasons: list[str] = []
+
+    # Appel REST direct vers FCM HTTP v1 avec un access token google-auth
+    # scoped explicitement `firebase.messaging`. On bypasse la couche
+    # firebase-admin messaging pour 2 raisons :
+    #   1. Sur CF Gen 2 Python, firebase_admin avait un comportement opaque
+    #      avec ADC + scopes qui produisait des UNAUTHENTICATED silencieux.
+    #   2. L'erreur APNs sous-jacente (THIRD_PARTY_AUTH_ERROR / InvalidProviderToken)
+    #      est mieux remontée via la réponse REST directe.
+    creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/firebase.messaging"])
+    auth_req = google_auth_requests.Request()
+    creds.refresh(auth_req)
+    fcm_url = f"https://fcm.googleapis.com/v1/projects/{project}/messages:send"
+    headers = {"Authorization": f"Bearer {creds.token}", "Content-Type": "application/json"}
+    for token in tokens:
+        msg_body = {"message": {"token": token, "notification": {"title": title, "body": body}}}
+        try:
+            r = requests.post(fcm_url, headers=headers, json=msg_body, timeout=15)
+            if r.status_code == 200:
+                sent_total += 1
+            else:
+                failed_total += 1
+                err_payload = r.json() if r.text else {}
+                err_status = err_payload.get("error", {}).get("status", str(r.status_code))
+                err_msg = err_payload.get("error", {}).get("message", r.text[:200])
+                failure_reasons.append(f"[{err_status}] {err_msg}")
+                if err_status in ("NOT_FOUND", "INVALID_ARGUMENT") or "Unregistered" in err_msg:
+                    invalid_token_doc_ids.append(token)
+        except Exception as e:
+            failed_total += 1
+            failure_reasons.append(f"[{e.__class__.__name__}] {e}")
+    # Prune des tokens morts (best-effort, ignore les erreurs delete).
+    for doc_id in invalid_token_doc_ids:
+        try:
+            db.collection("_push_tokens").document(doc_id).delete()
+        except Exception:
+            pass
+    pruned = len(invalid_token_doc_ids)
+    text = f"Envoyé à {sent_total} appareil(s), {failed_total} échec(s)"
+    if pruned:
+        text += f", {pruned} token(s) invalide(s) supprimé(s)"
+    text += "."
+    return _ok({
+        "text": text,
+        "sent": sent_total,
+        "failed": failed_total,
+        "pruned": pruned,
+        "failureReasons": failure_reasons[:10] if failure_reasons else [],
+    })
 
 
 # Helper secrets phase 17 : lit `_secrets/<id>.value` via Admin SDK. Les modules

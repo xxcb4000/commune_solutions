@@ -1,9 +1,13 @@
 package be.communesolutions.spike
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -12,12 +16,20 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import be.communesolutions.renderer.CommunePushService
 import be.communesolutions.renderer.CommuneShell
 
 class MainActivity : ComponentActivity() {
     // Dev Mac IP serving the platform repo over `tools/dev-server.py`.
     // Falls back to bundled JSONs when unreachable.
     private val devServerURL = "http://192.168.129.8:8765"
+
+    private val notifPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) CommunePushService.ensureChannelAndPersistToken(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +51,24 @@ class MainActivity : ComponentActivity() {
         val emulatorHost = BuildConfig.FIREBASE_EMULATOR_HOST.takeIf { it.isNotBlank() }
 
         be.communesolutions.renderer.CommuneFirebase.configure(this, firebaseProjects, emulatorHost)
+
+        // Notifications push v0 — permission runtime (Android 13+) puis
+        // persistance du token FCM dans Firestore (à tous les Firebase apps
+        // configurés). En multi-tenant dev, le token sera réécrit après
+        // chaque login utilisateur via le state listener du SDK.
+        CommunePushService.configuredAppNames = firebaseProjects
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                CommunePushService.ensureChannelAndPersistToken(this)
+            } else {
+                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            CommunePushService.ensureChannelAndPersistToken(this)
+        }
+
         enableEdgeToEdge()
         setContent {
             SpikeTheme {

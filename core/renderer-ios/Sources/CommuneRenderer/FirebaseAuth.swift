@@ -19,7 +19,7 @@ import Combine
 /// réel — `tools/dev-emulators.sh` lance les emulators côté Mac.
 public enum CommuneFirebase {
     public static func configure(_ names: [String], emulatorHost: String? = nil) {
-        for name in names {
+        for (idx, name) in names.enumerated() {
             if FirebaseApp.app(name: name) != nil { continue }
             let path = "\(Bundle.main.bundlePath)/firebase/\(name)/GoogleService-Info.plist"
             guard FileManager.default.fileExists(atPath: path),
@@ -28,6 +28,15 @@ public enum CommuneFirebase {
                 continue
             }
             FirebaseApp.configure(name: name, options: opts)
+            // Le 1er projet est aussi configuré comme [DEFAULT] — FirebaseMessaging
+            // (singleton iOS) est intrinsèquement lié au default et n'a pas d'API
+            // per-app dans le SDK 11.x. Sans ça, en multi-tenant dev mode aucun
+            // FCM token n'est émis. En single-commune build (1 projet), c'est
+            // de toute façon ce projet qui devient default.
+            if idx == 0 && FirebaseApp.app() == nil {
+                FirebaseApp.configure(options: opts)
+                print("CommuneFirebase: \(name) also configured as [DEFAULT] for FirebaseMessaging")
+            }
             if let host = emulatorHost, !host.isEmpty,
                let app = FirebaseApp.app(name: name) {
                 Auth.auth(app: app).useEmulator(withHost: host, port: 9099)

@@ -587,6 +587,36 @@ form#login-form button[type="submit"]:disabled { opacity: 0.5; cursor: progress;
     font-family: ui-monospace, monospace;
 }
 
+/* Notifications push v0 */
+.notif-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 600px;
+}
+.notif-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.notif-form label > span {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.notif-form input[type="text"],
+.notif-form textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+    background: var(--card);
+}
+.notif-form textarea {
+    resize: vertical;
+    min-height: 88px;
+    font-family: inherit;
+}
+
 .module-badge {
     display: inline-block;
     font-size: 0.7rem;

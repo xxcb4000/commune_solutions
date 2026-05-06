@@ -36,6 +36,18 @@ const TENANT_LABELS = {
     "spike-2": "Démo B",
 };
 
+// Mapping tenantId → projet GCP. Sert à construire l'URL des Cloud Functions
+// (`https://europe-west1-<projectId>.cloudfunctions.net/<endpoint>`).
+const TENANT_TO_FIREBASE_PROJECT = {
+    "spike-1": "commune-spike-1",
+    "spike-2": "commune-spike-2",
+};
+
+function functionsBaseURL() {
+    const proj = TENANT_TO_FIREBASE_PROJECT[currentTenant];
+    return proj ? `https://europe-west1-${proj}.cloudfunctions.net` : null;
+}
+
 const root = document.getElementById("root");
 let app = null;
 let auth = null;
@@ -129,6 +141,8 @@ async function renderDashboard(user) {
             await renderSecrets(content, user);
         } else if (name === "moderation") {
             await renderModeration(content, user);
+        } else if (name === "notifications") {
+            await renderNotifications(content, user);
         } else {
             await renderSection(name, content);
         }
@@ -493,6 +507,89 @@ function secretRowHTML(secret, state) {
             <p class="modules-status" data-slot="status"></p>
         </div>
     `;
+}
+
+// MARK: - Notifications push (broadcast v0)
+//
+// Form admin → CF send_notification → fan-out via FCM Admin SDK aux tokens
+// stockés dans `_push_tokens/`. Pas de topics ni de prefs citoyen en v0 :
+// tous les abonnés (citoyens qui ont accordé la permission notif) reçoivent.
+// L'auth admin est validée côté CF via custom claim `admin: true` sur l'ID
+// token de l'admin connecté au dashboard.
+
+async function renderNotifications(container, user) {
+    container.innerHTML = `
+        <div class="modules-pane">
+            <p class="modules-intro">
+                Envoyez une notification push à tous les citoyens qui ont
+                installé l'app et accordé la permission. Pas de ciblage par
+                topic en v0 — broadcast à tous les abonnés.
+            </p>
+            <form class="notif-form" id="notif-form" autocomplete="off">
+                <label>
+                    <span>Titre</span>
+                    <input type="text" name="title" maxlength="60" required
+                        placeholder="Travaux rue de l'Église" />
+                </label>
+                <label>
+                    <span>Corps du message</span>
+                    <textarea name="body" maxlength="200" required rows="4"
+                        placeholder="Circulation perturbée du 12 au 18 mai…"></textarea>
+                </label>
+                <div class="modules-actions">
+                    <button type="submit" class="primary">Envoyer la notification</button>
+                    <p class="modules-status" data-slot="status"></p>
+                </div>
+            </form>
+        </div>
+    `;
+    const form = container.querySelector("#notif-form");
+    const status = container.querySelector("[data-slot='status']");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = new FormData(form);
+        const title = String(data.get("title") || "").trim();
+        const body = String(data.get("body") || "").trim();
+        if (!title || !body) {
+            status.textContent = "Titre + corps requis";
+            status.className = "modules-status error";
+            return;
+        }
+        if (!confirm(`Envoyer cette notification à TOUS les abonnés ?\n\n« ${title} »\n${body}`)) {
+            return;
+        }
+        const baseURL = functionsBaseURL();
+        if (!baseURL) {
+            status.textContent = "URL CFs introuvable (mapping tenant manquant)";
+            status.className = "modules-status error";
+            return;
+        }
+        status.textContent = "Envoi…";
+        status.className = "modules-status";
+        try {
+            const idToken = await user.getIdToken();
+            const resp = await fetch(`${baseURL}/send_notification`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({ title, body }),
+            });
+            const json = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                status.textContent = `Erreur ${resp.status} : ${json.error ?? "voir console"}`;
+                status.className = "modules-status error";
+                return;
+            }
+            status.textContent = `✓ ${json.text ?? "Envoyé."}`;
+            status.className = "modules-status success";
+            form.reset();
+        } catch (err) {
+            status.textContent = `Erreur réseau : ${err?.message ?? err}`;
+            status.className = "modules-status error";
+        }
+    });
 }
 
 // MARK: - Modération UGC (14.8)

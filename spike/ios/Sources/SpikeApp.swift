@@ -7,6 +7,11 @@ struct SpikeApp: App {
     // Falls back to bundled JSONs when unreachable.
     private let devServerURL = URL(string: "http://192.168.129.8:8765")
 
+    // Notifications push v0 — l'AppDelegate vit dans CommuneRenderer pour
+    // être partagé avec les builds commune. Géré via UIApplicationDelegateAdaptor
+    // (pas de UIKit Lifecycle, on reste SwiftUI App).
+    @UIApplicationDelegateAdaptor(CommunePushDelegate.self) private var pushDelegate
+
     init() {
         // Multi-tenant dev mode bundles both Firebase projects ; each
         // tenant's `app.json` declares which one it uses via `firebase`.
