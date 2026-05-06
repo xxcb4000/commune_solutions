@@ -536,6 +536,18 @@ async function renderNotifications(container, user) {
                     <textarea name="body" maxlength="200" required rows="4"
                         placeholder="Circulation perturbée du 12 au 18 mai…"></textarea>
                 </label>
+                <details class="notif-target">
+                    <summary>Écran cible au tap (deep-link interne, optionnel)</summary>
+                    <label>
+                        <span>Screen ID — format <code>module:screen</code></span>
+                        <input type="text" name="targetScreen" placeholder="actualites:detail" />
+                    </label>
+                    <label>
+                        <span>Bindings JSON (optionnel) — passés à la screen</span>
+                        <textarea name="targetBindings" rows="2"
+                            placeholder='{"articleId": "abc-123"}'></textarea>
+                    </label>
+                </details>
                 <div class="modules-actions">
                     <button type="submit" class="primary">Envoyer la notification</button>
                     <p class="modules-status" data-slot="status"></p>
@@ -550,10 +562,21 @@ async function renderNotifications(container, user) {
         const data = new FormData(form);
         const title = String(data.get("title") || "").trim();
         const body = String(data.get("body") || "").trim();
+        const targetScreen = String(data.get("targetScreen") || "").trim();
+        const targetBindingsRaw = String(data.get("targetBindings") || "").trim();
         if (!title || !body) {
             status.textContent = "Titre + corps requis";
             status.className = "modules-status error";
             return;
+        }
+        let targetBindings = {};
+        if (targetBindingsRaw) {
+            try { targetBindings = JSON.parse(targetBindingsRaw); }
+            catch (err) {
+                status.textContent = "Bindings JSON invalide : " + err.message;
+                status.className = "modules-status error";
+                return;
+            }
         }
         if (!confirm(`Envoyer cette notification à TOUS les abonnés ?\n\n« ${title} »\n${body}`)) {
             return;
@@ -568,13 +591,17 @@ async function renderNotifications(container, user) {
         status.className = "modules-status";
         try {
             const idToken = await user.getIdToken();
+            const reqBody = { title, body };
+            if (targetScreen) {
+                reqBody.target = { screen: targetScreen, bindings: targetBindings };
+            }
             const resp = await fetch(`${baseURL}/send_notification`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${idToken}`,
                 },
-                body: JSON.stringify({ title, body }),
+                body: JSON.stringify(reqBody),
             });
             const json = await resp.json().catch(() => ({}));
             if (!resp.ok) {

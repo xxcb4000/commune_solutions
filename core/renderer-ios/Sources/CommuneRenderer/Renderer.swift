@@ -1063,50 +1063,78 @@ private struct TabBarBlock: View {
     // iOS bottom tab bar lit confortablement 5 items. Au-delà, on garde les 4
     // premiers tels quels et on regroupe le reste dans un onglet « Plus »
     // synthétisé (icône ellipsis), dont l'écran racine est une liste de cards
-    // navigables vers chaque tab débordée. Choix vs SwiftUI auto-overflow :
-    // contrôle de l'ordre (les 4 premiers déclarés restent primaires) +
-    // rendu cohérent avec la marque.
+    // navigables vers chaque tab débordée.
     private static let maxVisibleTabs = 5
+
+    @ObservedObject private var router = CommuneRouter.shared
+    @State private var selectedTab: Int = 0
 
     var body: some View {
         let allTabs = node.tabs ?? []
-        if allTabs.count <= Self.maxVisibleTabs {
-            TabView {
-                ForEach(Array(allTabs.enumerated()), id: \.offset) { _, tab in
-                    tabContent(for: tab)
+        Group {
+            if allTabs.count <= Self.maxVisibleTabs {
+                TabView(selection: $selectedTab) {
+                    ForEach(Array(allTabs.enumerated()), id: \.offset) { idx, tab in
+                        TabContentView(tab: tab, scope: scope, brand: node.brand)
+                            .tabItem {
+                                Label(Template.resolve(tab.title, scope: scope),
+                                      systemImage: tab.icon)
+                            }
+                            .tag(idx)
+                    }
+                }
+            } else {
+                let visible = Array(allTabs.prefix(Self.maxVisibleTabs - 1))
+                let overflow = Array(allTabs.dropFirst(Self.maxVisibleTabs - 1))
+                TabView(selection: $selectedTab) {
+                    ForEach(Array(visible.enumerated()), id: \.offset) { idx, tab in
+                        TabContentView(tab: tab, scope: scope, brand: node.brand)
+                            .tabItem {
+                                Label(Template.resolve(tab.title, scope: scope),
+                                      systemImage: tab.icon)
+                            }
+                            .tag(idx)
+                    }
+                    OverflowTab(tabs: overflow, scope: scope, brand: node.brand)
+                        .tabItem { Label("Plus", systemImage: "ellipsis.circle") }
+                        .tag(visible.count)
                 }
             }
-        } else {
-            let visible = Array(allTabs.prefix(Self.maxVisibleTabs - 1))
-            let overflow = Array(allTabs.dropFirst(Self.maxVisibleTabs - 1))
-            TabView {
-                ForEach(Array(visible.enumerated()), id: \.offset) { _, tab in
-                    tabContent(for: tab)
-                }
-                NavigationStack {
-                    VStack(spacing: 0) {
-                        if let brand = node.brand {
-                            BrandHeader(brand: brand)
-                        }
-                        OverflowTabContent(tabs: overflow, scope: scope)
-                    }
-                    .toolbar(node.brand != nil ? .hidden : .visible, for: .navigationBar)
-                    .navigationDestination(for: Route.self) { route in
-                        ScreenView(qualifiedScreen: route.qualifiedScreen, initialBindings: route.bindings)
-                    }
-                }
-                .tabItem {
-                    Label("Plus", systemImage: "ellipsis.circle")
+        }
+        .onChange(of: router.pendingRoute) { route in
+            // Ne fait que sélectionner le tab cible — chaque TabContentView
+            // observe le router de son côté et push si le module matche.
+            guard let route else { return }
+            let routeModule = String(route.qualifiedScreen.split(separator: ":").first ?? "")
+            let visibleCount = allTabs.count <= Self.maxVisibleTabs
+                ? allTabs.count : Self.maxVisibleTabs - 1
+            for (idx, tab) in allTabs.enumerated() {
+                let tabModule = String(tab.screen.split(separator: ":").first ?? "")
+                if tabModule == routeModule {
+                    selectedTab = idx < visibleCount ? idx : visibleCount
+                    return
                 }
             }
         }
     }
+}
 
-    @ViewBuilder
-    private func tabContent(for tab: DSLTab) -> some View {
-        NavigationStack {
+// Vue extraite pour chaque tab : possède son propre @State NavigationPath.
+// Permet à chaque tab d'observer le router et de push s'il matche le module
+// de la pendingRoute (vs un parent qui jongle avec un tableau de paths,
+// fragile à travers les re-renders SwiftUI).
+private struct TabContentView: View {
+    let tab: DSLTab
+    let scope: DSLScope
+    let brand: DSLBrand?
+
+    @ObservedObject private var router = CommuneRouter.shared
+    @State private var path = NavigationPath()
+
+    var body: some View {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                if let brand = node.brand {
+                if let brand {
                     BrandHeader(brand: brand)
                 }
                 ScreenView(
@@ -1114,14 +1142,19 @@ private struct TabBarBlock: View {
                     initialBindings: resolveBindings(tab.bindings ?? [:])
                 )
             }
-            .toolbar(node.brand != nil ? .hidden : .visible, for: .navigationBar)
+            .toolbar(brand != nil ? .hidden : .visible, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
                 ScreenView(qualifiedScreen: route.qualifiedScreen, initialBindings: route.bindings)
             }
         }
-        .tabItem {
-            Label(Template.resolve(tab.title, scope: scope),
-                  systemImage: tab.icon)
+        .onChange(of: router.pendingRoute) { route in
+            guard let route else { return }
+            let myModule = String(tab.screen.split(separator: ":").first ?? "")
+            let routeModule = String(route.qualifiedScreen.split(separator: ":").first ?? "")
+            if myModule == routeModule {
+                path.append(route)
+                router.pendingRoute = nil
+            }
         }
     }
 
@@ -1135,6 +1168,43 @@ private struct TabBarBlock: View {
             }
         }
         return resolved
+    }
+}
+
+private struct OverflowTab: View {
+    let tabs: [DSLTab]
+    let scope: DSLScope
+    let brand: DSLBrand?
+
+    @ObservedObject private var router = CommuneRouter.shared
+    @State private var path = NavigationPath()
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            VStack(spacing: 0) {
+                if let brand {
+                    BrandHeader(brand: brand)
+                }
+                OverflowTabContent(tabs: tabs, scope: scope)
+            }
+            .toolbar(brand != nil ? .hidden : .visible, for: .navigationBar)
+            .navigationDestination(for: Route.self) { route in
+                ScreenView(qualifiedScreen: route.qualifiedScreen, initialBindings: route.bindings)
+            }
+        }
+        .onChange(of: router.pendingRoute) { route in
+            guard let route else { return }
+            // L'onglet « Plus » consomme les routes des modules présents
+            // dans son overflow.
+            let routeModule = String(route.qualifiedScreen.split(separator: ":").first ?? "")
+            let matches = tabs.contains { tab in
+                String(tab.screen.split(separator: ":").first ?? "") == routeModule
+            }
+            if matches {
+                path.append(route)
+                router.pendingRoute = nil
+            }
+        }
     }
 }
 

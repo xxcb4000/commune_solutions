@@ -103,10 +103,20 @@ class CommunePushService : FirebaseMessagingService() {
         val title = notif.title ?: "Commune"
         val body = notif.body ?: ""
         ensureChannel(this)
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        // Si la CF a inclus un `target` (deep-link interne), on le passe en
+        // intent extra. Au tap, MainActivity le lira et déclenchera le routing
+        // via CommuneRouter.
+        val target = message.data["target"]
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            if (target != null) putExtra("communePushTarget", target)
+            // FLAG_UPDATE_CURRENT remplacera l'extra à chaque nouvelle notif.
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
         val pendingIntent = launchIntent?.let {
             PendingIntent.getActivity(
-                this, 0, it,
+                this,
+                target?.hashCode() ?: 0,  // request code unique par target → évite override extra
+                it,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }

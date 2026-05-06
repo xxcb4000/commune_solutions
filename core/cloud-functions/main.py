@@ -379,6 +379,20 @@ def send_notification(req: https_fn.Request) -> https_fn.Response:
         return _error(400, "title requis")
     if not body:
         return _error(400, "body requis")
+    # Deep-link interne optionnel : `target.screen` au format `module:screen`,
+    # `target.bindings` dict de paramètres pour la screen ciblée. Encodé dans
+    # le payload FCM `data.target` (JSON string — `data` ne supporte que les
+    # strings, pas d'objets imbriqués). Le client décode au tap et push une
+    # Route via le NavigationStack.
+    target = payload.get("target") or {}
+    target_screen = (target.get("screen") or "").strip()
+    target_bindings = target.get("bindings") if isinstance(target.get("bindings"), dict) else {}
+    fcm_data: dict[str, str] = {}
+    if target_screen:
+        fcm_data["target"] = json.dumps({
+            "screen": target_screen,
+            "bindings": target_bindings,
+        })
 
     db = firestore.client()
     docs = list(db.collection("_push_tokens").stream())
@@ -404,7 +418,10 @@ def send_notification(req: https_fn.Request) -> https_fn.Response:
     fcm_url = f"https://fcm.googleapis.com/v1/projects/{project}/messages:send"
     headers = {"Authorization": f"Bearer {creds.token}", "Content-Type": "application/json"}
     for token in tokens:
-        msg_body = {"message": {"token": token, "notification": {"title": title, "body": body}}}
+        message: dict = {"token": token, "notification": {"title": title, "body": body}}
+        if fcm_data:
+            message["data"] = fcm_data
+        msg_body = {"message": message}
         try:
             r = requests.post(fcm_url, headers=headers, json=msg_body, timeout=15)
             if r.status_code == 200:

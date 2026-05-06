@@ -66,6 +66,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -315,6 +316,19 @@ fun TabBarRoot(node: DSLNode) {
     val overflowTabs = if (hasOverflow) allTabs.drop(MAX_VISIBLE_TABS - 1) else emptyList()
     val barItems = visibleTabs.size + (if (hasOverflow) 1 else 0)
 
+    // Deep-link entrant : si une route pending matche un tab connu, switch
+    // sur ce tab. La SingleNavStack consommera ensuite la pending route via
+    // LaunchedEffect au composer du nouveau tab.
+    val pending by CommuneRouter.pending.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(pending) {
+        val p = pending ?: return@LaunchedEffect
+        val routeModule = p.qualifiedScreen.substringBefore(":")
+        val match = allTabs.indexOfFirst { it.screen.substringBefore(":") == routeModule }
+        if (match >= 0) {
+            selectedIndex = if (hasOverflow && match >= MAX_VISIBLE_TABS - 1) visibleTabs.size else match
+        }
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -478,6 +492,25 @@ fun SingleNavStack(
     // Observer du back-stack pour recomposer quand l'utilisateur push / pop.
     val currentEntry by nav.currentBackStackEntryAsState()
     val isAtRoot = currentEntry == null || nav.previousBackStackEntry == null
+
+    // Deep-link entrant : si une route pending matche le module de cette
+    // stack, on la consomme et navigue. TabBarRoot a déjà sélectionné le bon
+    // tab via collectAsState.
+    val pending by CommuneRouter.pending.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(pending, startQualifiedScreen) {
+        val p = pending ?: return@LaunchedEffect
+        val rootModule = startQualifiedScreen.substringBefore(":")
+        val pendingModule = p.qualifiedScreen.substringBefore(":")
+        if (rootModule == pendingModule) {
+            nav.navigate(
+                ScreenRoute(
+                    qualifiedScreen = p.qualifiedScreen,
+                    bindingsJson = encodeBindings(p.bindings)
+                )
+            )
+            CommuneRouter.consume()
+        }
+    }
 
     NavHost(
         navController = nav,

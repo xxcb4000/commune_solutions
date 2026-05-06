@@ -1,6 +1,7 @@
 package be.communesolutions.spike
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import be.communesolutions.renderer.CommunePushService
+import be.communesolutions.renderer.CommuneRouter
 import be.communesolutions.renderer.CommuneShell
 
 class MainActivity : ComponentActivity() {
@@ -69,6 +71,12 @@ class MainActivity : ComponentActivity() {
             CommunePushService.ensureChannelAndPersistToken(this)
         }
 
+        // Deep-link entrant via tap notif : l'intent porte un extra
+        // `communePushTarget` (JSON `{screen, bindings}`) déposé par
+        // CommunePushService. On le pousse à CommuneRouter pour que TabBarRoot
+        // bascule sur le bon tab et navigue vers la screen ciblée.
+        handleIntentForRouter(intent)
+
         enableEdgeToEdge()
         setContent {
             SpikeTheme {
@@ -80,6 +88,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // L'app peut être déjà running quand l'utilisateur tape une notif —
+    // dans ce cas Android livre un nouvel Intent à l'instance existante via
+    // onNewIntent au lieu de relancer onCreate. On y traite aussi le deep-link.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntentForRouter(intent)
+    }
+
+    private fun handleIntentForRouter(intent: Intent?) {
+        val target = intent?.getStringExtra("communePushTarget") ?: return
+        CommuneRouter.handlePushTarget(target)
+        intent.removeExtra("communePushTarget")  // ne pas re-router au prochain rebuild
     }
 }
 

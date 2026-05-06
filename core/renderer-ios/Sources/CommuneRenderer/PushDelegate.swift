@@ -91,12 +91,16 @@ public final class CommunePushDelegate: NSObject, UIApplicationDelegate,
         return [.banner, .badge, .sound]
     }
 
-    // Tap sur une notif (foreground ou background). v0 : juste log. Les
-    // deep-links (ouvrir un écran cible) sont phase 18.5.
+    // Tap sur une notif (foreground ou background). Si la notif a un
+    // `data.target` (JSON `{screen, bindings}`), on déclenche le routing
+    // via CommuneRouter — TabBarBlock l'observe et push sur sa NavigationStack.
     public func userNotificationCenter(_ center: UNUserNotificationCenter,
                                        didReceive response: UNNotificationResponse) async {
         let userInfo = response.notification.request.content.userInfo
         print("[CommunePush] tap notif: \(userInfo)")
+        if let target = userInfo["target"] as? String {
+            await CommuneRouter.shared.handlePushTarget(jsonString: target)
+        }
     }
 
     // Appelée par AuthGate quand l'état auth change pour qu'on tente

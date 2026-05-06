@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 
 val SpikeJson = Json {
@@ -161,6 +162,28 @@ object TenantContext {
     // displayName) sans nouveau type de data source. Source : tenant
     // app.json poussé ici au démarrage.
     var bindings: Map<String, JsonElement> = emptyMap()
+}
+
+// Router cross-cutting pour deep-links entrants (notif tap, plus tard
+// Universal/App Links). PushService dépose une demande de route ; TabBarRoot
+// l'observe via collectAsState et navigue vers le tab + push correspondant.
+object CommuneRouter {
+    data class Pending(val qualifiedScreen: String, val bindings: Map<String, JsonElement>)
+    private val _pending = kotlinx.coroutines.flow.MutableStateFlow<Pending?>(null)
+    val pending: kotlinx.coroutines.flow.StateFlow<Pending?> = _pending
+
+    /// Décode un payload FCM `target` (JSON string `{screen, bindings}`) et
+    /// publie la pending route. Idempotent — TabBarRoot consomme + clear.
+    fun handlePushTarget(jsonString: String) {
+        runCatching {
+            val obj = SpikeJson.parseToJsonElement(jsonString).jsonObject
+            val screen = (obj["screen"] as? JsonPrimitive)?.contentOrNull ?: return@runCatching
+            val bindings = (obj["bindings"] as? JsonObject)?.toMap() ?: emptyMap()
+            _pending.value = Pending(screen, bindings)
+        }
+    }
+
+    fun consume() { _pending.value = null }
 }
 
 // Holds module manifests loaded at startup and resolves qualified screen IDs

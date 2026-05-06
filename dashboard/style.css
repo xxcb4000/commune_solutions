@@ -616,6 +616,27 @@ form#login-form button[type="submit"]:disabled { opacity: 0.5; cursor: progress;
     min-height: 88px;
     font-family: inherit;
 }
+.notif-target {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: var(--card);
+}
+.notif-target summary {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin: 0;
+    padding: 4px 0;
+}
+.notif-target[open] summary { margin-bottom: 12px; }
+.notif-target label { margin-top: 8px; }
+.notif-target code {
+    background: rgba(0,0,0,0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
 
 .module-badge {
     display: inline-block;

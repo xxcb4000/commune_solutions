@@ -166,6 +166,36 @@ final class TenantContext {
     private init() {}
 }
 
+// Router cross-cutting pour les deep-links entrants (notifications push tap,
+// plus tard Universal Links). Le PushDelegate y dépose une Route ; la
+// TabBarBlock l'observe et la push sur sa NavigationStack au prochain
+// rendu.
+@MainActor
+final class CommuneRouter: ObservableObject {
+    static let shared = CommuneRouter()
+    @Published var pendingRoute: Route?
+    private init() {}
+
+    /// Décode un payload FCM `data.target` (JSON string `{screen, bindings}`)
+    /// et publie la route correspondante. Idempotent : une fois consommée
+    /// par TabBarBlock, la route est remise à nil.
+    func handlePushTarget(jsonString: String) {
+        guard let data = jsonString.data(using: .utf8),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let screen = payload["screen"] as? String, !screen.isEmpty else { return }
+        var bindings: [String: DSLValue] = [:]
+        if let dict = payload["bindings"] as? [String: Any] {
+            for (k, v) in dict {
+                if let s = v as? String { bindings[k] = .string(s) }
+                else if let i = v as? Int { bindings[k] = .int(i) }
+                else if let d = v as? Double { bindings[k] = .double(d) }
+                else if let b = v as? Bool { bindings[k] = .bool(b) }
+            }
+        }
+        pendingRoute = Route(qualifiedScreen: screen, bindings: bindings)
+    }
+}
+
 // Holds module manifests loaded at startup and resolves qualified screen IDs
 // (e.g. "actualites:feed") to bundle paths. Singleton — manifests are
 // effectively static for the lifetime of the app.
