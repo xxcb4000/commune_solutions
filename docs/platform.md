@@ -1,6 +1,6 @@
 # Commune Solutions — Plateforme civic tech open source
 
-> **Statut** (mai 2026) : pipeline complet exercé end-to-end sur 2 tenants test. 5 modules officiels (`actualites`, `agenda`, `sondages`, `info`, `carte`) + 2 modules communauté + dashboard admin CRUD complet + modération UGC + marketplace + auto-deploy CI tous live. **3 renderers** : iOS (SwiftUI), Android (Compose), web (preview JS). 14 primitives validées en natif sur device + 13 sur web. Première vraie commune (Awans) pas encore déployée — c'est le test final restant.
+> **Statut** (mai 2026) : pipeline complet exercé end-to-end sur 2 tenants test + **première commune en production** (Awans, `awans.communesolutions.be`, lancement officiel public 28 mai 2026). 5 modules officiels (`actualites`, `agenda`, `sondages`, `info`, `carte`) + 2 modules communauté + dashboard admin CRUD complet + modération UGC + marketplace + auto-deploy CI tous live. **3 renderers** : iOS (SwiftUI), Android (Compose), web (preview JS). 14 primitives validées en natif sur device + 13 sur web.
 >
 > Spike GO initial : 2026-04-30, cf [`spike/SPIKE_VERDICT.md`](../spike/SPIKE_VERDICT.md).
 
@@ -781,7 +781,7 @@ Concerns transverses (gestion users, modération, billing si un jour, audit log)
 
 ### Gouvernance
 
-- **MVP** : Vincent BDFL, première commune sponsor à confirmer (cf phase 12 de la roadmap README)
+- **MVP** : Vincent BDFL, première commune sponsor confirmée — **Awans** (en prod sur `awans.communesolutions.be`, lancement officiel 28 mai 2026)
 - **À terme** : asbl ou structure portée par les communes adoptantes + UVCW (Union Villes et Communes Wallonie), puis intégration Région wallonne possible
 
 ## Décisions ouvertes

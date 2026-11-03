@@ -13,8 +13,9 @@ Pipeline complet validé end-to-end sur 2 tenants test (Démo A / Démo B). Tout
 - CI : `validate-manifests.yml` sur PR + `deploy-marketplace.yml` sur main
 - Pipeline contributeur exercé end-to-end (PR #1 mergée pour `restos-locaux`, modération UGC en réel via "Proposer un événement")
 
+**Première commune en prod** : Awans est provisionnée et tourne en production sur `awans.communesolutions.be`. Lancement officiel public le **28 mai 2026**. Le pipeline end-to-end est donc exercé pour de vrai.
+
 **Reste sur la roadmap (cf `docs/roadmap.md`)** :
-- Provisionnement réel d'une vraie commune (Awans en perspective) — c'est le test final du pipeline end-to-end
 - Décisions ouvertes design : i18n, JSON Schema runtime, mode hors-ligne, quotas, etc.
 
 ## Docs à lire en priorité

@@ -4,7 +4,7 @@
 
 > Plateforme civic tech open source à destination des communes wallonnes.
 >
-> **Statut** (mai 2026) : pipeline complet validé end-to-end sur 2 tenants de test (Démo A / Démo B). Marketplace, modules communauté, modération UGC, dashboard admin, web preview, auto-deploy CI tous live. Première vraie commune (Awans) pas encore déployée.
+> **Statut** (mai 2026) : pipeline complet validé end-to-end sur 2 tenants de test (Démo A / Démo B) + **première commune en production** (Awans, `awans.communesolutions.be`, lancement officiel public le 28 mai 2026). Marketplace, modules communauté, modération UGC, dashboard admin, web preview, auto-deploy CI tous live.
 
 **Marketplace live** : [`communesolutions.be/marketplace`](https://communesolutions.be/marketplace) — catalogue des modules (5 officiels + 2 communauté). Preview en navigateur : `…/marketplace/preview.html?module=<id>`.
 
@@ -83,7 +83,7 @@ Vue détaillée + chantiers à venir : [`docs/roadmap.md`](docs/roadmap.md).
 **Résumé (mai 2026)** :
 - ✅ **Spike technique** validé GO 2026-04-30 — DSL renderer iOS + Android, multi-tenant, auth Firebase, Firestore par tenant
 - ✅ **Au-delà du spike** : backend Python réel, form fields DSL, modules officiels (`actualites` / `agenda` / `sondages` / `info` / `carte`), polish editorial validé sur device, marketplace web v0
-- 🚧 **Phase 12 — onboarding commune** : build paramétré single-commune ✅, provisioning post-project ✅, CI GitHub Actions ✅, fastlane TestFlight scaffold ✅, DNS sous-domaine + AASA + assetlinks ✅. Reste : test live sur première vraie commune (Awans)
+- ✅ **Phase 12 — onboarding commune** : build paramétré single-commune, provisioning post-project, CI GitHub Actions, fastlane TestFlight scaffold, DNS sous-domaine + AASA + assetlinks. **Awans déployée en production** (`awans.communesolutions.be`, lancement officiel 28 mai 2026) — pipeline end-to-end exercé pour de vrai
 - ✅ **Phase 13 — communauté ouverte** : `modules-community/` + 2 modules exemple, CLI `create-commune-module.sh`, Firebase emulators locaux, capability `cf.external` (contrat manifest), pipeline contributeur exercé end-to-end (PR #1 mergée)
 - ✅ **Phase 14 — dashboard édition** : CRUD articles/events/polls/places/info via modal éditeur schema-driven, image upload Storage, branding editor live preview, modération UGC (queue + approve/reject) — exercée live avec « Proposer un événement » dans agenda
 - ✅ **Phase 15 — hygiène repo + ouverture publique** : LICENSE EUPL-1.2, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, audit secrets clean

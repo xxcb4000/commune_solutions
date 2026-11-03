@@ -42,7 +42,9 @@
 
 ### 12. Onboarding première commune
 
-Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomposition :
+✅ **Awans est en production sur `awans.communesolutions.be`** (mai 2026). Lancement officiel public le **28 mai 2026**. Tout le pipeline ci-dessous a donc été exercé end-to-end au moins une fois ; les ⏭ qui restent sont des automatisations ou des cas non encore rencontrés.
+
+Décomposition :
 
 - **🚧 12.1 — Build paramétré par commune** (en cours, validé end-to-end iOS + Android)
   - ✅ Section `build` (`bundleId`, `displayName`) ajoutée à `tenants/<id>/app.json`
@@ -86,7 +88,7 @@ Le morceau qui fait passer la plateforme du spike au déploiement réel. Décomp
   - ⏭ Automation Infomaniak DNS API + Firebase Hosting custom domain API → quand on aura > 5 communes en prod (pas justifié avant)
   - ⏭ Compléter sha256_cert_fingerprints Android dans assetlinks.json après premier build release signé (cf phase 12.4)
 - **⏭ Universal Links / App Links à l'échelle** : `apple-app-site-association` mutualisé sur `communesolutions.be` 🤔 (cf décision ouverte platform.md)
-- **⏭ Choix commune pilote** : à arbitrer
+- **✅ Choix commune pilote** : Awans (lancement officiel public 2026-05-28, instance live `awans.communesolutions.be`)
 
 ### 13. Communauté ouverte (premier module tiers)
 
@@ -142,7 +144,7 @@ Aujourd'hui le dashboard ne fait que **toggle des modules** + lecture des collec
   - ✅ Color pickers natifs HTML5 pour les dots
   - ✅ Save préserve modules + tabs (merge ciblé sur view.brand)
   - ⏭ Logo upload (pas de slot logo dans le brand schema actuellement — à étendre quand le mobile rendra un logo)
-  - ⏭ First-time wizard "vous n'avez pas encore configuré votre commune" — à faire quand on onboarde la première vraie commune (Awans), pour valider la friction réelle
+  - ⏭ First-time wizard "vous n'avez pas encore configuré votre commune" — onboarding Awans (mai 2026) fait à la main, à transformer en wizard pour les communes suivantes
 - **✅ 14.8 — Modération UGC** (exercé live avec « Proposer un événement »)
   - ✅ Capability `moderation` reconnue par le validator + champ top-level `moderation: [{collection, label}]` cross-validated
   - ✅ Convention queue unifiée `_moderation_queue/<id>` avec shape standard `{targetCollection, payload, moduleId, submittedBy, submittedAt}` + champ `_summary` optionnel pour l'aperçu admin
